@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// User Entity
+// ============================================================================
+// Represents an authenticated student who has completed SAML SSO login.
+// Stores minimal attributes extracted from SAML assertion.
+
+enum EnrollmentStatus {
+  ACTIVE
+  SUSPENDED
+  GRADUATED
+}
+
+model User {
+  id               String           @id @default(uuid())
+  studentIdHash    String           @unique @db.VarChar(64) // SHA-256 hash (hex)
+  class            String           @db.VarChar(50)         // e.g., "CSIE_3A"
+  email            String?          @db.VarChar(255)        // Optional for recovery
+  enrollmentStatus EnrollmentStatus @default(ACTIVE)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  
+  // Relations
+  sessions         Session[]
+  
+  @@index([class])
+  @@map("users")
+}
+
+// ============================================================================
+// Session Entity
+// ============================================================================
+// Tracks active JWT sessions for access token revocation and refresh token management.
+
+model Session {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jti            String    @unique @db.VarChar(36) // JWT ID (UUID format)
+  accessToken    String    @db.Text
+  refreshToken   String    @db.Text
+  expiresAt      DateTime
+  revoked        Boolean   @default(false)
+  revokedAt      DateTime?
+  deviceInfo     String?   @db.VarChar(500)
+  ipAddress      String?   @db.VarChar(45) // IPv6 max length
+  createdAt      DateTime  @default(now())
+  lastActivityAt DateTime  @default(now())
+  
+  @@index([userId, revoked])
+  @@index([jti])
+  @@index([expiresAt]) // For cleanup job
+  @@map("sessions")
+}
+
+// ============================================================================
+// Election Entity
+// ============================================================================
+// Represents a voting election. Merkle root hash field for eligibility verification.
+
+model Election {
+  id             String          @id @default(uuid())
+  name           String          @db.VarChar(255)
+  merkleRootHash String?         @db.VarChar(64) // SHA-256 hash (hex)
+  status         ElectionStatus  @default(DRAFT)
+  startTime      DateTime?
+  endTime        DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  
+  // Relations
+  eligibleVoters EligibleVoter[]
+  
+  @@index([status])
+  @@index([startTime, endTime])
+  @@map("elections")
+}
+
+enum ElectionStatus {
+  DRAFT
+  REGISTRATION_OPEN
+  VOTING_OPEN
+  VOTING_CLOSED
+  TALLIED
+}
+
+// ============================================================================
+// EligibleVoter Entity
+// ============================================================================
+// Stores the list of students eligible to vote in a specific election.
+// Used to generate Merkle Tree for zero-knowledge eligibility proofs.
+
+model EligibleVoter {
+  id         String   @id @default(uuid())
+  studentId  String   @db.VarChar(20)  // Plaintext student ID (for Merkle proof generation)
+  class      String   @db.VarChar(50)
+  electionId String
+  election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([studentId, electionId]) // One entry per student per election
+  @@index([electionId])
+  @@index([studentId])
+  @@map("eligible_voters")
+}

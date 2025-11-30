@@ -1,98 +1,83 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# SAVote 後端服務 (apps/api)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+本目錄包含 SAVote 系統的後端 API 服務，基於 NestJS 框架構建。
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 技術堆疊
 
-## Description
+- **框架**: NestJS 11
+- **語言**: TypeScript
+- **資料庫**: PostgreSQL (透過 Prisma ORM)
+- **驗證**: Passport-SAML (SSO), JWT (Session)
+- **密碼學**: merkletreejs, crypto (SHA-256)
+- **測試**: Jest, Supertest
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 主要功能模組
 
-## Project setup
+1.  **AuthModule**:
+    *   處理 SAML SSO 登入 (`/auth/saml/login`) 與回調 (`/auth/saml/callback`)。
+    *   發放與驗證 JWT Access Token 與 Refresh Token。
+    *   提供登出機制。
 
-```bash
-$ pnpm install
+2.  **UsersModule**:
+    *   管理使用者資料。
+    *   提供當前使用者資訊查詢 (`/users/me`)。
+
+3.  **VotersModule**:
+    *   **選民匯入**: 支援 CSV 檔案上傳 (`/voters/import`)，僅限管理員。
+    *   **Merkle Tree**: 解析 CSV 資料，計算每個選民的雜湊值，並建構 Merkle Tree。
+    *   **資格驗證**: 提供 API 讓前端查詢選民資格與 Merkle Proof (`/voters/eligibility/:electionId`)。
+
+4.  **PrismaModule**:
+    *   封裝 Prisma Client，負責與資料庫互動。
+
+## 環境變數設定 (.env)
+
+請在 `apps/api` 目錄下建立 `.env` 檔案：
+
+```env
+# 資料庫連線
+DATABASE_URL="postgresql://postgres:password@localhost:5432/savote?schema=public"
+
+# JWT 設定
+JWT_PRIVATE_KEY_PATH="./secrets/jwt-private.key"
+JWT_PUBLIC_KEY_PATH="./secrets/jwt-public.key"
+ACCESS_TOKEN_TTL="15m"
+REFRESH_TOKEN_TTL="7d"
+
+# SAML 設定 (範例)
+SAML_ENTRY_POINT="https://idp.example.com/saml/sso"
+SAML_CALLBACK_URL="http://localhost:3000/auth/saml/callback"
+SAML_ISSUER="https://savote.local/auth/metadata"
+SAML_IDP_CERT="-----BEGIN CERTIFICATE-----...-----END CERTIFICATE-----"
+
+# 應用程式設定
+PORT=3000
+CORS_ORIGIN="http://localhost:5173"
 ```
 
-## Compile and run the project
+## 執行指令
 
 ```bash
-# development
-$ pnpm run start
+# 安裝依賴
+pnpm install
 
-# watch mode
-$ pnpm run start:dev
+# 啟動開發伺服器
+pnpm --filter api dev
 
-# production mode
-$ pnpm run start:prod
+# 執行測試
+pnpm --filter api test
+pnpm --filter api test:e2e
+
+# Prisma 資料庫遷移
+pnpm prisma migrate dev
 ```
 
-## Run tests
+## 測試策略
 
-```bash
-# unit tests
-$ pnpm run test
+- **單元測試 (Unit Tests)**: 針對 Service 層邏輯進行測試 (如 `voters.service.spec.ts`)。
+- **整合測試 (Integration Tests)**: 針對 Controller 與 Module 互動進行測試 (如 `auth.controller.spec.ts`)。
+- **E2E 測試**: 模擬完整請求流程。
 
-# e2e tests
-$ pnpm run test:e2e
+## 相關文件
 
-# test coverage
-$ pnpm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+詳細規格與設計請參考 `specs/001-saml-sso-auth/` 目錄下的文件。

@@ -1,0 +1,561 @@
+openapi: 3.0.3
+info:
+  title: SAVote 身份驗證 API
+  description: |
+    NCUESA 去中心化投票系統的 SAML SSO 身份驗證 API。
+    處理使用者身份驗證、JWT Token 管理和合格選民匯入。
+  version: 1.0.0
+  contact:
+    name: NCUESA 開發團隊
+    email: dev@ncuesa.edu.tw
+
+servers:
+  - url: https://api.voting.ncuesa.edu.tw
+    description: 正式伺服器
+  - url: http://localhost:3000
+    description: 本機開發伺服器
+
+tags:
+  - name: Authentication
+    description: SAML SSO 和 JWT Token 操作
+  - name: Users
+    description: 使用者個人資料管理
+  - name: Voters
+    description: 合格選民名單管理（僅限管理員）
+
+paths:
+  /auth/saml/login:
+    get:
+      tags:
+        - Authentication
+      summary: 啟動 SAML SSO 登入
+      description: |
+        將使用者重新導向至學校的身份提供者 (IdP) 進行驗證。
+        此端點啟動 SAML SSO 流程。
+      operationId: samlLogin
+      responses:
+        '302':
+          description: 重新導向至 SAML IdP
+          headers:
+            Location:
+              schema:
+                type: string
+                example: https://idp.school.edu.tw/saml/sso?SAMLRequest=...
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/saml/callback:
+    post:
+      tags:
+        - Authentication
+      summary: SAML SSO 回呼端點
+      description: |
+        接收來自 IdP 驗證成功後的 SAML assertion。
+        處理 SAML 回應，建立/更新使用者記錄，發行 JWT Tokens。
+      operationId: samlCallback
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - SAMLResponse
+              properties:
+                SAMLResponse:
+                  type: string
+                  description: 來自 IdP 的 Base64 編碼 SAML assertion
+                RelayState:
+                  type: string
+                  description: 來自初始請求的可選狀態參數
+      responses:
+        '200':
+          description: 身份驗證成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: SAML 驗證失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                statusCode: 401
+                message: Invalid SAML assertion signature
+                error: Unauthorized
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: 重新整理 Access Token
+      description: |
+        使用 Refresh Token 交換新的 Access Token。
+        Refresh Token 有效期為 7 天，Access Token 為 15 分鐘。
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  description: 來自先前驗證的有效 Refresh Token
+                  example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token 重新整理成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accessToken
+                  - expiresIn
+                properties:
+                  accessToken:
+                    type: string
+                    description: 新的 JWT Access Token
+                    example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+                  expiresIn:
+                    type: integer
+                    description: Token 有效期秒數
+                    example: 900
+        '401':
+          description: 無效或過期的 Refresh Token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: 登出使用者
+      description: |
+        撤銷當前工作階段並使 JWT Tokens 失效。
+        客戶端應在成功登出後清除 LocalStorage。
+      operationId: logout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 登出成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/jwks:
+    get:
+      tags:
+        - Authentication
+      summary: 取得 JSON Web Key Set
+      description: |
+        回傳用於 JWT 簽章驗證的公鑰。
+        供客戶端驗證 Access Token 的真實性。
+      operationId: getJWKS
+      responses:
+        '200':
+          description: JWKS 回應
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JWK'
+
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: 取得當前使用者個人資料
+      description: |
+        回傳已驗證使用者的個人資料資訊。
+        不包含 Nullifier Secret（僅限客戶端）。
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 使用者個人資料
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/me:
+    patch:
+      tags:
+        - Users
+      summary: 更新使用者個人資料
+      description: |
+        允許使用者更新其電子郵件地址（用於投票收據）。
+        學號和班級無法更改（來自 SAML）。
+      operationId: updateCurrentUser
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  nullable: true
+                  description: 用於投票收據的可選電子郵件
+                  example: student@example.com
+      responses:
+        '200':
+          description: 個人資料更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /voters/import:
+    post:
+      tags:
+        - Voters
+      summary: 匯入合格選民名單
+      description: |
+        管理員端點，用於上傳選舉的合格選民 CSV。
+        產生用於 ZK 資格證明的 Merkle Tree Root Hash。
+      operationId: importVoters
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - electionId
+                - file
+              properties:
+                electionId:
+                  type: string
+                  format: uuid
+                  description: 目標選舉 ID
+                  example: 550e8400-e29b-41d4-a716-446655440000
+                file:
+                  type: string
+                  format: binary
+                  description: 包含 studentId,class 欄位的 CSV 檔案
+      responses:
+        '201':
+          description: 選民匯入成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - votersImported
+                  - merkleRootHash
+                properties:
+                  votersImported:
+                    type: integer
+                    description: 已匯入的選民數量
+                    example: 1234
+                  merkleRootHash:
+                    type: string
+                    description: 產生的 Merkle Tree Root Hash (十六進位)
+                    example: 5e9f8e3b2c1a4d6f7e8b9a0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0
+                  duplicatesSkipped:
+                    type: integer
+                    description: 跳過的重複項目數量
+                    example: 5
+        '400':
+          description: 無效的 CSV 格式或資料
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 權限不足（僅限管理員）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /voters/verify-eligibility:
+    post:
+      tags:
+        - Voters
+      summary: 驗證使用者選舉資格
+      description: |
+        檢查當前使用者是否符合指定選舉的投票資格。
+        如果符合資格，回傳用於 ZK 電路的 Merkle Proof。
+      operationId: verifyEligibility
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - electionId
+              properties:
+                electionId:
+                  type: string
+                  format: uuid
+                  example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: 資格驗證通過
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - eligible
+                  - merkleRootHash
+                properties:
+                  eligible:
+                    type: boolean
+                    description: 使用者是否符合資格
+                    example: true
+                  merkleRootHash:
+                    type: string
+                    description: 選舉 Merkle Root Hash
+                    example: 5e9f8e3b2c1a4d6f7e8b9a0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0
+                  merkleProof:
+                    type: array
+                    description: Merkle Proof 路徑（如果符合資格）
+                    items:
+                      type: string
+                    example: 
+                      - "0x1234..."
+                      - "0x5678..."
+                  leafIndex:
+                    type: integer
+                    description: Merkle Tree 中的位置
+                    example: 42
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: 找不到選舉
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        從 /auth/saml/callback 或 /auth/refresh 取得的 JWT Access Token。
+        在 Authorization 標頭中包含：Bearer <token>
+
+  schemas:
+    AuthResponse:
+      type: object
+      required:
+        - accessToken
+        - refreshToken
+        - expiresIn
+        - user
+      properties:
+        accessToken:
+          type: string
+          description: JWT Access Token (15分鐘有效期)
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          description: Refresh Token (7天有效期)
+          example: a7b8c9d0e1f2g3h4i5j6k7l8m9n0o1p2
+        expiresIn:
+          type: integer
+          description: Access Token 有效期秒數
+          example: 900
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      required:
+        - id
+        - studentIdHash
+        - class
+        - enrollmentStatus
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 使用者唯一識別碼
+          example: 550e8400-e29b-41d4-a716-446655440000
+        studentIdHash:
+          type: string
+          description: 學號的 SHA-256 雜湊 (十六進位, 64 chars)
+          example: 5e9f8e3b2c1a4d6f7e8b9a0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0
+        class:
+          type: string
+          description: 班級/系所代碼
+          example: CSIE_3A
+        email:
+          type: string
+          format: email
+          nullable: true
+          description: 用於投票收據的可選電子郵件
+          example: student@example.com
+        enrollmentStatus:
+          type: boolean
+          description: 在學狀態
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: 首次登入時間戳記
+          example: 2025-11-30T10:30:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          description: 最後個人資料更新時間
+          example: 2025-11-30T12:45:00Z
+
+    JWK:
+      type: object
+      required:
+        - kty
+        - use
+        - kid
+        - n
+        - e
+      properties:
+        kty:
+          type: string
+          enum: [RSA]
+          description: 金鑰類型
+        use:
+          type: string
+          enum: [sig]
+          description: 金鑰用途
+        kid:
+          type: string
+          description: 金鑰 ID
+          example: "2025-Q1"
+        n:
+          type: string
+          description: RSA 模數 (Base64URL)
+        e:
+          type: string
+          description: RSA 指數 (Base64URL)
+          example: AQAB
+
+    Error:
+      type: object
+      required:
+        - statusCode
+        - message
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP 狀態碼
+          example: 400
+        message:
+          type: string
+          description: 錯誤訊息
+          example: Invalid input data
+        error:
+          type: string
+          description: 錯誤類型
+          example: Bad Request
+        details:
+          type: array
+          description: 驗證錯誤詳情
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: email
+              message:
+                type: string
+                example: Must be a valid email address
+
+  responses:
+    BadRequest:
+      description: 無效的請求參數
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 400
+            message: Validation failed
+            error: Bad Request
+            details:
+              - field: electionId
+                message: Must be a valid UUID
+
+    Unauthorized:
+      description: 缺少或無效的身份驗證 Token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 401
+            message: Invalid or expired token
+            error: Unauthorized
+
+    InternalServerError:
+      description: 未預期的伺服器錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            statusCode: 500
+            message: An unexpected error occurred
+            error: Internal Server Error

@@ -245,11 +245,61 @@
 
 ### 9.2 快速開始 (Getting Started)
 
-#### 前置需求
+## 🚀 當前實作狀態 (Implementation Status)
+
+### ✅ Phase 1: 基礎建設 (已完成)
+- [x] Monorepo 結構初始化 (pnpm workspace)
+- [x] Docker Compose (PostgreSQL)
+- [x] Prisma ORM 設置與遷移
+- [x] 共享型別定義 (@savote/shared-types)
+- [x] RSA 金鑰對生成 (JWT 簽章用)
+
+### ✅ Phase 2: 認證系統 (已完成)
+- [x] SAML SSO 整合 (Synology C2 Identity)
+- [x] JWT Token 管理 (Access + Refresh)
+- [x] Session 追蹤與撤銷機制
+- [x] 前端認證 Store (Zustand)
+- [x] API Client (自動 Token 刷新)
+- [x] Web Crypto API 加密工具
+- [x] 安全儲存管理器
+- [x] 認證相關 React 組件
+    - Login 頁面
+    - SAML Callback 處理
+    - Error 頁面
+    - Protected Route 守衛
+
+### 📋 後續開發計劃
+- [ ] Phase 3: 選舉管理系統
+- [ ] Phase 4: ZK 電路開發
+- [ ] Phase 5: 投票流程實作
+- [ ] Phase 6: 結果驗證與稽核
+
+---
+
+## 📚 文件索引 (Documentation)
+
+### 核心規格文件 (Core Specifications)
+- [SAML SSO 驗證與 Nullifier Secret 管理](./specs/001-saml-sso-auth/spec.md) - 詳細功能規格
+- [實作計畫 (Implementation Plan)](./specs/001-saml-sso-auth/plan.md) - 開發步驟與架構決策
+- [快速入門 (Quickstart)](./specs/001-saml-sso-auth/quickstart.md) - 開發環境建置指南
+- [任務清單 (Tasks)](./specs/001-saml-sso-auth/tasks.md) - 詳細開發任務追蹤
+- [資料模型 (Data Model)](./specs/001-saml-sso-auth/data-model.md) - 資料庫 Schema 設計
+- [API 合約 (API Contracts)](./specs/001-saml-sso-auth/contracts/openapi.yaml) - OpenAPI 規格
+
+### 其他文件
+- [SAML 配置指南](./docs/saml-configuration.md)
+- [資料庫設置](./docs/database-setup.md)
+
+---
+
+## 🛠️ 快速開始 (Getting Started)
+
+### 前置需求
 
 * Node.js (LTS v20+)
 * pnpm (v9+)
 * Docker & Docker Compose (用於資料庫)
+* Windows 環境 (推薦)
 
 #### 安裝依賴
 
@@ -261,10 +311,44 @@ npm install -g pnpm
 pnpm install
 ```
 
-#### 啟動開發環境
+#### 啟動開發環境 (推薦)
+
+我們提供了一個自動化腳本，可以一次完成環境檢查、金鑰生成、資料庫啟動與遷移，以及服務啟動。
+
+直接執行根目錄下的批次檔：
+
+```cmd
+start-dev.bat
+```
+
+該腳本會自動執行以下步驟：
+1. 檢查 pnpm 安裝
+2. 安裝依賴 (若 node_modules 不存在)
+3. 建立 `apps/api/.env` (若不存在)
+4. 生成 JWT 金鑰對 (若不存在)
+5. 啟動 Docker 資料庫容器
+6. 執行 Prisma 資料庫遷移
+7. 啟動 Turbo 開發伺服器 (API + Web)
+
+啟動後，您可以訪問：
+* **Web 前端:** http://localhost:5173
+* **API 後端:** http://localhost:3000
+* **API 文件 (Swagger):** http://localhost:3000/api
+
+#### 手動啟動 (進階)
+
+若您希望手動控制每個步驟：
 
 ```bash
-# 啟動所有服務 (Web + API)
+# 1. 啟動資料庫
+docker-compose up -d
+
+# 2. 執行遷移
+cd apps/api
+npx prisma migrate deploy
+cd ../..
+
+# 3. 啟動服務
 pnpm dev
 
 # 僅啟動特定服務
