@@ -9,12 +9,14 @@ import { UpdateCandidateDto } from './dto/update-candidate.dto';
 import { ImportEligibleVotersDto } from './dto/import-eligible-voters.dto';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { UseGuards } from '@nestjs/common';
+import { VotesService } from '../votes/votes.service';
 
 @Controller('elections')
 export class ElectionsController {
   constructor(
     private readonly electionsService: ElectionsService,
     private readonly candidatesService: CandidatesService,
+    private readonly votesService: VotesService,
   ) {}
 
   @Post()
@@ -48,6 +50,13 @@ export class ElectionsController {
     return this.electionsService.remove(id);
   }
 
+  // Lifecycle: finalize voter list and open voting
+  @UseGuards(AdminGuard)
+  @Post(':id/finalize')
+  finalize(@Param('id') electionId: string) {
+    return this.electionsService.finalizeVoterList(electionId);
+  }
+
   // Eligible Voters Endpoints
   @UseGuards(AdminGuard)
   @Post(':id/eligible-voters/import')
@@ -62,6 +71,22 @@ export class ElectionsController {
   @Get(':id/eligible-voters')
   listEligibleVoters(@Param('id') electionId: string) {
     return this.electionsService.listEligibleVoters(electionId);
+  }
+
+  // Admin monitoring summary (after election closed)
+  @UseGuards(AdminGuard)
+  @Get(':id/admin-summary')
+  async getAdminSummary(@Param('id') electionId: string) {
+    const election = await this.electionsService.findOne(electionId);
+    const tally = await this.votesService.getTally(electionId);
+    const totalVotes = Object.values(tally).reduce((sum, v) => sum + (v as number), 0);
+
+    return {
+      election,
+      status: election.status,
+      totalVotes,
+      tally,
+    };
   }
 
   // Candidate Endpoints

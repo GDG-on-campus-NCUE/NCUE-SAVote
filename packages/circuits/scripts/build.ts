@@ -53,7 +53,7 @@ const main = async () => {
     console.log('--- Compiling Circuit ---');
     // Use local circom binary if available
     let circomCmd = 'circom';
-    const localCircom = path.join(BIN_DIR, 'circom.exe');
+    const localCircom = path.join(BIN_DIR, 'circom');
     if (fs.existsSync(localCircom)) {
         circomCmd = localCircom;
     }
@@ -76,11 +76,11 @@ const main = async () => {
     // Let's do a proper setup sequence.
     
     // 3.1 Setup
-    run(`npx snarkjs groth16 setup ${r1csFile} ${PTAU_FILE} ${zkeyFile}`);
+    run(`pnpm snarkjs groth16 setup ${r1csFile} ${PTAU_FILE} ${zkeyFile}`);
 
     // 3.2 Contribute (Dummy contribution for dev)
     // We need to provide some random text.
-    const contributionCmd = `npx snarkjs zkey contribute ${zkeyFile} ${finalZkeyFile} --name="First Contribution" -v -e="random text"`;
+    const contributionCmd = `pnpm snarkjs zkey contribute ${zkeyFile} ${finalZkeyFile} --name="First Contribution" -v -e="random text"`;
     // Note: -e is entropy. In a real ceremony, this is user input.
     // But snarkjs might require interactive input if -e is not enough or different version.
     // Let's try non-interactive.
@@ -93,12 +93,12 @@ const main = async () => {
     // Let's do one contribution.
     // On Windows, passing entropy via command line might be tricky with quotes.
     // Let's try:
-    run(`npx snarkjs zkey contribute ${zkeyFile} ${finalZkeyFile} --name="Dev" -v -e="some random entropy"`);
+    run(`pnpm snarkjs zkey contribute ${zkeyFile} ${finalZkeyFile} --name="Dev" -v -e="some random entropy"`);
 
     // 4. Export Verification Key
     console.log('--- Exporting Verification Key ---');
     const vKeyFile = path.join(BUILD_DIR, 'verification_key.json');
-    run(`npx snarkjs zkey export verificationkey ${finalZkeyFile} ${vKeyFile}`);
+    run(`pnpm snarkjs zkey export verificationkey ${finalZkeyFile} ${vKeyFile}`);
 
     console.log('--- Build Complete ---');
     console.log(`Files generated in ${BUILD_DIR}:`);

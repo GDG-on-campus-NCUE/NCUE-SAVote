@@ -30,6 +30,41 @@ export class VotersService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  async registerIdentityCommitment(electionId: string, studentIdHash: string, commitment: string) {
+    this.logger.log(`Registering identity commitment for election ${electionId}`);
+
+    const election = await this.prisma.election.findUnique({ where: { id: electionId } });
+    if (!election) {
+      throw new NotFoundException('ELECTION_NOT_FOUND');
+    }
+
+    if (election.status !== 'REGISTRATION_OPEN') {
+      throw new BadRequestException('REGISTRATION_CLOSED');
+    }
+
+    const voter = await this.prisma.eligibleVoter.findFirst({
+      where: {
+        electionId,
+        studentId: studentIdHash,
+      },
+    });
+
+    if (!voter) {
+      throw new NotFoundException('VOTER_NOT_ELIGIBLE');
+    }
+
+    if (voter.identityCommitment) {
+      throw new BadRequestException('COMMITMENT_ALREADY_REGISTERED');
+    }
+
+    await this.prisma.eligibleVoter.update({
+      where: { id: voter.id },
+      data: { identityCommitment: commitment },
+    });
+
+    return { success: true };
+  }
+
   async parseCsv(buffer: Buffer): Promise<ParsedVoterRecord[]> {
     if (!buffer || !buffer.length) {
       this.logger.error('CSV file is empty');

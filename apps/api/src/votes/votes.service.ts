@@ -129,4 +129,16 @@ export class VotesService {
       }
     });
   }
+
+  async checkNullifier(electionId: string, nullifier: string) {
+    const vote = await this.prisma.vote.findFirst({
+      where: { electionId, nullifier },
+      select: { id: true, nullifier: true, createdAt: true },
+    });
+
+    return {
+      exists: !!vote,
+      vote,
+    };
+  }
 }

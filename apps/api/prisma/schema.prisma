@@ -114,8 +114,10 @@ enum ElectionStatus {
 
 model EligibleVoter {
   id         String   @id @default(uuid())
-  studentId  String   @db.VarChar(20)  // Plaintext student ID (for Merkle proof generation)
+  studentId  String   @db.VarChar(20)  // Plaintext student ID (for管理與稽核)
   class      String   @db.VarChar(50)
+  // ZK Registration
+  identityCommitment String? @unique @db.VarChar(100) // Poseidon(secret)，用於 Merkle Tree
   electionId String
   election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())

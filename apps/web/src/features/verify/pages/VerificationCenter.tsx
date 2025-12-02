@@ -1,10 +1,15 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { api } from '../../auth/services/auth.api';
 import { API_ENDPOINTS } from '../../../lib/constants';
 import { type Election, ElectionStatus } from '@savote/shared-types';
 import { PageShell } from '../../../components/layout/PageShell';
 import { GlassCard } from '../../../components/ui/GlassCard';
+// dev-only local verification (進階檢驗工具)
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - snarkjs has no official types but is bundled already
+import * as snarkjs from 'snarkjs';
 
 interface Tally {
   [candidateId: string]: number;
@@ -20,6 +25,11 @@ interface AuditLog {
 
 export function VerificationCenter() {
   const { electionId } = useParams<{ electionId: string }>();
+  const [nullifierInput, setNullifierInput] = useState('');
+  const [nullifierResult, setNullifierResult] = useState<null | { exists: boolean; createdAt?: string }>(null);
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [localVerifyStatus, setLocalVerifyStatus] = useState<null | { ok: boolean; message: string }>(null);
+  const [isVerifyingLocally, setIsVerifyingLocally] = useState(false);
 
   const { data: election, isLoading: isLoadingElection } = useQuery({
     queryKey: ['election', electionId],
@@ -74,7 +84,50 @@ export function VerificationCenter() {
     );
   }
 
+  const handleCheckNullifier = async () => {
+    setNullifierResult(null);
+    if (!nullifierInput.trim()) return;
+    try {
+      const res = await api.get(`/votes/${electionId}/check-nullifier/${nullifierInput.trim()}`);
+      const data = res.data as { exists: boolean; vote?: { createdAt: string } };
+      setNullifierResult({
+        exists: data.exists,
+        createdAt: data.vote?.createdAt,
+      });
+    } catch {
+      // 靜默失敗即可
+    }
+  };
+
   const totalVotes = Object.values(tally || {}).reduce((a, b) => a + b, 0);
+
+  const handleExportLogs = () => {
+    if (!logs || logs.length === 0) return;
+    const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `savote-audit-${electionId}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleLocalVerify = async () => {
+    if (!selectedLog) return;
+    setIsVerifyingLocally(true);
+    setLocalVerifyStatus(null);
+    try {
+      // verification_key.json 由部署時放在 /zk 下，前端可讀
+      const vkRes = await fetch('/zk/verification_key.json');
+      const vk = await vkRes.json();
+      const ok = await snarkjs.groth16.verify(vk, selectedLog.publicSignals, selectedLog.proof);
+      setLocalVerifyStatus({ ok, message: ok ? '本地驗證成功：此 proof 與 publicSignals 與電路/verifier 相容。' : '本地驗證失敗：請檢查 verification_key 或資料是否被竄改。' });
+    } catch (e: any) {
+      setLocalVerifyStatus({ ok: false, message: `本地驗證時發生錯誤：${e?.message ?? '未知錯誤'}` });
+    } finally {
+      setIsVerifyingLocally(false);
+    }
+  };
 
   return (
     <PageShell>
@@ -84,6 +137,34 @@ export function VerificationCenter() {
           <h1 className="text-3xl font-bold text-white">Verification Center</h1>
           <p className="text-gray-300">Election: {election.name}</p>
         </header>
+
+        <div className="mb-6 p-4 glass-subtle rounded-xl">
+          <h3 className="text-sm font-semibold text-white mb-2">使用自己的 Nullifier 驗證選票是否入匭</h3>
+          <p className="text-xs text-gray-300 mb-3">
+            將您本地計算或備份的 Nullifier 輸入下方欄位，我們只會檢查該值是否存在於此選舉的紀錄中，不會透露您投給誰。
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <input
+              className="flex-1 rounded-lg bg-white/5 border border-white/20 px-3 py-2 text-white text-xs font-mono placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="貼上您的 Nullifier (例如：Poseidon(secret, electionId) 的結果)"
+              value={nullifierInput}
+              onChange={(e) => setNullifierInput(e.target.value)}
+            />
+            <button
+              onClick={handleCheckNullifier}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-white glass-strong border border-blue-400/60 hover:border-blue-300 hover:bg-blue-500/20 transition-all"
+            >
+              查詢
+            </button>
+          </div>
+          {nullifierResult && (
+            <p className="mt-3 text-xs text-gray-200">
+              {nullifierResult.exists
+                ? `✅ 找到對應紀錄，您的選票已於 ${nullifierResult.createdAt ? new Date(nullifierResult.createdAt).toLocaleString() : '系統紀錄時間'} 成功入匭。`
+                : '❌ 此 Nullifier 在該選舉中尚未找到紀錄，請確認輸入是否正確。'}
+            </p>
+          )}
+        </div>
 
         {!canViewResults && (
           <GlassCard className="mb-6">
@@ -137,13 +218,60 @@ export function VerificationCenter() {
 
           {/* Audit Logs Section */}
           <GlassCard>
-            <h2 className="text-xl font-semibold text-white mb-3">Audit Logs</h2>
-            <p className="text-gray-300 mb-4 text-sm">
-              These are the raw Zero-Knowledge Proofs submitted. Anyone can verify mathematically without revealing the voter's identity.
-            </p>
+            <div className="flex items-center justify-between mb-3 gap-2">
+              <div>
+                <h2 className="text-xl font-semibold text-white">Audit Logs</h2>
+                <p className="text-gray-300 text-sm">
+                  這裡是所有匿名 ZK 證明的原始紀錄，可供第三方審計與本地驗證。
+                </p>
+              </div>
+              {logs && logs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleExportLogs}
+                  className="px-3 py-1 rounded-lg text-xs font-medium text-white glass-subtle border border-white/30 hover:border-white/60 hover:bg-white/10 transition-all"
+                >
+                  匯出 JSON
+                </button>
+              )}
+            </div>
+            {selectedLog && (
+              <div className="mb-4 p-3 glass-subtle border border-blue-400/30 rounded-lg text-xs text-gray-100">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <span className="font-semibold text-white">本地驗證工具 (Developer)</span>
+                  <button
+                    type="button"
+                    onClick={handleLocalVerify}
+                    disabled={isVerifyingLocally}
+                    className="px-3 py-1 rounded-md text-xs font-medium text-white glass-strong border border-blue-400/60 hover:border-blue-300 hover:bg-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isVerifyingLocally ? '驗證中…' : '以 verification_key.json 驗證此 proof'}
+                  </button>
+                </div>
+                {localVerifyStatus && (
+                  <p className={localVerifyStatus.ok ? 'text-emerald-300' : 'text-red-300'}>
+                    {localVerifyStatus.message}
+                  </p>
+                )}
+                <p className="mt-2 text-[10px] text-gray-300">
+                  提示：此功能會從 `/zk/verification_key.json` 載入 verifier key，在瀏覽器端直接對 `publicSignals` 與 `proof` 做數學驗證。
+                </p>
+              </div>
+            )}
             <div className="max-h-[600px] overflow-y-auto grid gap-3 pr-1">
               {logs?.map((log, index) => (
-                <div key={log.id} className="glass-subtle border border-white/10 p-3 rounded-lg text-sm">
+                <div
+                  key={log.id}
+                  className={`glass-subtle border p-3 rounded-lg text-sm cursor-pointer transition-all ${
+                    selectedLog?.id === log.id
+                      ? 'border-blue-400/70 bg-blue-500/10'
+                      : 'border-white/10 hover:border-blue-300/60 hover:bg-white/5'
+                  }`}
+                  onClick={() => {
+                    setSelectedLog(log);
+                    setLocalVerifyStatus(null);
+                  }}
+                >
                   <div className="flex justify-between mb-2 text-gray-300">
                     <span>Vote #{index + 1}</span>
                     <span>{new Date(log.createdAt).toLocaleString()}</span>

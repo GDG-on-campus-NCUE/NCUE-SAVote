@@ -13,7 +13,9 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./features/auth/hooks/useAuth";
 import { VoterManagementPage } from "./features/admin/pages/VoterManagementPage";
 import { ElectionManagementPage } from "./features/admin/pages/ElectionManagementPage";
+import { AdminMonitoringPage } from "./features/admin/pages/AdminMonitoringPage";
 import { VotingBooth } from "./features/voting/pages/VotingBooth";
+import { KeySetupPage } from "./features/voting/pages/KeySetupPage";
 import { VoteSuccess } from "./features/voting/pages/VoteSuccess";
 import { VerificationCenter } from "./features/verify/pages/VerificationCenter";
 import { api } from "./features/auth/services/auth.api";
@@ -243,6 +245,34 @@ function HomePage() {
                     </p>
                   </div>
                 </Link>
+                <Link
+                  to="/admin/monitoring"
+                  className="flex items-center p-4 glass-subtle rounded-lg hover:glow-blue-border transition-all group"
+                >
+                  <div className="p-3 bg-purple-500/20 rounded-full text-purple-300 group-hover:bg-purple-500/30 transition-colors">
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 13h2l2 7 4-14 3 9 2-6h3"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-white">
+                      開票監控
+                    </h3>
+                    <p className="text-sm text-gray-300">
+                      查看投票進度與開票結果（投票結束後）
+                    </p>
+                  </div>
+                </Link>
               </div>
             </GlassCard>
           </section>
@@ -274,6 +304,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <HomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/elections/:electionId/setup-key"
+            element={
+              <ProtectedRoute>
+                <KeySetupPage />
               </ProtectedRoute>
             }
           />
@@ -314,6 +352,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ElectionManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/monitoring"
+            element={
+              <ProtectedRoute>
+                <AdminMonitoringPage />
               </ProtectedRoute>
             }
           />

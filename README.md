@@ -9,29 +9,29 @@ SAVote is a next-generation electronic voting platform built with **Zero-Knowled
 
 ---
 
-## 📚 Documentation
+##  Documentation
 
 We have organized our documentation to help you find what you need quickly:
 
-### 🚀 [Deployment Guide](./docs/DEPLOYMENT.md)
+### [Deployment Guide](./docs/DEPLOYMENT.md)
 **For DevOps & SysAdmins.**
 The single source of truth for deploying SAVote to production. Includes Docker, Nginx, and SSL setup.
 
-### 🏗️ [System Architecture](./docs/ARCHITECTURE.md)
+### [System Architecture](./docs/ARCHITECTURE.md)
 **For Architects & Leads.**
 Deep dive into the technical stack, ZK circuit design, SAML authentication flow, database schema, and UI design system.
 
-### 💻 [Development Guide](./docs/DEVELOPMENT.md)
+### [Development Guide](./docs/DEVELOPMENT.md)
 **For Developers.**
 How to set up your local environment, project structure, coding standards, and testing strategies.
 
-### 📅 [Project Plan](./docs/PROJECT_PLAN.md)
+### [Project Plan](./docs/PROJECT_PLAN.md)
 **For Project Managers.**
 Roadmap, sprint breakdown, risk management, and future feature planning.
 
 ---
 
-## ⚡ Quick Start (Production)
+## Quick Start (Production)
 
 To deploy the full stack immediately:
 
@@ -53,12 +53,12 @@ bash scripts/deploy.sh
 -   **Frontend**: React, Vite, TailwindCSS
 -   **Backend**: NestJS, Prisma, PostgreSQL
 -   **Zero-Knowledge**: Circom, SnarkJS
--   **Auth**: SAML 2.0 (Synology C2 Identity)
+-   **Auth**: SAML 2.0 
 -   **Infra**: Docker Compose, Nginx
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 ```text
 /
@@ -73,4 +73,4 @@ bash scripts/deploy.sh
 ---
 
 **License**: MIT  
-**Maintainer**: NCUESA Development Team
+**Maintainer**: Google Developer Groups on Campus - NCUE

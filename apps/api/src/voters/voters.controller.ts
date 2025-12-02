@@ -16,6 +16,7 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 import { VotersService, ImportVotersResult } from './voters.service';
 import { ImportVotersDto } from './dto/import-voters.dto';
 import { VerifyEligibilityDto } from './dto/verify-eligibility.dto';
+import { RegisterCommitmentDto } from './dto/register-commitment.dto';
 
 @Controller('voters')
 export class VotersController {
@@ -54,6 +55,29 @@ export class VotersController {
       dto.electionId,
       payload.studentIdHash,
       payload.class,
+    );
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  @Post('register-commitment')
+  @UseGuards(JwtAuthGuard)
+  async registerCommitment(
+    @Body() dto: RegisterCommitmentDto,
+    @Req() req: Request,
+  ): Promise<ApiResponse<{ success: boolean }>> {
+    const payload = req.user as JWTPayload;
+    if (!payload?.studentIdHash) {
+      throw new BadRequestException('STUDENT_ID_UNAVAILABLE');
+    }
+
+    const result = await this.votersService.registerIdentityCommitment(
+      dto.electionId,
+      payload.studentIdHash,
+      dto.commitment,
     );
 
     return {

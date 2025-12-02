@@ -42,6 +42,13 @@ export const VotingBooth: React.FC = () => {
     retry: false,
   });
 
+  // Handle eligibility error redirect
+  React.useEffect(() => {
+    if (eligibilityError && (eligibilityError as any)?.response?.data === 'COMMITMENT_NOT_REGISTERED' && electionId) {
+      navigate(`/elections/${electionId}/setup-key`);
+    }
+  }, [eligibilityError, electionId, navigate]);
+
   // 3. Submit Vote Mutation
   const submitVoteMutation = useMutation({
     mutationFn: votesApi.submitVote,
@@ -81,7 +88,7 @@ export const VotingBooth: React.FC = () => {
         electionId: electionIdBigInt.toString(),
         vote: voteBigInt.toString(),
         secret: secretBigInt.toString(),
-        pathIndices: pathIndices,
+        pathIndices,
         siblings: merkleProof,
       };
 

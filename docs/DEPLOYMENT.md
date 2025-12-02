@@ -62,15 +62,7 @@ bash scripts/deploy.sh
 
 ---
 
-## 6. 檔案整潔策略
-
-- 僅保留生產佈署所需腳本：`scripts/deploy.sh`、`scripts/setup-ssl.sh`
-- 移除開發/測試用腳本與 Windows 專用批次檔（已處理）
-- 保留 `specs/` 與 `docs/` 作為附錄與參考，不影響佈署流程
-
----
-
-## 7. 維運建議
+## 6. 維運建議
 
 - 將 `scripts/deploy.sh` 納入 CI/CD（例如手動或 pipeline 觸發）
 - 版本升級時，先在 staging 執行同腳本，確認風險後再上線
