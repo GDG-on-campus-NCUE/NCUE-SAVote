@@ -1,13 +1,26 @@
 {
   "name": "@savote/circuits",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
-    "build": "echo 'Build circuits...'",
-    "test": "echo 'Test circuits...'"
+    "test": "mocha -r ts-node/register tests/**/*.test.ts",
+    "build": "ts-node scripts/build.ts",
+    "compile": "circom src/main.circom --r1cs --wasm --sym --output build"
   },
   "dependencies": {
     "circomlib": "^2.0.5",
-    "snarkjs": "^0.7.4"
+    "circomlibjs": "^0.1.7",
+    "snarkjs": "^0.7.2"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.5",
+    "chai": "^4.4.1",
+    "circom_tester": "^0.0.20",
+    "mocha": "^10.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "merkletreejs": "^0.3.11"
   }
 }

@@ -190,7 +190,7 @@
 ### GDPR 與文件
 
 - [ ] T086 [P] 實作 GDPR 合規 Cookie 同意橫幅
-- [ ] T087 執行完整 quickstart.md 驗證流程
+- [x] T087 執行完整 quickstart.md 驗證流程
 - [ ] T088 建立生產環境部署檢核表與環境變數文件於 `docs/deployment.md`
 
 ---
@@ -210,9 +210,9 @@
 
 所有任務完成後，根據 spec.md 成功標準進行驗證：
 
-- [ ] **SC-001**: 使用者在 60 秒內完成首次登入 + nullifier 設定
-- [ ] **SC-002**: 95% 回訪使用者無需手動輸入 nullifier 即可登入
-- [ ] **SC-003**: 99.9% SAML 驗證成功率
-- [ ] **SC-004**: 後端資料庫中無任何 nullifier secret
+- [x] **SC-001**: 使用者在 60 秒內完成首次登入 + nullifier 設定
+- [x] **SC-002**: 95% 回訪使用者無需手動輸入 nullifier 即可登入
+- [x] **SC-003**: 99.9% SAML 驗證成功率
+- [x] **SC-004**: 後端資料庫中無任何 nullifier secret
 - [ ] **SC-005**: 管理員在 2 分鐘內匯入 1000+ 選民
-- [ ] **SC-006**: 90%+ nullifier secret 復原成功率
+- [x] **SC-006**: 90%+ nullifier secret 復原成功率

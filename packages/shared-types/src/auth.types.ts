@@ -5,8 +5,14 @@ export interface User {
     class: string;
     email: string | null;
     enrollmentStatus: EnrollmentStatus;
+    role: UserRole;
     createdAt: Date;
     updatedAt: Date;
+}
+
+export enum UserRole {
+    USER = 'USER',
+    ADMIN = 'ADMIN'
 }
 
 export enum EnrollmentStatus {
@@ -43,7 +49,7 @@ export interface UserProfile {
     class: string;
     email: string | null;
     enrollmentStatus: EnrollmentStatus;
-    isAdmin?: boolean;
+    role: UserRole;
 }
 
 export interface RefreshTokenRequest {
@@ -65,10 +71,10 @@ export interface JWTPayload {
     jti: string; // session jti
     studentIdHash: string;
     class: string;
+    role: UserRole;
     type: 'access' | 'refresh';
     iat: number;
     exp: number;
-    isAdmin?: boolean;
 }
 
 export interface AuthState {

@@ -61,7 +61,7 @@ XPsER+Gpdpc22NlWUH4TGijZ7b+u5M7KazchxfgbqvUAs6wilPvEx5z2G/+SJZJd
 
 | 項目 | 值 |
 |------|-----|
-| **SP entity ID** | `https://api.voting.ncuesa.edu.tw/saml/metadata` |
+| **SP entity ID** | `http://localhost:3000/saml/metadata` (開發環境)<br>`https://api.voting.ncuesa.edu.tw/saml/metadata` (生產環境) |
 | **Single sign-on URL** | `http://localhost:3000/auth/saml/callback` (開發環境)<br>`https://api.voting.ncuesa.edu.tw/auth/saml/callback` (生產環境) |
 | **Name ID format** | `Unspecified` |
 | **Default name ID** | `Primary email` |
@@ -80,7 +80,7 @@ XPsER+Gpdpc22NlWUH4TGijZ7b+u5M7KazchxfgbqvUAs6wilPvEx5z2G/+SJZJd
 ```env
 # SAML Configuration
 SAML_ENTRY_POINT="https://ncuesa.identity.us.synologyc2.com/sso/app/c2id:ypRVlXVqG1UTsk4tK9pw/sso/saml/"
-SAML_ISSUER="https://api.voting.ncuesa.edu.tw/saml/metadata"
+SAML_ISSUER="http://localhost:3000/saml/metadata"
 SAML_CALLBACK_URL="http://localhost:3000/auth/saml/callback"
 
 # IdP Certificate (完整的 X.509 PEM 格式)

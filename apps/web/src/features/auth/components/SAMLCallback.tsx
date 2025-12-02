@@ -4,22 +4,25 @@ import { useAuthStore } from '../stores/authStore';
 import { authApi } from '../services/auth.api';
 import { storage } from '../../../lib/localStorage';
 import { NullifierRecovery } from './NullifierRecovery';
-import { Card } from '../../../components/ui/Card';
-import { Button } from '../../../components/ui/Button';
-import { Skeleton } from '../../../components/ui/Skeleton';
+import { PageShell } from '../../../components/layout/PageShell';
+import { GlassCard } from '../../../components/ui/GlassCard';
 
 export const SAMLCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { setAuth, setNullifierSecretStatus } = useAuthStore(state => ({
-    setAuth: state.setAuth,
-    setNullifierSecretStatus: state.setNullifierSecretStatus,
-  }));
+  const setAuth = useAuthStore(state => state.setAuth);
+  const setNullifierSecretStatus = useAuthStore(state => state.setNullifierSecretStatus);
   const [needsRecovery, setNeedsRecovery] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
+    // Prevent running multiple times
+    if (isProcessing) return;
+
     const handleCallback = async () => {
+      setIsProcessing(true);
+      
       const accessToken = searchParams.get('accessToken');
       const refreshToken = searchParams.get('refreshToken');
       const isNewUser = searchParams.get('isNewUser') === '1';
@@ -41,14 +44,14 @@ export const SAMLCallback = () => {
 
           if (hasSecretForUser) {
             setNullifierSecretStatus(true);
-            navigate('/');
+            navigate('/', { replace: true });
             return;
           }
 
           setNullifierSecretStatus(false);
 
           if (isNewUser) {
-            navigate('/auth/setup');
+            navigate('/auth/setup', { replace: true });
             return;
           }
 
@@ -63,48 +66,65 @@ export const SAMLCallback = () => {
     };
 
     handleCallback();
-  }, [searchParams, navigate, setAuth, setNullifierSecretStatus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   if (needsRecovery) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-background)', padding: 'var(--spacing-md)' }}>
-        <Card style={{ maxWidth: '480px', width: '100%' }}>
-          <NullifierRecovery
-            subtitle="我們偵測到此帳號尚未在此裝置保存匿名金鑰，請輸入您的備份以繼續。"
-            onSuccess={() => {
-              setNullifierSecretStatus(true);
-              navigate('/');
-            }}
-          />
-        </Card>
-      </div>
+      <PageShell>
+        <div className="flex justify-center items-center min-h-[60vh] px-4">
+          <div className="w-full max-w-md">
+            <GlassCard>
+              <NullifierRecovery
+                subtitle="我們偵測到此帳號尚未在此裝置保存匿名金鑰，請輸入您的備份以繼續。"
+                onSuccess={() => {
+                  setNullifierSecretStatus(true);
+                  navigate('/');
+                }}
+              />
+            </GlassCard>
+          </div>
+        </div>
+      </PageShell>
     );
   }
 
   if (errorMessage) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-background)', padding: 'var(--spacing-md)' }}>
-        <Card style={{ maxWidth: '400px', width: '100%', textAlign: 'center' }}>
-          <p style={{ color: 'var(--color-error)', fontWeight: 'var(--font-weight-medium)', marginBottom: 'var(--spacing-lg)' }}>{errorMessage}</p>
-          <Button
-            variant="primary"
-            fullWidth
-            onClick={() => navigate('/auth/login')}
-          >
-            返回登入頁
-          </Button>
-        </Card>
-      </div>
+      <PageShell>
+        <div className="flex justify-center items-center min-h-[60vh] px-4">
+          <div className="w-full max-w-md">
+            <GlassCard>
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-500/20 mb-4">
+                  <svg className="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <p className="text-red-300 font-medium mb-6">{errorMessage}</p>
+                <button
+                  onClick={() => navigate('/auth/login')}
+                  className="w-full px-4 py-2 text-sm font-medium rounded-md text-white glass-strong border border-blue-400/50 hover:border-blue-400/80 hover:bg-blue-500/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/30 backdrop-blur-xl"
+                >
+                  返回登入頁
+                </button>
+              </div>
+            </GlassCard>
+          </div>
+        </div>
+      </PageShell>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-background)', padding: 'var(--spacing-md)' }}>
-      <div style={{ textAlign: 'center' }}>
-        <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', marginBottom: 'var(--spacing-sm)' }}>正在驗證登入...</h2>
-        <p style={{ color: 'var(--color-text-secondary)', marginBottom: 'var(--spacing-lg)' }}>請稍候</p>
-        <Skeleton height="4px" width="200px" style={{ margin: '0 auto' }} />
+    <PageShell>
+      <div className="flex justify-center items-center min-h-[60vh] px-4">
+        <div className="text-center">
+          <div className="spinner h-12 w-12 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-2">正在驗證登入...</h2>
+          <p className="text-gray-300">請稍候</p>
+        </div>
       </div>
-    </div>
+    </PageShell>
   );
 };

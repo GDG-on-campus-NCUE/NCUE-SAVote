@@ -268,10 +268,22 @@
     - Error 頁面
     - Protected Route 守衛
 
+### ✅ Phase 3: 選舉管理系統 (部分完成)
+- [x] 選舉 CRUD API (建立、讀取、更新、刪除)
+- [x] 合格選民名單匯入 (CSV 解析)
+- [x] 選民資格管理 (EligibleVoter Entity)
+- [x] 管理員權限控制 (AdminGuard)
+- [ ] **[Missing]** 候選人資料管理 (Candidate Entity & API)
+- [ ] **[Missing]** 候選人圖片上傳與政見維護
+
+### 🚧 Phase 4: ZK 電路開發 (待開始)
+- [ ] 初始化 `packages/circuits`
+- [ ] 實作 `vote.circom` (Merkle Tree + Nullifier)
+- [ ] 封裝 `crypto-lib` (Proof Generation/Verification)
+- [ ] Trusted Setup & Key Generation
+
 ### 📋 後續開發計劃
-- [ ] Phase 3: 選舉管理系統
-- [ ] Phase 4: ZK 電路開發
-- [ ] Phase 5: 投票流程實作
+- [ ] Phase 5: 投票流程實作 (整合 ZK Proof)
 - [ ] Phase 6: 結果驗證與稽核
 
 ---

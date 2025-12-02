@@ -1,5 +1,6 @@
 import { defineConfig, type UserConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import type { UserConfig as VitestUserConfig } from 'vitest/config'
 
 type ExtendedUserConfig = UserConfig & {
@@ -7,7 +8,7 @@ type ExtendedUserConfig = UserConfig & {
 }
 
 const config: ExtendedUserConfig = {
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   test: {
     environment: 'jsdom',
     globals: true,

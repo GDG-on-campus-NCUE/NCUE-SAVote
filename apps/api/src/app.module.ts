@@ -11,6 +11,7 @@ import { ElectionsModule } from './elections/elections.module';
 
 import { UsersModule } from './users/users.module';
 import { VotersModule } from './voters/voters.module';
+import { VotesModule } from './votes/votes.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { VotersModule } from './voters/voters.module';
     UsersModule,
     ElectionsModule,
     VotersModule,
+    VotesModule,
   ],
   controllers: [AppController],
   providers: [

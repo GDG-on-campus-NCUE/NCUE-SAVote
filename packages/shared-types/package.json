@@ -2,11 +2,22 @@
   "name": "@savote/shared-types",
   "version": "0.0.0",
   "private": true,
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/cjs/index.js"
+    }
+  },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc -w"
+    "build": "npm run build:esm && npm run build:cjs",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "dev": "tsc -p tsconfig.cjs.json -w"
   },
   "devDependencies": {
     "typescript": "^5.6.2"

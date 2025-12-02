@@ -9,11 +9,13 @@ import {
     JWTPayload,
     EnrollmentStatus,
     RefreshTokenResponse,
+    UserRole,
 } from '@savote/shared-types';
 import { SAMLProfile } from './strategies/saml.strategy';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -31,6 +33,66 @@ export class AuthService {
             this.configService.get<string>('JWT_PRIVATE_KEY_PATH') || './secrets/jwt-private.key'
         );
         this.privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+    }
+
+    /**
+     * Process admin credentials login
+     */
+    async handleAdminLogin(
+        username: string,
+        password: string,
+        ipAddress: string,
+        userAgent: string,
+    ): Promise<LoginResponse> {
+        this.logger.log(`Processing admin login for username: ${username}`);
+
+        // Find user by username
+        const user = await this.prisma.user.findUnique({
+            where: { username },
+        });
+
+        if (!user || !user.password) {
+            this.logger.warn(`Admin login failed: user not found or no password set for username: ${username}`);
+            throw new UnauthorizedException('Invalid credentials');
+        }
+
+        // Verify role
+        if (user.role !== 'ADMIN') {
+            this.logger.warn(`Admin login failed: user ${username} does not have ADMIN role`);
+            throw new UnauthorizedException('Access denied');
+        }
+
+        // Verify password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            this.logger.warn(`Admin login failed: invalid password for username: ${username}`);
+            throw new UnauthorizedException('Invalid credentials');
+        }
+
+        this.logger.log(`Admin login successful for user: ${user.id}`);
+
+        // Generate tokens
+        const tokens = await this.generateTokens(
+            user.id,
+            user.studentIdHash,
+            user.class,
+            user.role,
+            ipAddress,
+            userAgent,
+        );
+
+        return {
+            ...tokens,
+            isNewUser: false,
+            user: {
+                id: user.id,
+                studentIdHash: user.studentIdHash,
+                class: user.class,
+                email: user.email,
+                enrollmentStatus: user.enrollmentStatus as EnrollmentStatus,
+                role: user.role as UserRole,
+            },
+        };
     }
 
     /**
@@ -86,7 +148,7 @@ export class AuthService {
         }
 
         // Generate tokens
-        const tokens = await this.generateTokens(user.id, studentIdHash, userClass, ipAddress, userAgent);
+        const tokens = await this.generateTokens(user.id, studentIdHash, userClass, user.role, ipAddress, userAgent);
 
         return {
             ...tokens,
@@ -97,6 +159,7 @@ export class AuthService {
                 class: user.class,
                 email: user.email,
                 enrollmentStatus: user.enrollmentStatus as EnrollmentStatus,
+                role: user.role as UserRole,
             },
         };
     }
@@ -155,6 +218,7 @@ export class AuthService {
                 session.userId,
                 payload.studentIdHash,
                 payload.class,
+                payload.role,
                 newJti,
                 accessTokenExpiresIn,
             );
@@ -163,6 +227,7 @@ export class AuthService {
                 session.userId,
                 payload.studentIdHash,
                 payload.class,
+                payload.role,
                 newJti,
                 refreshTokenExpiresIn,
             );
@@ -251,6 +316,7 @@ export class AuthService {
         userId: string,
         studentIdHash: string,
         userClass: string,
+        role: string,
         ipAddress: string,
         deviceInfo: string,
     ): Promise<{ accessToken: string; refreshToken: string }> {
@@ -262,6 +328,7 @@ export class AuthService {
             userId,
             studentIdHash,
             userClass,
+            role,
             jti,
             accessTokenExpiresIn,
         );
@@ -270,6 +337,7 @@ export class AuthService {
             userId,
             studentIdHash,
             userClass,
+            role,
             jti,
             refreshTokenExpiresIn,
         );
@@ -312,6 +380,7 @@ export class AuthService {
         userId: string,
         studentIdHash: string,
         userClass: string,
+        role: string,
         jti: string,
         expiresIn: string,
     ): Promise<string> {
@@ -320,6 +389,7 @@ export class AuthService {
             jti,
             studentIdHash,
             class: userClass,
+            role: role as UserRole,
             type: 'access',
         };
 
@@ -334,6 +404,7 @@ export class AuthService {
         userId: string,
         studentIdHash: string,
         userClass: string,
+        role: string,
         jti: string,
         expiresIn: string,
     ): Promise<string> {
@@ -342,6 +413,7 @@ export class AuthService {
             jti,
             studentIdHash,
             class: userClass,
+            role: role as UserRole,
             type: 'refresh',
         };
 

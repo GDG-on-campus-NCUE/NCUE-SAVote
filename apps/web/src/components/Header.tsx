@@ -10,7 +10,7 @@ export const Header: React.FC = () => {
       <div className="container flex justify-between items-center" style={{ height: '100%' }}>
         <div className="flex items-center gap-md">
           <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 'var(--font-weight-bold)', margin: 0 }}>
-            NCU ESA 投票系統
+            國立彰化師範大學 學生會投票系統
           </h1>
           {isAuthenticated && user && (
             <span style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-sm)' }}>

@@ -21,13 +21,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/auth/login" replace />;
   }
 
-  // If authenticated but no secret, and not already on setup page, redirect to setup
-  if (!hasNullifierSecret && location.pathname !== '/auth/setup') {
+  // Get user role to check if admin
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
+
+  // Admin users don't need nullifier secret
+  // If authenticated but no secret, and not admin, and not already on setup page, redirect to setup
+  if (!hasNullifierSecret && !isAdmin && location.pathname !== '/auth/setup') {
     return <Navigate to="/auth/setup" replace />;
   }
 
-  // If authenticated AND has secret, and trying to access setup page, redirect to home
-  if (hasNullifierSecret && location.pathname === '/auth/setup') {
+  // If authenticated AND has secret (or is admin), and trying to access setup page, redirect to home
+  if ((hasNullifierSecret || isAdmin) && location.pathname === '/auth/setup') {
     return <Navigate to="/" replace />;
   }
 

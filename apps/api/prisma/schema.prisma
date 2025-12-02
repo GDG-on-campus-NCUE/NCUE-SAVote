@@ -22,12 +22,20 @@ enum EnrollmentStatus {
   GRADUATED
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id               String           @id @default(uuid())
   studentIdHash    String           @unique @db.VarChar(64) // SHA-256 hash (hex)
   class            String           @db.VarChar(50)         // e.g., "CSIE_3A"
   email            String?          @db.VarChar(255)        // Optional for recovery
+    username         String?          @unique @db.VarChar(100) // Optional for admin login
+    password         String?          @db.VarChar(255)         // Hashed password for admin login
   enrollmentStatus EnrollmentStatus @default(ACTIVE)
+  role             UserRole         @default(USER)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   
@@ -35,6 +43,7 @@ model User {
   sessions         Session[]
   
   @@index([class])
+  @@index([role])
   @@map("users")
 }
 
@@ -81,6 +90,8 @@ model Election {
   
   // Relations
   eligibleVoters EligibleVoter[]
+  candidates     Candidate[]
+  votes          Vote[]
   
   @@index([status])
   @@index([startTime, endTime])
@@ -113,4 +124,45 @@ model EligibleVoter {
   @@index([electionId])
   @@index([studentId])
   @@map("eligible_voters")
+}
+
+// ============================================================================
+// Candidate Entity
+// ============================================================================
+// Represents a candidate in an election.
+
+model Candidate {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(100)
+  bio         String?  @db.Text
+  photoUrl    String?  @db.VarChar(500)
+  electionId  String
+  election    Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([electionId])
+  @@map("candidates")
+}
+
+// ============================================================================
+// Vote Entity
+// ============================================================================
+// Stores the zero-knowledge proof and nullifier for a cast vote.
+// Does NOT link to a User or Student ID to ensure anonymity.
+
+model Vote {
+  id            String   @id @default(uuid())
+  electionId    String
+  election      Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  
+  // ZK Proof Data
+  nullifier     String   @unique @db.VarChar(64) // Prevents double voting
+  proof         Json     // The Groth16 proof object
+  publicSignals Json     // Public inputs (Merkle root, nullifier hash, candidateId, etc.)
+  
+  createdAt     DateTime @default(now())
+
+  @@index([electionId])
+  @@map("votes")
 }

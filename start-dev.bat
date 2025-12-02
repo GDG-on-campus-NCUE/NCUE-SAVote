@@ -26,6 +26,13 @@ if not exist "apps\api\.env" (
     copy "apps\api\.env.example" "apps\api\.env"
 )
 
+REM 1.1 Check for root .env (Ngrok)
+if not exist ".env" (
+    echo [Setup] Creating root .env for Ngrok...
+    echo NGROK_AUTHTOKEN=your_token_here > .env
+    echo [Warn] Please update .env with your Ngrok Authtoken!
+)
+
 REM 2. Check and generate JWT keys
 if not exist "apps\api\secrets\jwt-private.key" (
     echo [Setup] Generating JWT keys...
@@ -46,6 +53,10 @@ REM 4. Wait for DB
 echo [Docker] Waiting for Database to initialize...
 timeout /t 5 /nobreak >nul
 
+REM 4.1 Configure Ngrok
+echo [Ngrok] Configuring public URL...
+node scripts\update-ngrok-url.js
+
 REM 5. Run Migrations
 echo [Prisma] Running Database Migrations...
 cd apps\api
@@ -62,4 +73,8 @@ REM 6. Start Development Server
 echo [Turbo] Starting Development Server...
 echo Access the web app at http://localhost:5173
 echo Access the api at http://localhost:3000
+
+REM Enable OpenSSL Legacy Provider for Synology SAML (RSA-SHA1 support)
+set NODE_OPTIONS=--openssl-legacy-provider
+
 call pnpm dev

@@ -1,0 +1,11 @@
+import { Module } from '@nestjs/common';
+import { VotesController } from './votes.controller';
+import { VotesService } from './votes.service';
+import { PrismaModule } from '../prisma/prisma.module';
+
+@Module({
+  imports: [PrismaModule],
+  controllers: [VotesController],
+  providers: [VotesService]
+})
+export class VotesModule {}

@@ -14,6 +14,7 @@ export const TOKEN_EXPIRY = {
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/saml/login',
+      ADMIN_LOGIN: '/auth/admin/login',
     CALLBACK: '/auth/saml/callback',
     REFRESH: '/auth/refresh',
     LOGOUT: '/auth/logout',
@@ -26,5 +27,10 @@ export const API_ENDPOINTS = {
   ELECTIONS: {
     LIST: '/elections',
     GET: (id: string) => `/elections/${id}`,
+  },
+  VOTES: {
+    SUBMIT: '/votes/submit',
+    TALLY: (id: string) => `/votes/${id}/tally`,
+    LOGS: (id: string) => `/votes/${id}/logs`,
   },
 } as const;

@@ -1,4 +1,11 @@
 
+export interface Candidate {
+    id: string;
+    name: string;
+    description?: string | null;
+    electionId: string;
+}
+
 export interface Election {
     id: string;
     name: string;
@@ -8,13 +15,15 @@ export interface Election {
     endTime: Date | null;
     createdAt: Date;
     updatedAt: Date;
+    candidates: Candidate[];
 }
 
 export enum ElectionStatus {
     DRAFT = 'DRAFT',
-    ACTIVE = 'ACTIVE',
-    CLOSED = 'CLOSED',
-    ARCHIVED = 'ARCHIVED'
+    REGISTRATION_OPEN = 'REGISTRATION_OPEN',
+    VOTING_OPEN = 'VOTING_OPEN',
+    VOTING_CLOSED = 'VOTING_CLOSED',
+    TALLIED = 'TALLIED'
 }
 
 export interface EligibleVoter {

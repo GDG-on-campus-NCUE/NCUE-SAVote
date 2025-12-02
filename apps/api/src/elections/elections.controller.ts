@@ -1,7 +1,10 @@
 import { Controller, Get, Post, Body, Param, Patch, Delete } from '@nestjs/common';
 import { ElectionsService } from './elections.service';
+import { CandidatesService } from './candidates.service';
 import { CreateElectionDto } from './dto/create-election.dto';
 import { UpdateElectionDto } from './dto/update-election.dto';
+import { CreateCandidateDto } from './dto/create-candidate.dto';
+import { UpdateCandidateDto } from './dto/update-candidate.dto';
 
 import { ImportEligibleVotersDto } from './dto/import-eligible-voters.dto';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -9,7 +12,10 @@ import { UseGuards } from '@nestjs/common';
 
 @Controller('elections')
 export class ElectionsController {
-  constructor(private readonly electionsService: ElectionsService) {}
+  constructor(
+    private readonly electionsService: ElectionsService,
+    private readonly candidatesService: CandidatesService,
+  ) {}
 
   @Post()
 
@@ -56,5 +62,35 @@ export class ElectionsController {
   @Get(':id/eligible-voters')
   listEligibleVoters(@Param('id') electionId: string) {
     return this.electionsService.listEligibleVoters(electionId);
+  }
+
+  // Candidate Endpoints
+  @UseGuards(AdminGuard)
+  @Post(':id/candidates')
+  createCandidate(
+    @Param('id') electionId: string,
+    @Body() dto: CreateCandidateDto,
+  ) {
+    return this.candidatesService.create(electionId, dto);
+  }
+
+  @Get(':id/candidates')
+  findAllCandidates(@Param('id') electionId: string) {
+    return this.candidatesService.findAll(electionId);
+  }
+
+  @UseGuards(AdminGuard)
+  @Patch('candidates/:id')
+  updateCandidate(
+    @Param('id') id: string,
+    @Body() dto: UpdateCandidateDto,
+  ) {
+    return this.candidatesService.update(id, dto);
+  }
+
+  @UseGuards(AdminGuard)
+  @Delete('candidates/:id')
+  removeCandidate(@Param('id') id: string) {
+    return this.candidatesService.remove(id);
   }
 }

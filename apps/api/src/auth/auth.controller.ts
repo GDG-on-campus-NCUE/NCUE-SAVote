@@ -20,6 +20,7 @@ import type {
     ApiResponse,
     JWTPayload,
 } from '@savote/shared-types';
+import { AdminLoginDto } from './dto/admin-login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -33,6 +34,55 @@ export class AuthController {
     @UseGuards(SamlAuthGuard)
     async samlLogin() {
         // Guard handles redirect to IdP
+    }
+
+    /**
+     * Dev-only: Mock login endpoint to bypass SAML
+     * Creates a fake user session and redirects to frontend
+     */
+    @Get('dev/login')
+    async devLogin(@Req() req: Request, @Res() res: Response) {
+        if (process.env.NODE_ENV === 'production') {
+            return res.status(404).send('Not Found');
+        }
+
+        const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
+        const userAgent = req.headers['user-agent'] || 'unknown';
+        
+        // 檢查是否為管理員登入
+        const isAdminLogin = req.query.admin === 'true';
+
+        // Mock profile - 根據登入類型使用不同的帳號
+        const mockProfile = isAdminLogin ? {
+            nameID: 'admin-user',
+            email: 'admin@savote.org',
+            displayName: 'Admin User',
+            studentId: 'ADMIN001',
+            class: 'ADMIN',
+        } : {
+            nameID: 'test-user-001',
+            email: 'test@example.com',
+            displayName: 'Test User',
+            studentId: 'S123456789',
+            class: 'CS-2025',
+        };
+
+        try {
+            const loginResponse = await this.authService.handleSAMLLogin(
+                mockProfile as any,
+                ipAddress,
+                userAgent,
+            );
+
+            const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
+            const userStateFlag = loginResponse.isNewUser ? '1' : '0';
+            const redirectUrl = `${frontendUrl}/auth/callback?accessToken=${loginResponse.accessToken}&refreshToken=${loginResponse.refreshToken}&isNewUser=${userStateFlag}`;
+
+            return res.redirect(redirectUrl);
+        } catch (error) {
+            const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
+            return res.redirect(`${frontendUrl}/auth/error?message=${encodeURIComponent(error.message)}`);
+        }
     }
 
     /**
@@ -145,5 +195,41 @@ export class AuthController {
                 class: payload.class,
             },
         };
+    }
+
+    /**
+     * Admin login with username and password
+     * Real production admin authentication endpoint
+     */
+    @Post('admin/login')
+    @HttpCode(HttpStatus.OK)
+    async adminLogin(
+        @Body() dto: AdminLoginDto,
+        @Req() req: Request,
+    ): Promise<ApiResponse<any>> {
+        const ipAddress = req.ip || (req.socket as any).remoteAddress || 'unknown';
+        const userAgent = req.headers['user-agent'] || 'unknown';
+
+        try {
+            const loginResponse = await this.authService.handleAdminLogin(
+                dto.username,
+                dto.password,
+                ipAddress,
+                userAgent,
+            );
+
+            return {
+                success: true,
+                data: loginResponse,
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: {
+                    code: 'INVALID_CREDENTIALS',
+                    message: error.message || 'Invalid username or password',
+                },
+            };
+        }
     }
 }

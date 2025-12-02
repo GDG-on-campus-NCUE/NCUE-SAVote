@@ -274,6 +274,7 @@ export class VotersService {
       endTime: election.endTime,
       createdAt: election.createdAt,
       updatedAt: election.updatedAt,
+      candidates: [], // TODO: Fetch candidates if needed, or make it optional in SharedElection
     };
   }
 }
