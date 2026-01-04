@@ -50,6 +50,3 @@ Auto-generated from all feature plans. Last updated: 2025-11-26
 
 - Initialized Spec-Driven Development structure.
 - Created Master Plan (PLAN.md).
-
-<!-- MANUAL ADDITIONS START -->
-<!-- MANUAL ADDITIONS END -->
