@@ -20,7 +20,7 @@ export class ElectionsService {
         return this.prisma.election.create({
             data: {
                 name: dto.name,
-                merkleRootHash: dto.merkleRootHash ?? null,
+                merkleRoot: dto.merkleRootHash ?? null,
                 status: dto.status ?? 'DRAFT',
                 startTime: dto.startTime ? new Date(dto.startTime) : undefined,
                 endTime: dto.endTime ? new Date(dto.endTime) : undefined,
@@ -47,7 +47,7 @@ export class ElectionsService {
             where: { id },
             data: {
                 ...dto,
-                merkleRootHash: dto.merkleRootHash ?? undefined,
+                merkleRoot: dto.merkleRootHash ?? undefined,
                 startTime: dto.startTime ? new Date(dto.startTime) : undefined,
                 endTime: dto.endTime ? new Date(dto.endTime) : undefined,
             } as any,
@@ -103,9 +103,9 @@ export class ElectionsService {
             throw new BadRequestException('No eligible voters to finalize');
         }
 
-        // merkleRootHash is expected to be pre-computed and set on election via update
-        if (!election.merkleRootHash) {
-            throw new BadRequestException('merkleRootHash must be set before finalizing voter list');
+        // merkleRoot is expected to be pre-computed and set on election via update
+        if (!election.merkleRoot) {
+            throw new BadRequestException('merkleRoot must be set before finalizing voter list');
         }
 
         const updated = await this.prisma.election.update({

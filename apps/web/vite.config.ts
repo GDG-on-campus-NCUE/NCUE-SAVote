@@ -15,6 +15,11 @@ const config: ExtendedUserConfig = {
     setupFiles: './tests/setup.ts',
     exclude: ['tests/e2e/**'],
   },
+  resolve: {
+    alias: {
+      buffer: 'buffer',
+    },
+  },
 }
 
 // https://vite.dev/config/

@@ -5,14 +5,19 @@ import https from 'https';
 
 const BUILD_DIR = path.join(__dirname, '../build');
 const SRC_DIR = path.join(__dirname, '../src');
-const BIN_DIR = path.join(__dirname, '../bin');
-const PTAU_URL = 'https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_14.ptau';
-const PTAU_FILE = path.join(BUILD_DIR, 'powersOfTau28_hez_final_14.ptau');
+const WEB_PUBLIC_ZK_DIR = path.join(__dirname, '../../../apps/web/public/zk');
+const PTAU_URL = 'https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_15.ptau'; // Upgraded to 15 just in case (32k constraints)
+const PTAU_FILE = path.join(BUILD_DIR, 'powersOfTau28_hez_final_15.ptau');
 const CIRCUIT_NAME = 'main';
 
 // Ensure build directory exists
 if (!fs.existsSync(BUILD_DIR)) {
-    fs.mkdirSync(BUILD_DIR);
+    fs.mkdirSync(BUILD_DIR, { recursive: true });
+}
+
+// Ensure web public zk directory exists
+if (!fs.existsSync(WEB_PUBLIC_ZK_DIR)) {
+    fs.mkdirSync(WEB_PUBLIC_ZK_DIR, { recursive: true });
 }
 
 const run = (command: string) => {
@@ -35,6 +40,11 @@ const downloadFile = (url: string, dest: string) => {
         console.log(`Downloading ${url} to ${dest}...`);
         const file = fs.createWriteStream(dest);
         https.get(url, (response) => {
+            if (response.statusCode !== 200) {
+                fs.unlink(dest, () => {});
+                reject(new Error(`Failed to download: ${response.statusCode}`));
+                return;
+            }
             response.pipe(file);
             file.on('finish', () => {
                 file.close();
@@ -51,14 +61,8 @@ const downloadFile = (url: string, dest: string) => {
 const main = async () => {
     // 1. Compile Circuit
     console.log('--- Compiling Circuit ---');
-    // Use local circom binary if available
-    let circomCmd = 'circom';
-    const localCircom = path.join(BIN_DIR, 'circom');
-    if (fs.existsSync(localCircom)) {
-        circomCmd = localCircom;
-    }
-    
-    run(`${circomCmd} src/${CIRCUIT_NAME}.circom --r1cs --wasm --sym --output build`);
+    // Assuming 'circom' is in PATH
+    run(`circom src/${CIRCUIT_NAME}.circom --r1cs --wasm --sym --output build`);
 
     // 2. Download PTAU
     console.log('--- Checking Powers of Tau ---');
@@ -70,41 +74,39 @@ const main = async () => {
     const zkeyFile = path.join(BUILD_DIR, `${CIRCUIT_NAME}_0000.zkey`);
     const finalZkeyFile = path.join(BUILD_DIR, `${CIRCUIT_NAME}_final.zkey`);
     
-    // snarkjs groth16 setup
-    // Note: In production, we should perform a phase 2 contribution.
-    // For development, we can just use the setup output or do a dummy contribution.
-    // Let's do a proper setup sequence.
-    
     // 3.1 Setup
-    run(`pnpm snarkjs groth16 setup ${r1csFile} ${PTAU_FILE} ${zkeyFile}`);
+    run(`npx snarkjs groth16 setup ${r1csFile} ${PTAU_FILE} ${zkeyFile}`);
 
-    // 3.2 Contribute (Dummy contribution for dev)
-    // We need to provide some random text.
-    const contributionCmd = `pnpm snarkjs zkey contribute ${zkeyFile} ${finalZkeyFile} --name="First Contribution" -v -e="random text"`;
-    // Note: -e is entropy. In a real ceremony, this is user input.
-    // But snarkjs might require interactive input if -e is not enough or different version.
-    // Let's try non-interactive.
-    // Actually, for dev, we can skip contribute if we trust the setup? 
-    // No, groth16 setup produces a zkey that needs at least one contribution?
-    // Wait, 'groth16 setup' produces the initial zkey. It is usable but it's better to contribute.
-    // Let's just use the initial zkey as final for simplicity if possible, 
-    // BUT snarkjs usually recommends verifying the zkey.
-    
-    // Let's do one contribution.
-    // On Windows, passing entropy via command line might be tricky with quotes.
-    // Let's try:
-    run(`pnpm snarkjs zkey contribute ${zkeyFile} ${finalZkeyFile} --name="Dev" -v -e="some random entropy"`);
+    // 3.2 Contribute
+    run(`npx snarkjs zkey contribute ${zkeyFile} ${finalZkeyFile} --name="Dev" -v -e="some random entropy"`);
 
     // 4. Export Verification Key
     console.log('--- Exporting Verification Key ---');
     const vKeyFile = path.join(BUILD_DIR, 'verification_key.json');
-    run(`pnpm snarkjs zkey export verificationkey ${finalZkeyFile} ${vKeyFile}`);
+    run(`npx snarkjs zkey export verificationkey ${finalZkeyFile} ${vKeyFile}`);
+
+    // 5. Copy to Web Public Directory
+    console.log('--- Copying artifacts to Web ---');
+    // Copy .wasm
+    // The compiled wasm is inside build/main_js/main.wasm
+    const wasmSource = path.join(BUILD_DIR, `${CIRCUIT_NAME}_js`, `${CIRCUIT_NAME}.wasm`);
+    const wasmDest = path.join(WEB_PUBLIC_ZK_DIR, 'vote.wasm'); // Rename to vote.wasm for clarity
+    fs.copyFileSync(wasmSource, wasmDest);
+    console.log(`Copied ${wasmSource} -> ${wasmDest}`);
+
+    // Copy .zkey
+    const zkeyDest = path.join(WEB_PUBLIC_ZK_DIR, 'vote_final.zkey');
+    fs.copyFileSync(finalZkeyFile, zkeyDest);
+    console.log(`Copied ${finalZkeyFile} -> ${zkeyDest}`);
+    
+    // Copy verification_key.json to crypto-lib/src/ (optional, for type checking or direct import)
+    // Actually crypto-lib reads it from build or local.
+    // Let's copy it to crypto-lib/src/verification_key.json so it's bundled.
+    const cryptoLibDest = path.join(__dirname, '../../crypto-lib/src/verification_key.json');
+    fs.copyFileSync(vKeyFile, cryptoLibDest);
+    console.log(`Copied ${vKeyFile} -> ${cryptoLibDest}`);
 
     console.log('--- Build Complete ---');
-    console.log(`Files generated in ${BUILD_DIR}:`);
-    console.log(`- ${CIRCUIT_NAME}.wasm`);
-    console.log(`- ${CIRCUIT_NAME}_final.zkey`);
-    console.log(`- verification_key.json`);
 };
 
 main().catch(console.error);

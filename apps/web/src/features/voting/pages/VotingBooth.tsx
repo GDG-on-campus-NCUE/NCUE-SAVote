@@ -9,11 +9,13 @@ import { votesApi } from "../services/votes.api";
 import { useNullifierSecret } from "../../auth/hooks/useNullifierSecret";
 import { useVoteProof } from "../hooks/useVoteProof";
 import { uuidToBigInt } from "../../../lib/zk-utils";
+import { useAuth } from "../../auth/hooks/useAuth";
 
 export const VotingBooth: React.FC = () => {
   const { electionId } = useParams<{ electionId: string }>();
   const navigate = useNavigate();
   const { secret } = useNullifierSecret();
+  const { user } = useAuth();
   const {
     generateProof,
     isLoading: isGeneratingProof,
@@ -58,7 +60,10 @@ export const VotingBooth: React.FC = () => {
   });
 
   const handleVote = async () => {
-    if (!electionId || !selectedCandidate || !secret || !eligibility) return;
+    if (!electionId || !selectedCandidate || !secret || !eligibility || !user?.studentIdHash) {
+        if (!user?.studentIdHash) console.error("Missing studentIdHash");
+        return;
+    }
 
     try {
       // Prepare Inputs
@@ -67,6 +72,9 @@ export const VotingBooth: React.FC = () => {
       // Ensure secret is properly formatted as hex
       const secretHex = secret.startsWith('0x') ? secret : '0x' + secret;
       const secretBigInt = BigInt(secretHex);
+      
+      const studentIdHex = user.studentIdHash.startsWith('0x') ? user.studentIdHash : '0x' + user.studentIdHash;
+      const studentIdBigInt = BigInt(studentIdHex);
 
       // Merkle Path
       const { merkleRootHash, merkleProof, leafIndex } = eligibility;
@@ -88,6 +96,7 @@ export const VotingBooth: React.FC = () => {
         electionId: electionIdBigInt.toString(),
         vote: voteBigInt.toString(),
         secret: secretBigInt.toString(),
+        studentIdHash: studentIdBigInt.toString(),
         pathIndices,
         siblings: merkleProof,
       };

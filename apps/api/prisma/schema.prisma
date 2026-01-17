@@ -13,8 +13,8 @@ datasource db {
 // ============================================================================
 // User Entity
 // ============================================================================
-// Represents an authenticated student who has completed SAML SSO login.
-// Stores minimal attributes extracted from SAML assertion.
+// Represents an authenticated student who has completed SSO login.
+// Stores minimal attributes extracted from SSO assertion.
 
 enum EnrollmentStatus {
   ACTIVE
@@ -32,10 +32,14 @@ model User {
   studentIdHash    String           @unique @db.VarChar(64) // SHA-256 hash (hex)
   class            String           @db.VarChar(50)         // e.g., "CSIE_3A"
   email            String?          @db.VarChar(255)        // Optional for recovery
-    username         String?          @unique @db.VarChar(100) // Optional for admin login
-    password         String?          @db.VarChar(255)         // Hashed password for admin login
+  
+  // Admin Login
+  username         String?          @unique @db.VarChar(100) // Optional for admin login
+  password         String?          @db.VarChar(255)         // Hashed password for admin login
+  
   enrollmentStatus EnrollmentStatus @default(ACTIVE)
   role             UserRole         @default(USER)
+  
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   
@@ -79,19 +83,24 @@ model Session {
 // Represents a voting election. Merkle root hash field for eligibility verification.
 
 model Election {
-  id             String          @id @default(uuid())
-  name           String          @db.VarChar(255)
-  merkleRootHash String?         @db.VarChar(64) // SHA-256 hash (hex)
-  status         ElectionStatus  @default(DRAFT)
-  startTime      DateTime?
-  endTime        DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id              String          @id @default(uuid())
+  name            String          @db.VarChar(255)
+  description     String?         @db.Text
+  
+  // ZK Config
+  merkleRoot      String?         @db.VarChar(100) // Root of the voter tree at snapshot time
+  merkleTreeDepth Int             @default(20)
+  
+  status          ElectionStatus  @default(DRAFT)
+  startTime       DateTime?
+  endTime         DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
   
   // Relations
-  eligibleVoters EligibleVoter[]
-  candidates     Candidate[]
-  votes          Vote[]
+  eligibleVoters  EligibleVoter[]
+  candidates      Candidate[]
+  votes           Vote[]
   
   @@index([status])
   @@index([startTime, endTime])
@@ -110,14 +119,16 @@ enum ElectionStatus {
 // EligibleVoter Entity
 // ============================================================================
 // Stores the list of students eligible to vote in a specific election.
-// Used to generate Merkle Tree for zero-knowledge eligibility proofs.
+// Imported by Admin. 
 
 model EligibleVoter {
   id         String   @id @default(uuid())
-  studentId  String   @db.VarChar(20)  // Plaintext student ID (for管理與稽核)
+  studentId  String   @db.VarChar(20)  // Plaintext student ID (for management)
   class      String   @db.VarChar(50)
+  
   // ZK Registration
-  identityCommitment String? @unique @db.VarChar(100) // Poseidon(secret)，用於 Merkle Tree
+  identityCommitment String? @db.VarChar(100) // The ZK commitment
+
   electionId String
   election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
@@ -142,6 +153,9 @@ model Candidate {
   election    Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  // Relations
+  receivedVotes Vote[]
 
   @@index([electionId])
   @@map("candidates")
@@ -158,13 +172,19 @@ model Vote {
   electionId    String
   election      Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
   
+  // The candidate voted for (extracted from proof for easy tallying)
+  // Note: The proof verifies that this candidateId matches the one in publicSignals
+  candidateId   String
+  candidate     Candidate @relation(fields: [candidateId], references: [id])
+
   // ZK Proof Data
-  nullifier     String   @unique @db.VarChar(64) // Prevents double voting
+  nullifierHash String   @db.VarChar(100) // Prevents double voting (unique per election)
   proof         Json     // The Groth16 proof object
-  publicSignals Json     // Public inputs (Merkle root, nullifier hash, candidateId, etc.)
+  publicSignals Json     // Public inputs
   
   createdAt     DateTime @default(now())
 
+  @@unique([electionId, nullifierHash]) // Ensure uniqueness per election
   @@index([electionId])
   @@map("votes")
 }

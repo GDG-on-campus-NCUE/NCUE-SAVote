@@ -9,6 +9,9 @@ import passport from 'passport';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Trust Proxy (Required for secure cookies behind Nginx/Load Balancer)
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   // Security Headers
   app.use(helmet());
 
@@ -20,8 +23,9 @@ async function bootstrap() {
       saveUninitialized: false,
       cookie: {
         maxAge: 3600000,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production', // Requires https
         httpOnly: true,
+        sameSite: 'lax', // Allow basic redirection flows
       },
     }),
   );

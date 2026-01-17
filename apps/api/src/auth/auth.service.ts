@@ -11,7 +11,7 @@ import {
     RefreshTokenResponse,
     UserRole,
 } from '@savote/shared-types';
-import { SAMLProfile } from './strategies/saml.strategy';
+import { UserinfoResponse } from 'openid-client';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -96,24 +96,28 @@ export class AuthService {
     }
 
     /**
-     * Process SAML login and create/update user session
+     * Process OIDC login and create/update user session
      */
-    async handleSAMLLogin(
-        profile: SAMLProfile,
+    async handleOIDCLogin(
+        userinfo: UserinfoResponse,
         ipAddress: string,
         userAgent: string,
     ): Promise<LoginResponse> {
-        this.logger.log(`Processing SAML login for studentId: ${profile.studentId || profile.uid || profile.nameID}`);
-        // Extract student ID from SAML profile
-        // Adjust attribute name based on actual IdP configuration
-        const studentId = profile.studentId || profile.uid || profile.nameID;
-        const userClass = profile.class || 'UNKNOWN';
-        const email = profile.mail || null;
+        // Mapping based on NCUE OIDC claims or standard OIDC
+        // Assuming preferred_username is the Student ID, fallback to sub
+        const studentId = (userinfo.preferred_username || userinfo.sub) as string;
+        
+        this.logger.log(`Processing OIDC login for studentId: ${studentId}`);
 
         if (!studentId) {
-            this.logger.error('Student ID not found in SAML response');
-            throw new UnauthorizedException('Student ID not found in SAML response');
+            this.logger.error('Student ID not found in OIDC userinfo');
+            throw new UnauthorizedException('Student ID not found');
         }
+
+        // Additional claims if available
+        // Note: Check actual claim names from IdP
+        const userClass = (userinfo['class'] || userinfo['ou'] || 'UNKNOWN') as string;
+        const email = (userinfo.email || null) as string | null;
 
         // Hash student ID with SHA-256
         const studentIdHash = crypto.createHash('sha256').update(studentId).digest('hex');

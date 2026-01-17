@@ -1,42 +1,18 @@
-# Dependencies
+# Dependency directories
 node_modules
 .pnpm-store
 
-# Build Outputs
+# Build outputs
 dist
 build
 out
-
-# Next.js / Vite
-.next
-.cache
-
-# Turborepo
 .turbo
 
-# Environment Variables
+# Environment variables (Critical security)
 .env
-.env.*.local
-.env.development
-.env.production
+.env.*
 !.env.example
-
-# Secrets & Keys (CRITICAL - Never commit!)
-apps/api/secrets/
-*.key
-*.pem
-*.p12
-*.pfx
-
-# IDEs
-.vscode
-.idea
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
+*.env
 
 # Logs
 logs
@@ -45,26 +21,41 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# ZK Artifacts (Large files)
-*.ptau
-*.zkey
-# Keep circuit sources (.circom) but ignore compiled outputs if they are large or reproducible
-packages/circuits/build/
+# IDEs and Editors
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
 
-# NestJS
-apps/api/dist
-
-# Testing
-coverage
-test-results/
-playwright-report/
-blob-report/
-junit.xml
-
-# TypeScript
-*.tsbuildinfo
+# NestJS / API
+apps/api/secrets/*.key
+apps/api/secrets/*.pem
+!apps/api/secrets/.keep
 
 # Prisma
-*.db
-*.db-journal
+apps/api/prisma/migrations/migration_lock.toml
+
+# ZK Circuits (Circom)
+# Ignore build artifacts but keep source
+packages/circuits/build
+packages/circuits/*.r1cs
+packages/circuits/*.sym
+packages/circuits/*.ptau
+packages/circuits/*.zkey
+packages/circuits/powersOfTau28_hez_final_*.ptau
+
+# Frontend (Vite/React)
+apps/web/dist
+apps/web/*.local
+
+# Testing coverage
+coverage
+coverage-ts
+
+# Temporary files
+tmp
+temp

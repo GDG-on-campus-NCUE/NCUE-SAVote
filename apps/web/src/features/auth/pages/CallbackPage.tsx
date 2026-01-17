@@ -1,5 +1,5 @@
-import { SAMLCallback } from '../components/SAMLCallback';
+import { AuthCallback } from '../components/AuthCallback';
 
 export const CallbackPage = () => {
-  return <SAMLCallback />;
+  return <AuthCallback />;
 };

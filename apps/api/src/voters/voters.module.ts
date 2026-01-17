@@ -7,5 +7,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [AuthModule],
   providers: [VotersService],
   controllers: [VotersController],
+  exports: [VotersService],
 })
 export class VotersModule {}

@@ -44,7 +44,7 @@ Groth16 基於 零知識證明(Zero Knowledge Proof)來進行加密保護機制�
 * 確認他在這場 election 的 voter list 裡（資格 OK）。
 * 若是第一次，可以在這一步為他建立：
     * nullifier_secret（存在 user 端或 server 端，之後你會決定）
-    * 對應的 nullifier / credential_commitment 存到 DB 的 User 或其他表。
+    * 對應的 credential_commitment 存到 DB 的 EligibleVoter 表。
 
 2.載入選舉資訊
 * 前端呼叫 API：GET /elections/:id。

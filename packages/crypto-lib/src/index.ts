@@ -4,32 +4,25 @@ import { buildPoseidon } from 'circomlibjs';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Load verification key from build artifacts or expected location
-// In production, this file should be placed in the same directory or a known location
+// Load verification key
+// We expect it to be in the same directory (copied by build script)
 let verificationKey: any;
 try {
-    // Try to load from local file (if copied during build)
     const localPath = path.join(__dirname, 'verification_key.json');
     if (fs.existsSync(localPath)) {
         verificationKey = JSON.parse(fs.readFileSync(localPath, 'utf-8'));
-    } else {
-        // Try to load from circuits build directory (monorepo dev mode)
-        const buildPath = path.resolve(__dirname, '../../../circuits/build/verification_key.json');
-        if (fs.existsSync(buildPath)) {
-            verificationKey = JSON.parse(fs.readFileSync(buildPath, 'utf-8'));
-        } else {
-            console.warn('Verification key not found. Verification will fail.');
-        }
     }
 } catch (e) {
-    console.warn('Error loading verification key:', e);
+    console.warn('Verification key not found in crypto-lib. Verification functions might fail if key is not provided explicitly.');
 }
 
 export interface ProofInput {
     root: string;
     electionId: string;
     vote: string;
+    nullifierHash: string;
     secret: string;
+    studentIdHash: string;
     pathIndices: number[];
     siblings: string[];
 }
@@ -39,9 +32,39 @@ export interface FullProof {
     publicSignals: string[];
 }
 
-export async function verifyVoteProof(proof: any, publicSignals: string[]): Promise<boolean> {
+// Cache Poseidon instance
+let poseidon: any = null;
+
+export async function getPoseidon() {
+    if (!poseidon) {
+        poseidon = await buildPoseidon();
+    }
+    return poseidon;
+}
+
+export async function poseidonHash(inputs: (bigint | string | number)[]): Promise<string> {
+    const p = await getPoseidon();
+    const hash = p(inputs);
+    return p.F.toString(hash);
+}
+
+export async function generateIdentityCommitment(studentIdHash: string, secret: string): Promise<string> {
+    // commitment = Poseidon(studentIdHash, secret)
+    return poseidonHash([studentIdHash, secret]);
+}
+
+export async function generateNullifierHash(secret: string, electionId: string): Promise<string> {
+    // nullifier = Poseidon(secret, electionId)
+    return poseidonHash([secret, electionId]);
+}
+
+export async function verifyVoteProof(proof: any, publicSignals: string[], vKey?: any): Promise<boolean> {
+    const key = vKey || verificationKey;
+    if (!key) {
+        throw new Error('Verification key not found');
+    }
     try {
-        const res = await snarkjs.groth16.verify(verificationKey, publicSignals, proof);
+        const res = await snarkjs.groth16.verify(key, publicSignals, proof);
         return res;
     } catch (error) {
         console.error('Proof verification failed:', error);
@@ -49,12 +72,12 @@ export async function verifyVoteProof(proof: any, publicSignals: string[]): Prom
     }
 }
 
-export async function generateNullifier(secret: bigint, electionId: bigint): Promise<string> {
-    const poseidon = await buildPoseidon();
-    const hash = poseidon([secret, electionId]);
-    return poseidon.F.toString(hash);
-}
-
+/**
+ * Generates a full proof.
+ * @param input The inputs for the circuit
+ * @param wasmPath Path to the .wasm file
+ * @param zkeyPath Path to the .zkey file
+ */
 export async function generateVoteProof(
     input: ProofInput, 
     wasmPath: string, 

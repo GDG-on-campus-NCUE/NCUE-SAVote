@@ -7,6 +7,8 @@ import {
   UseGuards,
   UseInterceptors,
   Req,
+  Get,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { ApiResponse, VoterEligibilityResponse, JWTPayload } from '@savote/shared-types';
@@ -38,6 +40,23 @@ export class VotersController {
       success: true,
       data: result,
     };
+  }
+
+  @Get('merkle-proof')
+  @UseGuards(JwtAuthGuard)
+  async getMerkleProof(
+    @Query('electionId') electionId: string,
+    @Query('commitment') commitment: string,
+  ): Promise<ApiResponse<any>> {
+      if (!electionId || !commitment) {
+          throw new BadRequestException('electionId and commitment are required');
+      }
+      
+      const result = await this.votersService.getMerkleProof(electionId, commitment);
+      return {
+          success: true,
+          data: result
+      };
   }
 
   @Post('verify-eligibility')

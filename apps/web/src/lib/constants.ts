@@ -13,9 +13,9 @@ export const TOKEN_EXPIRY = {
 
 export const API_ENDPOINTS = {
   AUTH: {
-    LOGIN: '/auth/saml/login',
-      ADMIN_LOGIN: '/auth/admin/login',
-    CALLBACK: '/auth/saml/callback',
+    LOGIN: '/auth/login',
+    ADMIN_LOGIN: '/auth/admin/login',
+    CALLBACK: '/auth/callback',
     REFRESH: '/auth/refresh',
     LOGOUT: '/auth/logout',
     ME: '/users/me',

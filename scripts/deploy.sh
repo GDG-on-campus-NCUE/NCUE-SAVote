@@ -24,10 +24,21 @@ check_cmd curl
 check_cmd node
 check_cmd pnpm
 
+# Load env vars from apps/api/.env if it exists
+ENV_FILE="$REPO_ROOT/apps/api/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  log "Loading environment from $ENV_FILE"
+  # Export variables from .env file
+  set -a
+  source "$ENV_FILE"
+  set +a
+fi
+
 # Check required env vars
-: "${SAML_ENTRY_POINT:?SAML_ENTRY_POINT is required}"
-: "${SAML_ISSUER:?SAML_ISSUER is required}"
-: "${SAML_CALLBACK_URL:?SAML_CALLBACK_URL is required}"
+: "${OIDC_ISSUER:?OIDC_ISSUER is required}"
+: "${OIDC_CLIENT_ID:?OIDC_CLIENT_ID is required}"
+: "${OIDC_CLIENT_SECRET:?OIDC_CLIENT_SECRET is required}"
+: "${OIDC_CALLBACK_URL:?OIDC_CALLBACK_URL is required}"
 : "${CORS_ORIGIN:?CORS_ORIGIN is required}"
 : "${DATABASE_URL:?DATABASE_URL is required}"
 

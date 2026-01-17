@@ -8,12 +8,13 @@ import {
     UseGuards,
     HttpCode,
     HttpStatus,
+    Logger,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
+import { OidcService } from './oidc.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { SamlAuthGuard } from './guards/saml.guard';
 import type {
     RefreshTokenRequest,
     RefreshTokenResponse,
@@ -21,23 +22,47 @@ import type {
     JWTPayload,
 } from '@savote/shared-types';
 import { AdminLoginDto } from './dto/admin-login.dto';
+import { generators } from 'openid-client';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private authService: AuthService) { }
+    private readonly logger = new Logger(AuthController.name);
+
+    constructor(
+        private authService: AuthService,
+        private oidcService: OidcService,
+    ) { }
 
     /**
-     * Initiate SAML SSO login
+     * Initiate OIDC login
      * Redirects to IdP login page
      */
-    @Get('saml/login')
-    @UseGuards(SamlAuthGuard)
-    async samlLogin() {
-        // Guard handles redirect to IdP
+    @Get('login')
+    async login(@Req() req: Request, @Res() res: Response) {
+        const code_verifier = generators.codeVerifier();
+        const code_challenge = generators.codeChallenge(code_verifier);
+        const state = generators.state();
+
+        // Store verifier and state in session
+        if (req.session) {
+            (req.session as any).code_verifier = code_verifier;
+            (req.session as any).state = state;
+        } else {
+            this.logger.error('Session not initialized');
+            return res.status(500).send('Internal Server Error: Session not initialized');
+        }
+
+        try {
+            const authorizationUrl = this.oidcService.getAuthorizationUrl(code_challenge, state);
+            return res.redirect(authorizationUrl);
+        } catch (error) {
+            this.logger.error(`Failed to generate authorization URL: ${error.message}`);
+            return res.status(500).send('Internal Server Error');
+        }
     }
 
     /**
-     * Dev-only: Mock login endpoint to bypass SAML
+     * Dev-only: Mock login endpoint to bypass OIDC
      * Creates a fake user session and redirects to frontend
      */
     @Get('dev/login')
@@ -53,22 +78,21 @@ export class AuthController {
         const isAdminLogin = req.query.admin === 'true';
 
         // Mock profile - 根據登入類型使用不同的帳號
+        // Using OIDC-like structure for mock
         const mockProfile = isAdminLogin ? {
-            nameID: 'admin-user',
+            sub: 'admin-user',
             email: 'admin@savote.org',
-            displayName: 'Admin User',
-            studentId: 'ADMIN001',
+            preferred_username: 'ADMIN001',
             class: 'ADMIN',
         } : {
-            nameID: 'test-user-001',
+            sub: 'test-user-001',
             email: 'test@example.com',
-            displayName: 'Test User',
-            studentId: 'S123456789',
+            preferred_username: 'S123456789',
             class: 'CS-2025',
         };
 
         try {
-            const loginResponse = await this.authService.handleSAMLLogin(
+            const loginResponse = await this.authService.handleOIDCLogin(
                 mockProfile as any,
                 ipAddress,
                 userAgent,
@@ -86,20 +110,31 @@ export class AuthController {
     }
 
     /**
-     * SAML callback endpoint
-     * Processes SAML response and issues JWT tokens
+     * OIDC callback endpoint
+     * Processes OIDC response code and issues JWT tokens
      */
-    @Post('saml/callback')
-    @UseGuards(AuthGuard('saml'))
-    @HttpCode(HttpStatus.OK)
-    async samlCallback(@Req() req: Request, @Res() res: Response) {
-        const profile = req.user as any; // SAMLProfile from strategy
+    @Get('callback')
+    async callback(@Req() req: Request, @Res() res: Response) {
         const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
         const userAgent = req.headers['user-agent'] || 'unknown';
 
         try {
-            const loginResponse = await this.authService.handleSAMLLogin(
-                profile,
+            const session = req.session as any;
+            if (!session || !session.code_verifier || !session.state) {
+                throw new Error('Session expired or invalid state');
+            }
+
+            const code_verifier = session.code_verifier;
+            const state = session.state;
+            
+            // Clear verifier from session
+            delete session.code_verifier;
+            delete session.state;
+
+            const { userinfo } = await this.oidcService.exchangeCode(req, code_verifier, state);
+
+            const loginResponse = await this.authService.handleOIDCLogin(
+                userinfo,
                 ipAddress,
                 userAgent,
             );
@@ -112,6 +147,7 @@ export class AuthController {
 
             return res.redirect(redirectUrl);
         } catch (error) {
+            this.logger.error(`OIDC Callback failed: ${error.message}`);
             // Redirect to error page
             const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
             return res.redirect(`${frontendUrl}/auth/error?message=${encodeURIComponent(error.message)}`);

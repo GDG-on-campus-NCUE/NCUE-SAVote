@@ -1,55 +1,31 @@
 # SAVote Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-11-26
+Last updated: 2026-01-18
 
 ## Active Technologies
 
-- React 18
-- Vite
-- NestJS
-- PostgreSQL
-- Circom (ZKP)
-- SnarkJS
+- **Frontend:** React 18, Vite, TailwindCSS
+- **Backend:** NestJS, Prisma, OIDC
+- **ZK:** Circom 2.1, SnarkJS (Groth16), Poseidon
 
 ## Project Structure
 
 ```text
 /
 ├── apps/
-│   ├── web/                 # Frontend (React)
-│   ├── api/                 # Backend (NestJS)
-│   └── admin/               # Admin Panel
+│   ├── web/                 # Frontend (React + Web Worker)
+│   ├── api/                 # Backend (NestJS + Prisma)
 ├── packages/
-│   ├── circuits/            # ZK Circuits
-│   ├── shared-types/        # Shared TypeScript types
-│   └── crypto-lib/          # Crypto utilities
-├── .specify/                # Spec-Driven Development artifacts
-│   ├── memory/
-│   ├── scripts/
-│   ├── specs/
-│   └── templates/
-├── PLAN.md                  # Master Plan
-└── README.md
+│   ├── circuits/            # ZK Circuits (.circom)
+│   ├── shared-types/        # Shared Types
+│   └── crypto-lib/          # Shared Crypto Utils
+├── scripts/                 # Deploy scripts
+└── docs/                    # Architecture & Plans
 ```
-
-## Commands
-
-- `/speckit.constitution`: Create or update project governing principles.
-- `/speckit.specify`: Define what you want to build.
-- `/speckit.plan`: Create technical implementation plans.
-- `/speckit.tasks`: Generate actionable task lists.
-- `/speckit.implement`: Execute tasks.
-
-## Code Style
-
-- TypeScript
-- ESLint
-- Prettier
 
 ## Recent Changes
 
-- Initialized Spec-Driven Development structure.
-- Created Master Plan (PLAN.md).
-
-<!-- MANUAL ADDITIONS START -->
-<!-- MANUAL ADDITIONS END -->
+- **OIDC Migration:** Replaced SAML with NCUE OIDC.
+- **ZK Integration:** Implemented `Poseidon(studentIdHash, secret)` commitment scheme.
+- **Database:** Added `identityCommitment` to `EligibleVoter`.
+- **Frontend:** Fixed Proof Generation in `VotingBooth` and `KeySetupPage`.

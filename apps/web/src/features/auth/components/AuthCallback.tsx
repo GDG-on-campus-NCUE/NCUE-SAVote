@@ -7,7 +7,7 @@ import { NullifierRecovery } from './NullifierRecovery';
 import { PageShell } from '../../../components/layout/PageShell';
 import { GlassCard } from '../../../components/ui/GlassCard';
 
-export const SAMLCallback = () => {
+export const AuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const setAuth = useAuthStore(state => state.setAuth);

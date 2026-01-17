@@ -5,6 +5,7 @@ import { AnimatedBackground } from '../../../components/AnimatedBackground';
 import { GlassCard, GlassButton, GlassInput } from '../../../components/ui';
 import { generateNullifierSecret, nullifierToHex } from '../../auth/services/crypto.service';
 import { votersApi } from '../services/voters.api';
+import { useAuth } from '../../auth/hooks/useAuth';
 // Lazy-load Poseidon to avoid blocking initial bundle
 import { buildPoseidon } from 'circomlibjs';
 
@@ -12,6 +13,7 @@ const LOCAL_STORAGE_KEY = 'savote_nullifier_secret';
 
 export const KeySetupPage: React.FC = () => {
   const { electionId } = useParams<{ electionId: string }>();
+  const { user } = useAuth();
   // const navigate = useNavigate();
   const [secretHex, setSecretHex] = useState('');
   const [isRegistered, setIsRegistered] = useState(false);
@@ -58,16 +60,25 @@ export const KeySetupPage: React.FC = () => {
       setError('缺少選舉 ID。');
       return;
     }
+    if (!user?.studentIdHash) {
+      setError('無法取得使用者資訊，請重新登入。');
+      return;
+    }
+
     try {
       setIsRegistering(true);
 
       // 將十六進位金鑰轉回 bigint
-      const normalized = secretHex.startsWith('0x') ? secretHex : `0x${secretHex}`;
-      const secretBigInt = BigInt(normalized);
+      const normalizedSecret = secretHex.startsWith('0x') ? secretHex : `0x${secretHex}`;
+      const secretBigInt = BigInt(normalizedSecret);
+      
+      const normalizedStudentId = user.studentIdHash.startsWith('0x') ? user.studentIdHash : `0x${user.studentIdHash}`;
+      const studentIdBigInt = BigInt(normalizedStudentId);
 
-      // 使用 Poseidon(secret) 作為 identityCommitment
+      // 使用 Poseidon(studentIdHash, secret) 作為 identityCommitment
+      // 必須與 circuit: leafHasher.inputs[0] <== studentIdHash; leafHasher.inputs[1] <== secret; 一致
       const poseidon = await buildPoseidon();
-      const commitmentBigInt = poseidon([secretBigInt]);
+      const commitmentBigInt = poseidon([studentIdBigInt, secretBigInt]);
       const commitment = poseidon.F.toString(commitmentBigInt);
 
       await votersApi.registerCommitment(electionId, commitment);

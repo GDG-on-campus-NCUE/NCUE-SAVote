@@ -10,6 +10,7 @@ import { ImportEligibleVotersDto } from './dto/import-eligible-voters.dto';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { UseGuards } from '@nestjs/common';
 import { VotesService } from '../votes/votes.service';
+import { VotersService } from '../voters/voters.service';
 
 @Controller('elections')
 export class ElectionsController {
@@ -17,6 +18,7 @@ export class ElectionsController {
     private readonly electionsService: ElectionsService,
     private readonly candidatesService: CandidatesService,
     private readonly votesService: VotesService,
+    private readonly votersService: VotersService,
   ) {}
 
   @Post()
@@ -48,6 +50,13 @@ export class ElectionsController {
   @UseGuards(AdminGuard)
   remove(@Param('id') id: string) {
     return this.electionsService.remove(id);
+  }
+
+  // Lifecycle: Snapshot the voter tree
+  @UseGuards(AdminGuard)
+  @Post(':id/snapshot')
+  snapshot(@Param('id') electionId: string) {
+    return this.votersService.snapshotElection(electionId);
   }
 
   // Lifecycle: finalize voter list and open voting
