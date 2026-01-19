@@ -36,7 +36,9 @@ model User {
   // Admin Login
   username         String?          @unique @db.VarChar(100) // Optional for admin login
   password         String?          @db.VarChar(255)         // Hashed password for admin login
-  
+  name             String?          @db.VarChar(100)         // For admins
+  lastLoginIp      String?          @db.VarChar(45)          // For admins
+
   enrollmentStatus EnrollmentStatus @default(ACTIVE)
   role             UserRole         @default(USER)
   
@@ -45,10 +47,25 @@ model User {
   
   // Relations
   sessions         Session[]
+  adminLoginLogs   AdminLoginLog[]
   
   @@index([class])
   @@index([role])
   @@map("users")
+}
+
+// ============================================================================
+// Admin Login Log Entity
+// ============================================================================
+model AdminLoginLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress String   @db.VarChar(45)
+  loginAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@map("admin_login_logs")
 }
 
 // ============================================================================
@@ -82,11 +99,19 @@ model Session {
 // ============================================================================
 // Represents a voting election. Merkle root hash field for eligibility verification.
 
+enum ElectionType {
+  PRESIDENTIAL
+  DISTRICT_COUNCILOR
+  AT_LARGE_COUNCILOR
+}
+
 model Election {
   id              String          @id @default(uuid())
   name            String          @db.VarChar(255)
   description     String?         @db.Text
-  
+  type            ElectionType    @default(PRESIDENTIAL)
+  config          Json?           // Stores specific rules (thresholds, seats, etc.)
+
   // ZK Config
   merkleRoot      String?         @db.VarChar(100) // Root of the voter tree at snapshot time
   merkleTreeDepth Int             @default(20)

@@ -1,122 +1,210 @@
 @import "tailwindcss";
 @import "./styles/animations.css";
 
-@theme {
-  /* 核心色彩 - Liquid Glass / 夜空藍系 */
-  --color-primary: #4f9fff;
-  --color-primary-hover: #2f7fe0;
-  --color-primary-light: #d6e7ff;
-
-  --color-secondary: #22c55e;
-  --color-accent-red: #fb7185;
-  --color-accent-yellow: #facc15;
-
-  /* 背景與玻璃層 */
-  --color-background: #020617; /* slate-950 */
-  --color-surface: rgba(15,23,42,0.85);
-  --color-surface-soft: rgba(15,23,42,0.6);
-
-  /* 文字色 */
-  --color-text: #e5e7eb;
-  --color-text-secondary: #9ca3af;
-  --color-text-muted: #6b7280;
-
-  /* 邊框與光暈 */
-  --color-border: rgba(148,163,184,0.6);
-  --color-border-strong: rgba(59,130,246,0.8);
-}
-
+/* Material 3 Color System & Motion Tokens */
 :root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* Light Mode - Base Colors */
+  --md-sys-color-primary: #0061a4;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #d1e4ff;
+  --md-sys-color-on-primary-container: #001d36;
 
-  color: var(--color-text);
-  background-color: var(--color-background);
+  --md-sys-color-secondary: #535f70;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #d7e3f7;
+  --md-sys-color-on-secondary-container: #101c2b;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --md-sys-color-tertiary: #6b5778;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #f2daff;
+  --md-sys-color-on-tertiary-container: #251431;
+
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #410002;
+
+  --md-sys-color-background: #fdfcff;
+  --md-sys-color-on-background: #1a1c1e;
+  
+  --md-sys-color-surface: #fdfcff;
+  --md-sys-color-on-surface: #1a1c1e;
+  --md-sys-color-surface-variant: #dfe2eb;
+  --md-sys-color-on-surface-variant: #43474e;
+  --md-sys-color-outline: #73777f;
+  --md-sys-color-outline-variant: #c3c7cf;
+
+  /* State Layers (Opacity handled in utility classes or via color-mix) */
+  --md-sys-state-hover: 0.08;
+  --md-sys-state-focus: 0.12;
+  --md-sys-state-pressed: 0.12;
+  --md-sys-state-dragged: 0.16;
+
+  /* Elevation (Box Shadow) */
+  --md-sys-elevation-1: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+  --md-sys-elevation-2: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+  --md-sys-elevation-3: 0px 1px 3px 0px rgba(0, 0, 0, 0.3), 0px 4px 8px 3px rgba(0, 0, 0, 0.15);
+  --md-sys-elevation-4: 0px 2px 3px 0px rgba(0, 0, 0, 0.3), 0px 6px 10px 4px rgba(0, 0, 0, 0.15);
+  --md-sys-elevation-5: 0px 4px 4px 0px rgba(0, 0, 0, 0.3), 0px 8px 12px 6px rgba(0, 0, 0, 0.15);
 }
 
+.dark {
+  /* Dark Mode - Base Colors */
+  --md-sys-color-primary: #9ecaff;
+  --md-sys-color-on-primary: #003258;
+  --md-sys-color-primary-container: #00497d;
+  --md-sys-color-on-primary-container: #d1e4ff;
+
+  --md-sys-color-secondary: #bbc7db;
+  --md-sys-color-on-secondary: #253140;
+  --md-sys-color-secondary-container: #3b4858;
+  --md-sys-color-on-secondary-container: #d7e3f7;
+
+  --md-sys-color-tertiary: #d6bee4;
+  --md-sys-color-on-tertiary: #3b2948;
+  --md-sys-color-tertiary-container: #523f5f;
+  --md-sys-color-on-tertiary-container: #f2daff;
+
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffdad6;
+
+  --md-sys-color-background: #1a1c1e;
+  --md-sys-color-on-background: #e2e2e6;
+  
+  --md-sys-color-surface: #1a1c1e;
+  --md-sys-color-on-surface: #e2e2e6;
+  --md-sys-color-surface-variant: #43474e;
+  --md-sys-color-on-surface-variant: #c3c7cf;
+  --md-sys-color-outline: #8d9199;
+  --md-sys-color-outline-variant: #43474e;
+  
+  /* Dark mode often has lighter elevation shadows or different treatment, keeping standard for now */
+}
+
+@theme {
+  /* Mapping M3 Tokens to Tailwind Colors */
+  --color-primary: var(--md-sys-color-primary);
+  --color-on-primary: var(--md-sys-color-on-primary);
+  --color-primary-container: var(--md-sys-color-primary-container);
+  --color-on-primary-container: var(--md-sys-color-on-primary-container);
+
+  --color-secondary: var(--md-sys-color-secondary);
+  --color-on-secondary: var(--md-sys-color-on-secondary);
+  --color-secondary-container: var(--md-sys-color-secondary-container);
+  --color-on-secondary-container: var(--md-sys-color-on-secondary-container);
+
+  --color-tertiary: var(--md-sys-color-tertiary);
+  --color-on-tertiary: var(--md-sys-color-on-tertiary);
+  --color-tertiary-container: var(--md-sys-color-tertiary-container);
+  --color-on-tertiary-container: var(--md-sys-color-on-tertiary-container);
+
+  --color-error: var(--md-sys-color-error);
+  --color-on-error: var(--md-sys-color-on-error);
+  --color-error-container: var(--md-sys-color-error-container);
+  --color-on-error-container: var(--md-sys-color-on-error-container);
+
+  --color-background: var(--md-sys-color-background);
+  --color-on-background: var(--md-sys-color-on-background);
+  
+  --color-surface: var(--md-sys-color-surface);
+  --color-on-surface: var(--md-sys-color-on-surface);
+  --color-surface-variant: var(--md-sys-color-surface-variant);
+  --color-on-surface-variant: var(--md-sys-color-on-surface-variant);
+  --color-outline: var(--md-sys-color-outline);
+  --color-outline-variant: var(--md-sys-color-outline-variant);
+
+  /* Animation Tokens */
+  --animate-fade-in: fade-in 0.3s cubic-bezier(0.2, 0.0, 0, 1.0);
+  --animate-scale-in: scale-in 0.3s cubic-bezier(0.2, 0.0, 0, 1.0);
+  --animate-slide-up: slide-up 0.4s cubic-bezier(0.2, 0.0, 0, 1.0);
+}
+
+/* Animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Base Styles */
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: var(--color-background);
+  background-color: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-background);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Glassmorphism 基礎樣式 */
-.glass {
-  background: radial-gradient(circle at top left, rgba(59,130,246,0.18), transparent 45%),
-              radial-gradient(circle at bottom right, rgba(56,189,248,0.14), transparent 55%),
-              var(--color-surface);
-  border-radius: 1.5rem;
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  border: 1px solid rgba(148,163,184,0.45);
+/* Ripple Effect Utility */
+.ripple {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
 }
 
-.glass-strong {
-  background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(15,23,42,0.85));
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
-}
-
-.glass-subtle {
-  background: linear-gradient(145deg, rgba(15,23,42,0.6), rgba(15,23,42,0.4));
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-}
-
-.glass-strong,
-.glass-subtle,
-.glass {
-  box-shadow:
-    0 24px 60px rgba(15,23,42,0.75),
-    0 0 0 1px rgba(15,23,42,0.8);
-}
-
-/* Glow 邊框效果 */
-.glow-blue-border {
-  box-shadow: 0 0 0 1px rgba(59,130,246,0.7), 0 0 32px rgba(59,130,246,0.45);
-}
-
-.glow-blue-strong {
-  box-shadow: 0 0 0 1px rgba(59,130,246,0.95), 0 0 48px rgba(59,130,246,0.7);
-}
-
-/* 背景格線 */
-.grid-background {
-  background-image: linear-gradient(rgba(148,163,184,0.12) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(148,163,184,0.12) 1px, transparent 1px);
-  background-size: 32px 32px;
-}
-
-/* Ripple 按鈕效果 */
-.button-ripple {
+.ripple::after {
+  content: "";
   position: absolute;
-  width: 220px;
-  height: 220px;
-  transform: translate(-50%, -50%);
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(59,130,246,0.4) 0, transparent 60%);
+  inset: 0;
+  background-color: currentColor;
+  opacity: 0;
+  transition: opacity 0.2s ease;
   pointer-events: none;
-  animation: ripple-fade 0.6s ease-out forwards;
+  z-index: 1;
 }
 
-@keyframes ripple-fade {
-  0% { opacity: 0.8; transform: translate(-50%, -50%) scale(0.6); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.25); }
+.ripple:hover::after {
+  opacity: var(--md-sys-state-hover);
 }
 
-/* 共用 hover card 效果 */
-.hover-card {
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+.ripple:active::after {
+  opacity: var(--md-sys-state-pressed);
 }
 
-.hover-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 40px rgba(15,23,42,0.9);
+/* Elevation Utilities */
+.elevation-1 { box-shadow: var(--md-sys-elevation-1); }
+.elevation-2 { box-shadow: var(--md-sys-elevation-2); }
+.elevation-3 { box-shadow: var(--md-sys-elevation-3); }
+.elevation-4 { box-shadow: var(--md-sys-elevation-4); }
+.elevation-5 { box-shadow: var(--md-sys-elevation-5); }
+
+/* Transition Helpers */
+.transition-standard {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.2, 0.0, 0, 1.0); /* M3 Standard Easing */
+  transition-duration: 300ms;
+}
+
+@layer components {
+  .type-display-large { @apply text-5xl font-normal leading-tight; }
+  .type-display-medium { @apply text-4xl font-normal leading-tight; }
+  .type-display-small { @apply text-3xl font-normal leading-tight; }
+
+  .type-headline-large { @apply text-3xl font-normal leading-tight; }
+  .type-headline-medium { @apply text-2xl font-normal leading-tight; }
+  .type-headline-small { @apply text-xl font-normal leading-tight; }
+
+  .type-title-large { @apply text-xl font-medium leading-normal; }
+  .type-title-medium { @apply text-base font-medium leading-normal tracking-wide; }
+  .type-title-small { @apply text-sm font-medium leading-normal tracking-wide; }
+
+  .type-body-large { @apply text-base font-normal leading-normal tracking-wide; }
+  .type-body-medium { @apply text-sm font-normal leading-normal tracking-wide; }
+  .type-body-small { @apply text-xs font-normal leading-normal tracking-wide; }
+
+  .type-label-large { @apply text-sm font-medium leading-normal tracking-wide; }
+  .type-label-medium { @apply text-xs font-medium leading-normal tracking-wide; }
+  .type-label-small { @apply text-[11px] font-medium leading-normal tracking-wide; }
 }

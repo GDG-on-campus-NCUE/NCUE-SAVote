@@ -25,7 +25,6 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: "postgresql://postgres:password@postgres:5432/voting_app?schema=public"
-      JWT_SECRET: "super-secret-jwt-key-change-in-production"
       NODE_ENV: "production"
       # OIDC
       OIDC_ISSUER: ${OIDC_ISSUER}

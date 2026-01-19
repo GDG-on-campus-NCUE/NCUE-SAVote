@@ -1,23 +1,40 @@
-import { IsString, IsOptional, IsDateString, IsEnum } from 'class-validator';
-import { ElectionStatus } from '@savote/shared-types';
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  IsEnum,
+  IsObject,
+} from 'class-validator';
+import { ElectionStatus, ElectionType } from '@savote/shared-types';
 
 export class CreateElectionDto {
-    @IsString()
-    name: string;
+  @IsString()
+  name: string;
 
-    @IsOptional()
-    @IsString()
-    merkleRootHash?: string;
+  @IsOptional()
+  @IsString()
+  description?: string;
 
-    @IsOptional()
-    @IsEnum(ElectionStatus)
-    status?: ElectionStatus;
+  @IsEnum(ElectionType)
+  type: ElectionType;
 
-    @IsOptional()
-    @IsDateString()
-    startTime?: string;
+  @IsOptional()
+  @IsObject()
+  config?: any;
 
-    @IsOptional()
-    @IsDateString()
-    endTime?: string;
+  @IsOptional()
+  @IsString()
+  merkleRootHash?: string;
+
+  @IsOptional()
+  @IsEnum(ElectionStatus)
+  status?: ElectionStatus;
+
+  @IsOptional()
+  @IsDateString()
+  startTime?: string;
+
+  @IsOptional()
+  @IsDateString()
+  endTime?: string;
 }

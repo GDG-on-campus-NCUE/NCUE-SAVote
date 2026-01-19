@@ -1,61 +1,69 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { PageShell } from '../../../components/layout/PageShell';
-import { GlassCard } from '../../../components/ui/GlassCard';
+import { useTranslation } from 'react-i18next';
+import { Card } from '../../../components/m3/Card';
+import { Button } from '../../../components/m3/Button';
+import { CheckCircle, AlertTriangle, Home, ArrowLeft } from 'lucide-react';
 
 export const VoteSuccess: React.FC = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const receipt = location.state?.receipt;
 
   if (!receipt) {
     return (
-      <PageShell>
-        <div className="max-w-2xl mx-auto p-8 text-center">
-          <h1 className="text-2xl font-bold text-red-300">No Receipt Found</h1>
-          <p className="mt-4 text-gray-300">Please return to the dashboard.</p>
-          <Link to="/" className="mt-6 inline-block glass-subtle px-4 py-2 rounded-md text-blue-200 hover:text-white">
-            Go to Dashboard
+      <div className="flex justify-center items-center min-h-[60vh] p-4 animate-fade-in">
+        <Card className="max-w-md w-full p-8 text-center flex flex-col items-center gap-4">
+          <div className="p-4 rounded-full bg-[var(--color-error-container)] text-[var(--color-on-error-container)]">
+             <AlertTriangle className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-[var(--color-on-surface)]">{t('vote.no_receipt', 'No Receipt Found')}</h2>
+          <p className="text-[var(--color-on-surface-variant)]">{t('vote.no_receipt_desc', 'Please return to the dashboard.')}</p>
+          <Link to="/" className="w-full">
+            <Button variant="outlined" className="w-full" icon={<ArrowLeft className="w-4 h-4" />}>
+               {t('common.back_home', 'Back to Home')}
+            </Button>
           </Link>
-        </div>
-      </PageShell>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <PageShell>
-      <div className="max-w-2xl mx-auto p-8 text-center">
-        <div className="success-icon bg-green-500/20 text-green-200 p-6 rounded-full w-24 h-24 mx-auto flex items-center justify-center mb-6">
-          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
+    <div className="flex justify-center items-center min-h-[80vh] p-4 animate-fade-in pb-24">
+      <Card className="max-w-xl w-full p-8 text-center space-y-6">
+        <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-[var(--color-primary-container)] mb-2 shadow-lg animate-scale-in">
+          <CheckCircle className="w-12 h-12 text-[var(--color-on-primary-container)]" />
         </div>
         
-        <h1 className="text-3xl font-bold mb-4 text-white">Vote Cast Successfully!</h1>
-        <p className="text-gray-300 mb-8">
-          Your vote has been anonymously recorded. Below is your digital receipt.
-        </p>
+        <div>
+            <h1 className="text-3xl font-bold text-[var(--color-on-surface)] mb-2">{t('vote.vote_success', 'Vote Cast Successfully!')}</h1>
+            <p className="text-[var(--color-on-surface-variant)]">
+            {t('vote.success_desc', 'Your vote has been anonymously recorded. Below is your digital receipt.')}
+            </p>
+        </div>
 
-        <GlassCard>
-          <h3 className="text-sm font-semibold text-blue-200 uppercase tracking-wider mb-2">
-            Vote Receipt (Nullifier Hash)
+        <div className="p-6 bg-[var(--color-surface-variant)] rounded-xl border border-[var(--color-outline-variant)] text-left">
+          <h3 className="text-xs font-bold text-[var(--color-primary)] uppercase tracking-wider mb-2">
+            {t('vote.receipt_label', 'Vote Receipt (Nullifier Hash)')}
           </h3>
-          <code className="block bg-white/5 border border-white/10 p-3 rounded text-sm break-all font-mono text-gray-100">
+          <code className="block p-3 bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-lg text-sm break-all font-mono text-[var(--color-on-surface)]">
             {receipt.nullifier}
           </code>
-          <p className="text-xs text-gray-300 mt-2">
-            Keep this hash to verify your vote was counted in the final tally.
+          <p className="text-xs text-[var(--color-on-surface-variant)] mt-3 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3" />
+            {t('vote.receipt_hint', 'Keep this hash to verify your vote was counted in the final tally.')}
           </p>
-        </GlassCard>
+        </div>
 
-        <div className="flex justify-center gap-4 mt-6">
-          <Link 
-            to="/"
-            className="px-6 py-2 glass-strong border border-blue-400/50 text-white rounded-lg hover:border-blue-400/80 hover:bg-blue-500/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/30 backdrop-blur-xl"
-          >
-            Return to Dashboard
+        <div className="pt-4">
+          <Link to="/">
+            <Button className="w-full h-12 text-lg" icon={<Home className="w-5 h-5" />}>
+              {t('vote.return_dashboard', 'Return to Dashboard')}
+            </Button>
           </Link>
         </div>
-      </div>
-    </PageShell>
+      </Card>
+    </div>
   );
 };

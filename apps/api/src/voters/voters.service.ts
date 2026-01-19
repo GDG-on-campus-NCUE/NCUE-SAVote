@@ -1,10 +1,22 @@
-import { BadRequestException, Injectable, NotFoundException, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { parse } from 'csv-parse/sync';
 import { poseidonHash } from '@savote/crypto-lib';
-import type { VoterEligibilityResponse, Election as SharedElection, ElectionStatus } from '@savote/shared-types';
+import type {
+  VoterEligibilityResponse,
+  Election as SharedElection,
+  ElectionStatus,
+  ElectionType,
+} from '@savote/shared-types';
 import type { Election as PrismaElection } from '@prisma/client';
 import * as crypto from 'crypto';
+import { MerkleTreeService } from '../merkle/merkle.service';
 
 export interface ParsedVoterRecord {
   studentId: string;
@@ -13,40 +25,35 @@ export interface ParsedVoterRecord {
 }
 
 export interface ImportVotersResult {
-    votersImported: number;
-    duplicatesSkipped: number;
+  votersImported: number;
+  duplicatesSkipped: number;
 }
 
 @Injectable()
-export class VotersService implements OnModuleInit {
+export class VotersService {
   private readonly logger = new Logger(VotersService.name);
-  private zeros: string[] = [];
-  private readonly TREE_DEPTH = 20;
 
-  constructor(private readonly prisma: PrismaService) {}
-
-  async onModuleInit() {
-    await this.initZeros();
-  }
-
-  private async initZeros() {
-    this.zeros = new Array(this.TREE_DEPTH + 1);
-    this.zeros[0] = '0'; // Default zero leaf
-    for (let i = 0; i < this.TREE_DEPTH; i++) {
-        // zeros[i+1] = Poseidon(zeros[i], zeros[i])
-        this.zeros[i + 1] = await poseidonHash([this.zeros[i], this.zeros[i]]);
-    }
-    this.logger.log('Merkle Tree Zeros initialized');
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly merkleTreeService: MerkleTreeService,
+  ) {}
 
   // ===========================================================================
   // Core Business Logic
   // ===========================================================================
 
-  async registerIdentityCommitment(electionId: string, studentIdHash: string, commitment: string) {
-    this.logger.log(`Registering identity commitment for election ${electionId}`);
+  async registerIdentityCommitment(
+    electionId: string,
+    studentIdHash: string,
+    commitment: string,
+  ) {
+    this.logger.log(
+      `Registering identity commitment for election ${electionId}`,
+    );
 
-    const election = await this.prisma.election.findUnique({ where: { id: electionId } });
+    const election = await this.prisma.election.findUnique({
+      where: { id: electionId },
+    });
     if (!election) {
       throw new NotFoundException('ELECTION_NOT_FOUND');
     }
@@ -79,116 +86,25 @@ export class VotersService implements OnModuleInit {
   }
 
   async snapshotElection(electionId: string): Promise<string> {
-    this.logger.log(`Snapshotting election ${electionId} (Generating Merkle Root)`);
-    
-    // 1. Fetch all registered commitments
-    const voters = await this.prisma.eligibleVoter.findMany({
-        where: { 
-            electionId,
-            identityCommitment: { not: null }
-        },
-        select: { identityCommitment: true },
-        orderBy: { identityCommitment: 'asc' } // Ensure deterministic order
-    });
+    this.logger.log(
+      `Snapshotting election ${electionId} (Generating Merkle Root)`,
+    );
 
-    if (voters.length === 0) {
-        throw new BadRequestException('NO_REGISTERED_VOTERS');
-    }
+    // Compute root using MerkleTreeService
+    const root = await this.merkleTreeService.getTreeRoot(electionId);
 
-    const leaves = voters.map(v => v.identityCommitment!);
-    const root = await this.computeMerkleRoot(leaves);
-
-    // 2. Update Election
+    // Update Election
     await this.prisma.election.update({
-        where: { id: electionId },
-        data: { merkleRoot: root }
+      where: { id: electionId },
+      data: { merkleRoot: root },
     });
 
     return root;
   }
 
   async getMerkleProof(electionId: string, commitment: string) {
-      // Reconstruct tree and generate proof
-      const voters = await this.prisma.eligibleVoter.findMany({
-          where: { 
-              electionId,
-              identityCommitment: { not: null }
-          },
-          select: { identityCommitment: true },
-          orderBy: { identityCommitment: 'asc' }
-      });
-      
-      const leaves = voters.map(v => v.identityCommitment!);
-      const index = leaves.indexOf(commitment);
-      
-      if (index === -1) {
-          throw new NotFoundException('COMMITMENT_NOT_FOUND_IN_TREE');
-      }
-
-      return this.computeMerkleProof(leaves, index);
+    return this.merkleTreeService.getProof(electionId, commitment);
   }
-
-  // ===========================================================================
-  // Merkle Tree Logic (Poseidon)
-  // ===========================================================================
-
-  private async computeMerkleRoot(leaves: string[]): Promise<string> {
-      let currentLevel = [...leaves];
-      
-      for (let level = 0; level < this.TREE_DEPTH; level++) {
-          const nextLevel: string[] = [];
-          for (let i = 0; i < currentLevel.length; i += 2) {
-              const left = currentLevel[i];
-              const right = (i + 1 < currentLevel.length) ? currentLevel[i + 1] : this.zeros[level];
-              const hash = await poseidonHash([left, right]);
-              nextLevel.push(hash);
-          }
-          currentLevel = nextLevel;
-      }
-      
-      return currentLevel[0];
-  }
-
-  private async computeMerkleProof(leaves: string[], index: number) {
-      const pathElements: string[] = [];
-      const pathIndices: number[] = [];
-      
-      let currentLevel = [...leaves];
-      let currentIndex = index;
-
-      for (let level = 0; level < this.TREE_DEPTH; level++) {
-          const isRightNode = currentIndex % 2 === 1;
-          const siblingIndex = isRightNode ? currentIndex - 1 : currentIndex + 1;
-          
-          let sibling: string;
-          if (siblingIndex < currentLevel.length) {
-              sibling = currentLevel[siblingIndex];
-          } else {
-              sibling = this.zeros[level];
-          }
-
-          pathElements.push(sibling);
-          pathIndices.push(isRightNode ? 1 : 0);
-
-          // Prepare next level
-          const nextLevel: string[] = [];
-          for (let i = 0; i < currentLevel.length; i += 2) {
-              const left = currentLevel[i];
-              const right = (i + 1 < currentLevel.length) ? currentLevel[i + 1] : this.zeros[level];
-              const hash = await poseidonHash([left, right]);
-              nextLevel.push(hash);
-          }
-          currentLevel = nextLevel;
-          currentIndex = Math.floor(currentIndex / 2);
-      }
-
-      return {
-          root: currentLevel[0],
-          pathElements,
-          pathIndices
-      };
-  }
-
 
   // ===========================================================================
   // Import / Eligibility Logic
@@ -215,8 +131,10 @@ export class VotersService implements OnModuleInit {
     const dedupe = new Set<string>();
 
     for (const row of rows) {
-      if (!Object.prototype.hasOwnProperty.call(row, 'studentId') ||
-        !Object.prototype.hasOwnProperty.call(row, 'class')) {
+      if (
+        !Object.prototype.hasOwnProperty.call(row, 'studentId') ||
+        !Object.prototype.hasOwnProperty.call(row, 'class')
+      ) {
         throw new BadRequestException('INVALID_CSV_HEADERS');
       }
 
@@ -232,15 +150,24 @@ export class VotersService implements OnModuleInit {
         continue;
       }
       dedupe.add(key);
-      normalized.push({ studentId, studentIdHash: this.hashStudentId(studentId), class: classValue });
+      normalized.push({
+        studentId,
+        studentIdHash: this.hashStudentId(studentId),
+        class: classValue,
+      });
     }
 
     return normalized;
   }
 
-  async importVoters(electionId: string, fileBuffer: Buffer): Promise<ImportVotersResult> {
+  async importVoters(
+    electionId: string,
+    fileBuffer: Buffer,
+  ): Promise<ImportVotersResult> {
     this.logger.log(`Importing voters for election: ${electionId}`);
-    const election = await this.prisma.election.findUnique({ where: { id: electionId } });
+    const election = await this.prisma.election.findUnique({
+      where: { id: electionId },
+    });
     if (!election) {
       throw new NotFoundException('ELECTION_NOT_FOUND');
     }
@@ -257,9 +184,6 @@ export class VotersService implements OnModuleInit {
     });
 
     this.logger.log(`Imported ${createResult.count} voters.`);
-    
-    // We DO NOT update merkle root here anymore. 
-    // It is updated only when snapshotElection is called.
 
     return {
       votersImported: createResult.count,
@@ -272,7 +196,9 @@ export class VotersService implements OnModuleInit {
     studentIdHash: string,
     classValue: string,
   ): Promise<VoterEligibilityResponse> {
-    const election = await this.prisma.election.findUnique({ where: { id: electionId } });
+    const election = await this.prisma.election.findUnique({
+      where: { id: electionId },
+    });
     if (!election) {
       throw new NotFoundException('ELECTION_NOT_FOUND');
     }
@@ -288,30 +214,28 @@ export class VotersService implements OnModuleInit {
 
     const sharedElection = this.toSharedElection(election);
 
-    // This method is for checking if a student is in the ELIGIBILITY list.
-    // It doesn't check Merkle Proof.
-    // However, if we want to return "You can vote", we might need to check if they have a commitment.
-    
     // Find the specific voter
-    const voter = voters.find(v => this.hashStudentId(v.studentId) === studentIdHash);
+    const voter = voters.find(
+      (v) => this.hashStudentId(v.studentId) === studentIdHash,
+    );
 
     if (!voter) {
-        return {
-            eligible: false,
-            election: sharedElection,
-            reason: 'NOT_ELIGIBLE',
-            merkleProof: [],
-            merkleRootHash: election.merkleRoot,
-        };
+      return {
+        eligible: false,
+        election: sharedElection,
+        reason: 'NOT_ELIGIBLE',
+        merkleProof: [],
+        merkleRootHash: election.merkleRoot,
+      };
     }
 
     return {
-        eligible: true,
-        election: sharedElection,
-        merkleRootHash: election.merkleRoot,
-        merkleProof: [], // Frontend will request proof separately or we can bundle it if they have a commitment
-        isRegistered: !!voter.identityCommitment
-    } as any; 
+      eligible: true,
+      election: sharedElection,
+      merkleRootHash: election.merkleRoot,
+      merkleProof: [],
+      isRegistered: !!voter.identityCommitment,
+    } as any;
   }
 
   private normalizeClass(raw: string | undefined): string {
@@ -332,6 +256,7 @@ export class VotersService implements OnModuleInit {
       name: election.name,
       merkleRootHash: election.merkleRoot,
       status: election.status as unknown as ElectionStatus,
+      type: election.type as unknown as ElectionType,
       startTime: election.startTime,
       endTime: election.endTime,
       createdAt: election.createdAt,

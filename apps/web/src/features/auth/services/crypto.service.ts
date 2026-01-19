@@ -1,4 +1,15 @@
 import { getRandomBytes } from '../../../lib/crypto';
+// @ts-ignore
+import { buildPoseidon } from 'circomlibjs';
+
+let poseidon: any;
+
+export async function getPoseidon() {
+    if (!poseidon) {
+        poseidon = await buildPoseidon();
+    }
+    return poseidon;
+}
 
 /**
  * Generates a cryptographically secure random nullifier secret (32 bytes)
@@ -29,4 +40,19 @@ export function hexToNullifier(hex: string): Uint8Array {
     bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
   }
   return bytes;
+}
+
+export async function generateIdentityCommitment(studentIdHash: string, secret: string): Promise<string> {
+    const p = await getPoseidon();
+    // inputs: [studentIdHash, secret]
+    const hash = p([BigInt('0x' + studentIdHash), BigInt('0x' + secret)]);
+    return p.F.toString(hash);
+}
+
+export async function generateNullifierHash(secret: string, electionId: string): Promise<string> {
+    const p = await getPoseidon();
+    // inputs: [secret, electionId]
+    const electionIdBigInt = BigInt('0x' + electionId.replace(/-/g, ''));
+    const hash = p([BigInt('0x' + secret), electionIdBigInt]);
+    return p.F.toString(hash);
 }

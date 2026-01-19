@@ -1,120 +1,53 @@
- import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Card } from './m3/Card';
+import { Button } from './m3/Button';
+import { AlertCircle, ArrowLeft, Home } from 'lucide-react';
 
 /**
  * Authentication Error Page
  * Displays error message from SAML SSO or other auth failures
  */
 export function AuthError() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const errorMessage = searchParams.get('message') || '登入過程發生錯誤';
+  const errorMessage = searchParams.get('message') || t('auth.login_error_default', 'An error occurred during login.');
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      minHeight: '100vh',
-      padding: '1rem',
-      backgroundColor: '#f9fafb'
-    }}>
-      <div style={{
-        maxWidth: '28rem',
-        width: '100%',
-        backgroundColor: 'white',
-        borderRadius: '0.5rem',
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-        padding: '2rem'
-      }}>
-        <div style={{
-          width: '3rem',
-          height: '3rem',
-          backgroundColor: '#fee2e2',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 1rem'
-        }}>
-          <svg 
-            style={{ width: '1.5rem', height: '1.5rem', color: '#dc2626' }}
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M6 18L18 6M6 6l12 12" 
-            />
-          </svg>
+    <div className="flex justify-center items-center min-h-screen p-4 bg-[var(--color-background)]">
+      <Card className="max-w-md w-full p-8 text-center">
+        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-[var(--color-error-container)] mb-6">
+          <AlertCircle className="h-8 w-8 text-[var(--color-on-error-container)]" />
         </div>
 
-        <h2 style={{
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          textAlign: 'center',
-          marginBottom: '0.5rem',
-          color: '#111827'
-        }}>
-          登入失敗
+        <h2 className="text-2xl font-bold mb-2 text-[var(--color-on-surface)]">
+          {t('auth.login_failed', 'Login Failed')}
         </h2>
 
-        <p style={{
-          textAlign: 'center',
-          color: '#6b7280',
-          marginBottom: '1.5rem'
-        }}>
+        <p className="text-[var(--color-on-surface-variant)] mb-8">
           {errorMessage}
         </p>
 
-        <div style={{ 
-          display: 'flex', 
-          gap: '0.75rem',
-          flexDirection: 'column'
-        }}>
-          <button
+        <div className="flex flex-col gap-3">
+          <Button
             onClick={() => navigate('/auth/login')}
-            style={{
-              width: '100%',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              padding: '0.75rem 1rem',
-              borderRadius: '0.375rem',
-              border: 'none',
-              fontSize: '1rem',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+            className="w-full"
+            icon={<ArrowLeft className="w-4 h-4" />}
           >
-            重新登入
-          </button>
+            {t('auth.try_again', 'Try Again')}
+          </Button>
 
-          <button
+          <Button
+            variant="outlined"
             onClick={() => navigate('/')}
-            style={{
-              width: '100%',
-              backgroundColor: 'white',
-              color: '#374151',
-              padding: '0.75rem 1rem',
-              borderRadius: '0.375rem',
-              border: '1px solid #d1d5db',
-              fontSize: '1rem',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+            className="w-full"
+            icon={<Home className="w-4 h-4" />}
           >
-            返回首頁
-          </button>
+            {t('common.back_home', 'Back to Home')}
+          </Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
   },
   ELECTIONS: {
     LIST: '/elections',
+    CREATE: '/elections',
     GET: (id: string) => `/elections/${id}`,
   },
   VOTES: {

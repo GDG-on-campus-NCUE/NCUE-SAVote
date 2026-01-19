@@ -1,8 +1,14 @@
-import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubmitVoteDto } from './dto/submit-vote.dto';
 import { verifyVoteProof } from '@savote/crypto-lib';
 import { bigIntToUuid } from '../utils/zk-utils';
+import { ElectionType } from '@prisma/client';
 
 @Injectable()
 export class VotesService {
@@ -14,20 +20,11 @@ export class VotesService {
     const [root, pubElectionId, pubVote, nullifierHash] = publicSignals;
 
     // 1. Verify Consistency
-    const expectedElectionIdBigInt = bigIntToUuid(pubElectionId) === electionId; // Check if converting back matches, OR convert input to BigInt
-    // Better: Convert uuid to BigInt and compare strings
-    const electionIdBigInt = bigIntToUuid(pubElectionId);
-    
-    // We expect the public signal 'electionId' to match the electionId passed in DTO
-    // The circuit uses uuidToBigInt(electionId) as input.
-    // So pubElectionId should be String(uuidToBigInt(electionId))
-    
     const derivedElectionIdBigInt = bigIntToUuid(pubElectionId);
     if (derivedElectionIdBigInt !== electionId) {
-       // Ideally we use uuidToBigInt(electionId).toString() === pubElectionId
-       // But bigIntToUuid is the inverse.
-       // Let's rely on bigIntToUuid for checking.
-       throw new BadRequestException('Election ID in proof does not match target election');
+      throw new BadRequestException(
+        'Election ID in proof does not match target election',
+      );
     }
 
     // 2. Check if Election exists
@@ -37,9 +34,6 @@ export class VotesService {
     if (!election) {
       throw new NotFoundException('Election not found');
     }
-    
-    // TODO: Check if election is open for voting
-    // if (election.status !== 'VOTING_OPEN') ...
 
     // 3. Check Double Voting (Nullifier)
     const existingVote = await this.prisma.vote.findUnique({
@@ -56,21 +50,29 @@ export class VotesService {
     }
 
     // 5. Verify Merkle Root
-    // We should check if 'root' matches the election's merkleRoot
     if (election.merkleRoot && election.merkleRoot !== root) {
-       // Note: In a real system, we might support multiple valid roots (if tree updates).
-       // But here we assume one static tree per election for simplicity.
-       throw new BadRequestException('Invalid Merkle Root (Eligibility verification failed)');
+      throw new BadRequestException(
+        'Invalid Merkle Root (Eligibility verification failed)',
+      );
     }
 
-    // 6. Save Vote
+    // 6. Verify Candidate Validity
+    const candidateId = bigIntToUuid(pubVote);
+    const candidate = await this.prisma.candidate.findUnique({
+      where: { id: candidateId },
+    });
+    if (!candidate || candidate.electionId !== electionId) {
+      throw new BadRequestException('Invalid candidate for this election');
+    }
+
+    // 7. Save Vote
     return this.prisma.vote.create({
       data: {
         nullifierHash: nullifierHash,
-        proof: proof as any, // Prisma Json type
+        proof: proof, // Prisma Json type
         publicSignals: publicSignals as any,
         electionId: electionId,
-        candidateId: bigIntToUuid(pubVote),
+        candidateId: candidateId,
       },
     });
   }
@@ -79,7 +81,9 @@ export class VotesService {
     // Check if election exists and get its status
     const election = await this.prisma.election.findUnique({
       where: { id: electionId },
-      select: { status: true }
+      include: {
+        candidates: true,
+      },
     });
 
     if (!election) {
@@ -88,38 +92,152 @@ export class VotesService {
 
     // Only allow viewing results after voting is closed
     if (election.status !== 'VOTING_CLOSED' && election.status !== 'TALLIED') {
-      throw new BadRequestException('Results not available yet - election must be closed by admin');
+      // Return a restricted object or throw. The UI should handle 400.
+      // User asked: "Monitor to confirm it can be displayed AFTER voting ends".
+      // So enforcing closed status is correct.
+      throw new BadRequestException(
+        'Results not available yet - election must be closed by admin',
+      );
     }
 
+    // Get Total Votes Cast
     const votes = await this.prisma.vote.findMany({
       where: { electionId },
-      select: { publicSignals: true }
+      select: { candidateId: true },
     });
 
-    const tally: Record<string, number> = {};
+    // Get Total Eligible Voters (for thresholds)
+    const totalEligibleVoters = await this.prisma.eligibleVoter.count({
+      where: { electionId },
+    });
 
-    for (const vote of votes) {
-      const signals = vote.publicSignals as string[];
-      // publicSignals: [nullifierHash, voteHash, root, electionId, vote]
-      const voteBigInt = signals[2]; // vote is the 3rd public signal in main.circom? Wait.
-      // main.circom: component main {public [root, electionId, vote, nullifierHash]}
-      // publicSignals: [root, electionId, vote, nullifierHash]
-      // vote is index 2.
-      
-      const voteVal = signals[2];
-      const candidateId = bigIntToUuid(voteVal);
-      
-      tally[candidateId] = (tally[candidateId] || 0) + 1;
+    // Count votes
+    const voteCounts: Record<string, number> = {};
+    votes.forEach((v) => {
+      voteCounts[v.candidateId] = (voteCounts[v.candidateId] || 0) + 1;
+    });
+
+    // Calculate Results based on Type
+    const candidatesWithVotes = election.candidates.map((c) => ({
+      ...c,
+      voteCount: voteCounts[c.id] || 0,
+    }));
+
+    let resultSummary: any = {};
+    const totalVotesCast = votes.length;
+
+    switch (election.type) {
+      case ElectionType.PRESIDENTIAL: {
+        // Type 1: President/VP
+        // If only 1 candidate (Same-number election)
+        if (candidatesWithVotes.length === 1) {
+          const c = candidatesWithVotes[0];
+          const threshold = totalEligibleVoters * 0.1;
+          const isElected = c.voteCount >= threshold;
+          resultSummary = {
+            type: 'PRESIDENTIAL_UNCONTESTED',
+            threshold: Math.ceil(threshold),
+            winner: isElected ? c : null,
+            isElected,
+            note: isElected
+              ? 'Elected (Passed 10% threshold)'
+              : 'Not Elected (Failed 10% threshold)',
+          };
+        } else {
+          // Simple Majority
+          // Sort desc
+          const sorted = [...candidatesWithVotes].sort(
+            (a, b) => b.voteCount - a.voteCount,
+          );
+          const winner = sorted[0];
+          const runnerUp = sorted[1];
+
+          // Check tie
+          if (runnerUp && winner.voteCount === runnerUp.voteCount) {
+            resultSummary = {
+              type: 'PRESIDENTIAL_CONTESTED',
+              winner: null,
+              tie: true,
+              note: 'Tie detected. Re-election required.',
+            };
+          } else {
+            resultSummary = {
+              type: 'PRESIDENTIAL_CONTESTED',
+              winner: winner,
+              tie: false,
+              note: 'Elected by simple majority',
+            };
+          }
+        }
+        break;
+      }
+      case ElectionType.DISTRICT_COUNCILOR: {
+        // Type 2: District (Simple Majority)
+        // Sort desc
+        const sorted = [...candidatesWithVotes].sort(
+          (a, b) => b.voteCount - a.voteCount,
+        );
+        if (sorted.length === 0) {
+          resultSummary = {
+            type: 'DISTRICT',
+            winner: null,
+            note: 'No candidates',
+          };
+          break;
+        }
+        const winner = sorted[0];
+        const runnerUp = sorted[1];
+
+        if (runnerUp && winner.voteCount === runnerUp.voteCount) {
+          resultSummary = {
+            type: 'DISTRICT',
+            winner: null,
+            tie: true,
+            note: 'Tie detected. Draw lots required.',
+          };
+        } else {
+          resultSummary = {
+            type: 'DISTRICT',
+            winner: winner,
+            note: 'Elected',
+          };
+        }
+        break;
+      }
+      case ElectionType.AT_LARGE_COUNCILOR: {
+        // Type 3: SNTV (Threshold 1%, Top 16)
+        const threshold = totalEligibleVoters * 0.01;
+        const qualified = candidatesWithVotes.filter(
+          (c) => c.voteCount >= threshold,
+        );
+        const sorted = qualified.sort((a, b) => b.voteCount - a.voteCount);
+        const winners = sorted.slice(0, 16);
+
+        resultSummary = {
+          type: 'AT_LARGE_SNTV',
+          threshold: Math.ceil(threshold),
+          winners: winners,
+          totalQualified: qualified.length,
+          note: `Top ${winners.length} elected (passed 1% threshold)`,
+        };
+        break;
+      }
     }
-    
-    return tally;
+
+    return {
+      tally: voteCounts,
+      totalVotes: totalVotesCast,
+      totalEligibleVoters,
+      candidates: candidatesWithVotes,
+      result: resultSummary,
+    };
   }
 
   async getAuditLogs(electionId: string) {
     // Check if election exists and get its status
     const election = await this.prisma.election.findUnique({
       where: { id: electionId },
-      select: { status: true }
+      select: { status: true },
     });
 
     if (!election) {
@@ -128,7 +246,9 @@ export class VotesService {
 
     // Only allow viewing audit logs after voting is closed
     if (election.status !== 'VOTING_CLOSED' && election.status !== 'TALLIED') {
-      throw new BadRequestException('Audit logs not available yet - election must be closed by admin');
+      throw new BadRequestException(
+        'Audit logs not available yet - election must be closed by admin',
+      );
     }
 
     return this.prisma.vote.findMany({
@@ -138,8 +258,8 @@ export class VotesService {
         nullifierHash: true,
         proof: true,
         publicSignals: true,
-        createdAt: true
-      }
+        createdAt: true,
+      },
     });
   }
 

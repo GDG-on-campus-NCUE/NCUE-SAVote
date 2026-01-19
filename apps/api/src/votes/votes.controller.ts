@@ -29,12 +29,12 @@ export class VotesController {
     return this.votesService.getAuditLogs(electionId);
   }
 
-    @Get(':electionId/check-nullifier/:nullifier')
-    @ApiOperation({ summary: 'Check if a nullifier exists for the election' })
-    async checkNullifier(
-      @Param('electionId') electionId: string,
-      @Param('nullifier') nullifier: string,
-    ) {
-      return this.votesService.checkNullifier(electionId, nullifier);
-    }
+  @Get(':electionId/check-nullifier/:nullifier')
+  @ApiOperation({ summary: 'Check if a nullifier exists for the election' })
+  async checkNullifier(
+    @Param('electionId') electionId: string,
+    @Param('nullifier') nullifier: string,
+  ) {
+    return this.votesService.checkNullifier(electionId, nullifier);
+  }
 }

@@ -11,7 +11,11 @@ import {
   Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import type { ApiResponse, VoterEligibilityResponse, JWTPayload } from '@savote/shared-types';
+import type {
+  ApiResponse,
+  VoterEligibilityResponse,
+  JWTPayload,
+} from '@savote/shared-types';
 import type { Express, Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
@@ -35,7 +39,10 @@ export class VotersController {
       throw new BadRequestException('CSV_FILE_REQUIRED');
     }
 
-    const result = await this.votersService.importVoters(dto.electionId, file.buffer);
+    const result = await this.votersService.importVoters(
+      dto.electionId,
+      file.buffer,
+    );
     return {
       success: true,
       data: result,
@@ -48,15 +55,18 @@ export class VotersController {
     @Query('electionId') electionId: string,
     @Query('commitment') commitment: string,
   ): Promise<ApiResponse<any>> {
-      if (!electionId || !commitment) {
-          throw new BadRequestException('electionId and commitment are required');
-      }
-      
-      const result = await this.votersService.getMerkleProof(electionId, commitment);
-      return {
-          success: true,
-          data: result
-      };
+    if (!electionId || !commitment) {
+      throw new BadRequestException('electionId and commitment are required');
+    }
+
+    const result = await this.votersService.getMerkleProof(
+      electionId,
+      commitment,
+    );
+    return {
+      success: true,
+      data: result,
+    };
   }
 
   @Post('verify-eligibility')

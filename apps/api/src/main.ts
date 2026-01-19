@@ -5,15 +5,31 @@ import helmet from 'helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import session from 'express-session';
 import passport from 'passport';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
+import * as express from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Trust Proxy (Required for secure cookies behind Nginx/Load Balancer)
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   // Security Headers
   app.use(helmet());
+
+  // Global Prefix
+  app.setGlobalPrefix('api');
+
+  // Serve Static Assets (Uploads)
+  // Maps /uploads to the actual uploads folder
+  // Replaced useStaticAssets with standard express.static to avoid path-to-regexp issues in Express 5
+  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
+
+  const isProduction = process.env.NODE_ENV === 'production';
+  console.log(
+    `Starting API in ${process.env.NODE_ENV} mode. Secure cookies: ${isProduction}`,
+  );
 
   // Session Configuration (Required for Passport-SAML)
   app.use(
@@ -23,9 +39,9 @@ async function bootstrap() {
       saveUninitialized: false,
       cookie: {
         maxAge: 3600000,
-        secure: process.env.NODE_ENV === 'production', // Requires https
+        secure: isProduction, // Only true in production
         httpOnly: true,
-        sameSite: 'lax', // Allow basic redirection flows
+        sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-site redirects in some browsers
       },
     }),
   );
@@ -36,7 +52,11 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: [
+      process.env.CORS_ORIGIN,
+      'http://localhost:5173',
+      'https://election.ncuesa.org.tw',
+    ].filter((origin): origin is string => !!origin),
     credentials: true,
   });
 
@@ -56,11 +76,13 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('/', app, document);
 
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
   console.log(`🚀 API server running on http://0.0.0.0:${port}`);
-  console.log(`📚 Swagger documentation available at http://0.0.0.0:${port}/api`);
+  console.log(
+    `📚 Swagger documentation available at http://0.0.0.0:${port}/api`,
+  );
 }
 bootstrap();

@@ -1,162 +1,200 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Layout } from '../../../components/Layout';
-import { AnimatedBackground } from '../../../components/AnimatedBackground';
-import { GlassCard, GlassButton, GlassInput } from '../../../components/ui';
-import { generateNullifierSecret, nullifierToHex } from '../../auth/services/crypto.service';
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { generateNullifierSecret, nullifierToHex, generateIdentityCommitment } from '../../auth/services/crypto.service';
 import { votersApi } from '../services/voters.api';
 import { useAuth } from '../../auth/hooks/useAuth';
-// Lazy-load Poseidon to avoid blocking initial bundle
-import { buildPoseidon } from 'circomlibjs';
+import { Card } from '../../../components/m3/Card';
+import { Button } from '../../../components/m3/Button';
+import { TextField } from '../../../components/m3/TextField';
+import { Key, Copy, CheckCircle2, AlertCircle, ShieldCheck, ArrowRight } from 'lucide-react';
 
 const LOCAL_STORAGE_KEY = 'savote_nullifier_secret';
 
 export const KeySetupPage: React.FC = () => {
+  const { t } = useTranslation();
   const { electionId } = useParams<{ electionId: string }>();
   const { user } = useAuth();
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
+  const generatedRef = useRef(false);
+  
   const [secretHex, setSecretHex] = useState('');
   const [isRegistered, setIsRegistered] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
+  // Auto-generate key on mount if not exists
   useEffect(() => {
-    if (!electionId) return;
+    if (!electionId || generatedRef.current) return;
+    generatedRef.current = true;
 
     const existing = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (existing) {
       setSecretHex(existing);
-      setInfo('已從瀏覽器載入既有金鑰，請檢查備份是否一致。若此裝置為新裝置，請確認有備份。');
+      setInfo(t('keys.loaded_existing', 'Loaded existing key from this device.'));
+    } else {
+      try {
+        const bytes = generateNullifierSecret();
+        const hex = nullifierToHex(bytes);
+        setSecretHex(hex);
+        localStorage.setItem(LOCAL_STORAGE_KEY, hex);
+        setInfo(t('keys.generated_new', 'New secure key generated for this device.'));
+      } catch (e) {
+        setError(t('keys.gen_error', 'Error generating key.'));
+      }
     }
-  }, [electionId]);
-
-  const handleGenerate = () => {
-    setError(null);
-    setInfo(null);
-    setIsGenerating(true);
-    try {
-      const bytes = generateNullifierSecret();
-      const hex = nullifierToHex(bytes);
-      setSecretHex(hex);
-      localStorage.setItem(LOCAL_STORAGE_KEY, hex);
-      setInfo('已生成新的金鑰並暫存於瀏覽器，請務必備份。');
-    } catch (e) {
-      setError('生成金鑰時發生錯誤，請稍後再試。');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+  }, [electionId, t]);
 
   const handleRegister = async () => {
     setError(null);
     setInfo(null);
     if (!secretHex) {
-      setError('尚未生成金鑰，請先點擊「生成金鑰」。若為新裝置，請輸入或貼上您備份的金鑰。');
+      setError(t('keys.no_key', 'No key found.'));
       return;
     }
     if (!electionId) {
-      setError('缺少選舉 ID。');
+      setError(t('keys.no_election', 'Missing Election ID.'));
       return;
     }
     if (!user?.studentIdHash) {
-      setError('無法取得使用者資訊，請重新登入。');
+      setError(t('keys.auth_error', 'Authentication failed. Please login again.'));
       return;
     }
 
     try {
       setIsRegistering(true);
 
-      // 將十六進位金鑰轉回 bigint
-      const normalizedSecret = secretHex.startsWith('0x') ? secretHex : `0x${secretHex}`;
-      const secretBigInt = BigInt(normalizedSecret);
-      
-      const normalizedStudentId = user.studentIdHash.startsWith('0x') ? user.studentIdHash : `0x${user.studentIdHash}`;
-      const studentIdBigInt = BigInt(normalizedStudentId);
+      const normalizedSecret = secretHex.startsWith('0x') ? secretHex.slice(2) : secretHex;
+      const normalizedStudentId = user.studentIdHash.startsWith('0x') ? user.studentIdHash.slice(2) : user.studentIdHash;
 
-      // 使用 Poseidon(studentIdHash, secret) 作為 identityCommitment
-      // 必須與 circuit: leafHasher.inputs[0] <== studentIdHash; leafHasher.inputs[1] <== secret; 一致
-      const poseidon = await buildPoseidon();
-      const commitmentBigInt = poseidon([studentIdBigInt, secretBigInt]);
-      const commitment = poseidon.F.toString(commitmentBigInt);
+      // Generate commitment
+      const commitment = await generateIdentityCommitment(normalizedStudentId, normalizedSecret);
 
       await votersApi.registerCommitment(electionId, commitment);
       setIsRegistered(true);
-      setInfo('金鑰已成功註冊，之後即可使用此金鑰進行匿名投票。');
+      // Automatically redirect or show success
+      setTimeout(() => {
+          navigate(`/vote/${electionId}`);
+      }, 1500);
     } catch (e: any) {
-      setError(e?.response?.data?.message || '註冊金鑰時發生錯誤。');
+        // Check if already registered
+      if (e?.response?.status === 409 || e?.message?.includes('already')) {
+          setIsRegistered(true);
+          setInfo(t('keys.already_registered', 'You are already registered. Proceeding...'));
+           setTimeout(() => {
+              navigate(`/vote/${electionId}`);
+          }, 1500);
+      } else {
+          setError(e?.response?.data?.message || t('keys.register_error', 'Error registering key.'));
+      }
     } finally {
       setIsRegistering(false);
     }
   };
 
+  const copyToClipboard = () => {
+      navigator.clipboard.writeText(secretHex);
+      setInfo(t('keys.copied', 'Key copied to clipboard.'));
+  };
+
   return (
-    <Layout showFooter={false}>
-      <div className="relative flex justify-center items-center min-h-screen overflow-hidden">
-        <AnimatedBackground />
-        <div className="relative z-10 w-full max-w-xl px-4 py-16">
-          <GlassCard className="shadow-2xl text-white">
-            <h1 className="text-2xl font-bold mb-2">匿名投票金鑰設置</h1>
-            <p className="text-sm text-white/80 mb-6">
-              本金鑰將用於生成零知識證明，系統只會記錄對應的承諾值 (Commitment)，
-              不會儲存您的金鑰本身。請務必妥善備份，一旦遺失將無法找回。
-            </p>
+    <div className="max-w-3xl mx-auto py-12 px-4 animate-fade-in pb-32">
+       <div className="mb-10 text-center">
+           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] mb-6 shadow-lg shadow-[var(--color-primary)]/20 animate-scale-in">
+               <ShieldCheck className="w-8 h-8" />
+           </div>
+           <h1 className="text-4xl font-bold text-[var(--color-on-background)] tracking-tight">{t('keys.title', 'Secure Voting Setup')}</h1>
+           <p className="text-[var(--color-on-surface-variant)] mt-3 text-lg max-w-xl mx-auto leading-relaxed">
+               {t('keys.subtitle', 'We are setting up a secure, anonymous voting channel for you. This ensures your vote cannot be traced back to your identity.')}
+           </p>
+       </div>
 
-            <div className="space-y-4">
-              <div>
-                <GlassButton
-                  type="button"
-                  label={isGenerating ? '生成中…' : '生成新的金鑰'}
-                  disabled={isGenerating}
-                  onClick={handleGenerate}
-                  className="w-full mb-3"
-                />
-                <GlassInput
-                  readOnly
-                  label="目前金鑰 (十六進位顯示，請勿外流)"
-                  value={secretHex}
-                  className="font-mono text-xs"
-                  helperText="建議複製並離線保存，或下載成文字檔備份。"
-                />
-              </div>
+       <Card className="p-0 overflow-hidden border border-[var(--color-outline-variant)] shadow-xl bg-[var(--color-surface)]">
+           <div className="p-8 space-y-8">
+               
+               {/* Key Display Section */}
+               <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-bold text-[var(--color-on-surface)] flex items-center gap-2">
+                             <Key className="w-5 h-5 text-[var(--color-primary)]" />
+                             {t('keys.your_key', 'Your Unique Voting Key')}
+                        </h2>
+                        <span className="px-2 py-1 rounded-md bg-[var(--color-secondary-container)] text-[var(--color-on-secondary-container)] text-xs font-bold uppercase">
+                            {t('keys.auto_generated', 'Auto-Generated')}
+                        </span>
+                    </div>
+                    
+                    <div className="relative group">
+                         <TextField
+                            label=""
+                            value={secretHex}
+                            readOnly
+                            className="font-mono text-sm tracking-wide bg-[var(--color-surface-variant)]/30 border-[var(--color-outline)]"
+                        />
+                         <div className="absolute top-2 right-2">
+                            <Button 
+                                variant="tonal" 
+                                size="sm" 
+                                onClick={copyToClipboard} 
+                                icon={<Copy className="w-3.5 h-3.5" />}
+                                className="h-8 text-xs"
+                            >
+                                {t('common.copy')}
+                            </Button>
+                         </div>
+                    </div>
+                    <p className="text-xs text-[var(--color-on-surface-variant)] flex items-start gap-2 bg-[var(--color-surface-container)] p-3 rounded-lg">
+                        <AlertCircle className="w-4 h-4 text-[var(--color-primary)] shrink-0 mt-0.5" />
+                        {t('keys.backup_hint', 'This key is saved in your browser. If you switch devices or clear data, you will need to restore this key to vote.')}
+                    </p>
+               </div>
 
-              <div>
-                <GlassInput
-                  label="若在新裝置上，請貼上您備份的金鑰 (選填)"
-                  placeholder="貼上先前備份的金鑰後即可覆蓋目前值"
-                  value={secretHex}
-                  onChange={(e) => {
-                    setSecretHex(e.target.value.trim());
-                    localStorage.setItem(LOCAL_STORAGE_KEY, e.target.value.trim());
-                  }}
-                  className="font-mono text-xs"
-                  helperText="此步驟用於在新裝置上恢復既有金鑰，避免產生與原本不同的身分。"
-                />
-              </div>
+               <div className="h-px bg-[var(--color-outline-variant)]/50" />
 
-              <div className="flex gap-3 mt-4">
-                <GlassButton
-                  type="button"
-                  label="將金鑰註冊至本次選舉"
-                  onClick={handleRegister}
-                  disabled={isRegistering}
-                  className="flex-1"
-                />
-              </div>
+               {/* Action Section */}
+               <div className="space-y-4">
+                   <div className="flex items-center justify-between mb-2">
+                       <h2 className="text-lg font-bold text-[var(--color-on-surface)]">
+                           {t('keys.register_title', 'Registration')}
+                       </h2>
+                       {isRegistered && (
+                           <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-bold">
+                               <CheckCircle2 className="w-4 h-4" />
+                               {t('keys.registered', 'Registered')}
+                           </span>
+                       )}
+                   </div>
+                   
+                   <p className="text-sm text-[var(--color-on-surface-variant)]">
+                       {t('keys.step3_desc', 'By clicking below, you cryptographically prove your eligibility without revealing your identity.')}
+                   </p>
 
-              {info && <p className="text-xs text-emerald-300 mt-2">{info}</p>}
-              {error && <p className="text-xs text-red-300 mt-2">{error}</p>}
+                   <Button 
+                        onClick={handleRegister} 
+                        loading={isRegistering}
+                        disabled={isRegistered || !secretHex}
+                        variant="filled"
+                        className="w-full h-12 text-base shadow-md hover:shadow-lg transition-all"
+                        icon={isRegistered ? <ArrowRight className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
+                   >
+                       {isRegistered ? t('keys.continue_voting', 'Continue to Vote') : t('keys.register_btn', 'Register & Continue')}
+                   </Button>
+               </div>
+           </div>
 
-              {isRegistered && (
-                <p className="text-xs text-blue-200 mt-4">
-                  ✅ 您的金鑰已綁定至本次選舉身分，之後在任何裝置上都應使用同一組金鑰進行投票，以確保唯一性與匿名性。
-                </p>
-              )}
-            </div>
-          </GlassCard>
-        </div>
-      </div>
-    </Layout>
+           {/* Status Bar */}
+           {(info || error) && (
+               <div className={`px-8 py-3 flex items-center gap-3 border-t ${
+                   error 
+                   ? 'bg-[var(--color-error-container)] text-[var(--color-on-error-container)] border-[var(--color-error)]' 
+                   : 'bg-[var(--color-primary-container)]/30 text-[var(--color-on-surface)] border-[var(--color-outline-variant)]'
+               }`}>
+                   {error ? <AlertCircle className="w-5 h-5 shrink-0 text-[var(--color-error)]" /> : <CheckCircle2 className="w-5 h-5 shrink-0 text-[var(--color-primary)]" />}
+                   <p className="text-sm font-medium">{error || info}</p>
+               </div>
+           )}
+       </Card>
+    </div>
   );
 };

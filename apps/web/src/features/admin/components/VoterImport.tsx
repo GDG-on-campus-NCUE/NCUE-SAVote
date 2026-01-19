@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import type { Election } from '@savote/shared-types';
 import { API_ENDPOINTS } from '../../../lib/constants';
 import { api } from '../../auth/services/auth.api';
 import { voterApi, type ImportVotersResponse } from '../../auth/services/voter.api';
-import { Card } from '../../../components/ui/Card';
-import { Button } from '../../../components/ui/Button';
-import { Skeleton } from '../../../components/ui/Skeleton';
+import { Card } from '../../../components/m3/Card';
+import { Button } from '../../../components/m3/Button';
+import { Upload, Download, RefreshCw, AlertCircle, CheckCircle2, FileText, ChevronDown } from 'lucide-react';
 
 interface StatusState {
   type: 'idle' | 'success' | 'error';
@@ -15,6 +16,7 @@ interface StatusState {
 }
 
 export function VoterImport() {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedElectionId, setSelectedElectionId] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -64,7 +66,7 @@ export function VoterImport() {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedElectionId || !selectedFile) {
-      setStatus({ type: 'error', message: '請選擇選舉與 CSV 檔案' });
+      setStatus({ type: 'error', message: t('admin.import_error_missing', 'Please select an election and a CSV file.') });
       return;
     }
     importMutation.mutate({ electionId: selectedElectionId, file: selectedFile });
@@ -82,149 +84,162 @@ export function VoterImport() {
   };
 
   return (
-    <Card>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
+    <Card className="p-0 overflow-hidden border border-[var(--color-outline-variant)]">
+      <div className="p-6 bg-[var(--color-surface-container-low)] flex justify-between items-center border-b border-[var(--color-outline-variant)]/50">
         <div>
-          <p style={{ color: 'var(--color-primary)', fontWeight: 'var(--font-weight-bold)', marginBottom: 'var(--spacing-xs)' }}>Step 1</p>
-          <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)', margin: 0 }}>
-            匯入選舉資格名單
+          <h2 className="text-xl font-bold text-[var(--color-on-surface)] flex items-center gap-2">
+            <Upload className="w-5 h-5 text-[var(--color-primary)]" />
+            {t('admin.import_voters', 'Import Eligible Voters')}
           </h2>
-          <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--spacing-xs)' }}>
-            上傳經班代或系辦確認的 CSV 名單，我們會自動計算 Merkle Root 並更新選舉紀錄。
+          <p className="text-[var(--color-on-surface-variant)] text-sm mt-1">
+            {t('admin.import_desc', 'Upload a CSV file to update the voter list and Merkle Tree.')}
           </p>
         </div>
-        <Button variant="secondary" onClick={handleDownloadTemplate}>
-          下載範本 CSV
+        <Button variant="outlined" size="sm" onClick={handleDownloadTemplate} icon={<Download className="w-4 h-4" />}>
+          {t('admin.download_template', 'Template CSV')}
         </Button>
       </div>
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-          <label htmlFor="election" style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-secondary)', marginBottom: 'var(--spacing-sm)' }}>
-            選擇選舉
-          </label>
-          {isLoadingElections && <Skeleton height="2.5rem" />}
-          {isElectionError && (
-            <div style={{ padding: 'var(--spacing-md)', borderRadius: 'var(--border-radius-md)', backgroundColor: '#fef2f2', color: 'var(--color-error)' }}>
-              無法取得選舉資料，請重新整理或稍後再試
+      <div className="p-6 space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Election Select */}
+            <div className="space-y-2">
+                <label htmlFor="election" className="block text-sm font-medium text-[var(--color-on-surface-variant)] ml-1">
+                    {t('admin.select_election', 'Select Election')}
+                </label>
+                {isLoadingElections ? (
+                    <div className="h-12 bg-[var(--color-surface-variant)] rounded-lg animate-pulse" />
+                ) : isElectionError ? (
+                    <div className="p-3 rounded-lg bg-[var(--color-error-container)] text-[var(--color-on-error-container)] flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5" />
+                        {t('admin.error_fetch_elections', 'Failed to fetch elections.')}
+                        <Button size="sm" variant="text" onClick={() => refetch()} icon={<RefreshCw className="w-4 h-4" />}>Retry</Button>
+                    </div>
+                ) : (
+                    <div className="relative">
+                        <select
+                            id="election"
+                            name="election"
+                            value={selectedElectionId}
+                            onChange={(event) => setSelectedElectionId(event.target.value)}
+                            className="w-full appearance-none px-4 py-3 rounded-lg bg-[var(--color-surface-variant)]/50 border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition-all cursor-pointer hover:bg-[var(--color-surface-variant)]"
+                        >
+                            {elections.length === 0 && <option value="">{t('admin.no_elections', 'No elections found')}</option>}
+                            {elections.map((election) => (
+                                <option key={election.id} value={election.id}>
+                                {election.name}
+                                </option>
+                            ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-on-surface-variant)]">
+                            <ChevronDown className="w-4 h-4" />
+                        </div>
+                    </div>
+                )}
             </div>
-          )}
-          {!isLoadingElections && !isElectionError && (
-            <select
-              id="election"
-              name="election"
-              value={selectedElectionId}
-              onChange={(event) => setSelectedElectionId(event.target.value)}
-              style={{
-                width: '100%',
-                padding: 'var(--spacing-sm) var(--spacing-md)',
-                borderRadius: 'var(--border-radius-md)',
-                border: '1px solid var(--border-color)',
-                fontSize: 'var(--font-size-base)',
-                backgroundColor: 'var(--color-surface)',
-                color: 'var(--color-text-primary)'
-              }}
-            >
-              {elections.length === 0 && <option value="">尚無選舉</option>}
-              {elections.map((election) => (
-                <option key={election.id} value={election.id}>
-                  {election.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
 
-        <div style={{ marginBottom: 'var(--spacing-lg)' }}>
-          <label htmlFor="csv" style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-secondary)', marginBottom: 'var(--spacing-sm)' }}>
-            上傳 CSV
-          </label>
-          <div style={{
-            border: '1px dashed var(--border-color)',
-            borderRadius: 'var(--border-radius-md)',
-            padding: 'var(--spacing-xl)',
-            backgroundColor: 'var(--color-surface-hover)',
-            textAlign: 'center'
-          }}>
-            <p style={{ margin: 0, fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)' }}>
-              {selectedFile ? selectedFile.name : '拖曳或點擊以下按鈕選擇 CSV 檔'}
-            </p>
-            <p style={{ margin: 'var(--spacing-sm) 0 var(--spacing-md)', color: 'var(--color-text-muted)', fontSize: 'var(--font-size-sm)' }}>
-              檔案需包含 <code>studentId</code> 與 <code>class</code> 欄位，系統會自動清理重複與空白列。
-            </p>
-            <input
-              ref={fileInputRef}
-              id="csv"
-              type="file"
-              accept=".csv,text/csv"
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              選擇檔案
-            </Button>
-          </div>
-        </div>
+            {/* File Upload Area */}
+            <div className="space-y-2">
+                <label className="block text-sm font-medium text-[var(--color-on-surface-variant)] ml-1">
+                    {t('admin.upload_csv', 'Upload CSV')}
+                </label>
+                <div 
+                    className={`border-2 border-dashed rounded-xl p-10 text-center transition-all cursor-pointer group relative overflow-hidden ${selectedFile 
+                        ? 'border-[var(--color-primary)] bg-[var(--color-primary-container)]/10' 
+                        : 'border-[var(--color-outline-variant)] hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-variant)]/50'}`}
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-colors ${selectedFile ? 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)]' : 'bg-[var(--color-secondary-container)] text-[var(--color-on-secondary-container)] group-hover:scale-110 duration-300'}`}>
+                        {selectedFile ? <FileText className="w-8 h-8" /> : <Upload className="w-8 h-8" />}
+                    </div>
+                    
+                    <p className="font-bold text-lg text-[var(--color-on-surface)]">
+                        {selectedFile ? selectedFile.name : t('admin.drag_drop_csv', 'Click to select CSV file')}
+                    </p>
+                    
+                    {selectedFile && (
+                        <p className="text-sm text-[var(--color-on-surface-variant)] mt-1">
+                            {(selectedFile.size / 1024).toFixed(1)} KB
+                        </p>
+                    )}
 
-        <div style={{ display: 'flex', gap: 'var(--spacing-md)', alignItems: 'center' }}>
-          <Button type="submit" variant="primary" disabled={isSubmitDisabled}>
-            {importMutation.isPending ? '匯入處理中...' : '開始匯入'}
-          </Button>
-          <Button type="button" variant="ghost" onClick={() => refetch()}>
-            重新整理選舉
-          </Button>
-        </div>
-      </form>
+                    {!selectedFile && (
+                        <p className="mt-2 text-sm text-[var(--color-on-surface-variant)]">
+                            {t('admin.csv_requirements', 'File must contain "studentId" and "class" columns.')}
+                        </p>
+                    )}
+                    
+                    <input
+                        ref={fileInputRef}
+                        id="csv"
+                        type="file"
+                        accept=".csv,text/csv"
+                        onChange={handleFileChange}
+                        className="hidden"
+                    />
+                </div>
+            </div>
 
-      {status.type === 'success' && status.result && (
-        <div style={{ 
-          marginTop: 'var(--spacing-md)',
-          padding: 'var(--spacing-md)',
-          borderRadius: 'var(--border-radius-md)',
-          backgroundColor: '#ecfdf5',
-          color: '#047857',
-          border: '1px solid #bbf7d0'
-        }}>
-          <p style={{ margin: 0, fontWeight: 'var(--font-weight-bold)' }}>匯入成功</p>
-          <p style={{ margin: '0.25rem 0 0' }}>新增 {status.result.votersImported} 筆，略過 {status.result.duplicatesSkipped} 筆重複資料</p>
-          <p style={{ margin: '0.25rem 0 0', wordBreak: 'break-all' }}>Merkle Root：{status.result.merkleRootHash}</p>
-        </div>
-      )}
+            {/* Actions */}
+            <div className="flex gap-4 items-center pt-2">
+                <Button 
+                    type="submit" 
+                    disabled={isSubmitDisabled} 
+                    loading={importMutation.isPending}
+                    variant="filled"
+                    className="flex-1 h-12 text-base shadow-md"
+                    icon={<Upload className="w-5 h-5" />}
+                >
+                    {t('admin.start_import', 'Start Import')}
+                </Button>
+            </div>
+        </form>
 
-      {status.type === 'error' && (
-        <div style={{ 
-          marginTop: 'var(--spacing-md)',
-          padding: 'var(--spacing-md)',
-          borderRadius: 'var(--border-radius-md)',
-          backgroundColor: '#fef2f2',
-          color: '#b91c1c',
-          border: '1px solid #fecdd3'
-        }}>
-          <p style={{ margin: 0, fontWeight: 'var(--font-weight-bold)' }}>匯入失敗</p>
-          <p style={{ margin: '0.25rem 0 0' }}>{status.message ?? '請稍後再試，或檢查 CSV 格式'}</p>
-        </div>
-      )}
+        {/* Status Feedback */}
+        {status.type === 'success' && status.result && (
+            <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 animate-slide-up flex gap-4">
+                <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-full h-fit text-green-700 dark:text-green-300">
+                    <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 className="font-bold text-green-800 dark:text-green-200">{t('admin.import_success', 'Import Successful')}</h3>
+                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                        {t('admin.import_stats', 'Added {{count}} voters, skipped {{skipped}} duplicates.', { count: status.result.votersImported, skipped: status.result.duplicatesSkipped })}
+                    </p>
+                    <div className="mt-3 p-3 bg-white/50 dark:bg-black/20 rounded-lg text-xs font-mono break-all border border-green-200 dark:border-green-800/50">
+                        Merkle Root: <span className="font-bold">{status.result.merkleRootHash}</span>
+                    </div>
+                </div>
+            </div>
+        )}
 
-      <div style={{ 
-        marginTop: 'var(--spacing-xl)',
-        padding: 'var(--spacing-lg)',
-        borderRadius: 'var(--border-radius-md)',
-        backgroundColor: 'var(--color-surface-hover)',
-        border: '1px solid var(--border-color)'
-      }}>
-        <h3 style={{ marginTop: 0, marginBottom: 'var(--spacing-sm)', fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-text-primary)' }}>
-          CSV 規範
-        </h3>
-        <ul style={{ margin: 0, paddingLeft: '1.25rem', color: 'var(--color-text-secondary)', lineHeight: 1.7 }}>
-          <li>第一列需為欄位名稱：<code>studentId,class</code></li>
-          <li>每列代表一位選民，<code>studentId</code> 需為大寫英數，<code>class</code> 會自動標準化為大寫底線格式</li>
-          <li>匯入時會自動去除空白列、重複紀錄並計算 Merkle Root</li>
-          <li>large CSV (1k+) 會在背景處理，請耐心等待完成提示</li>
-        </ul>
+        {status.type === 'error' && (
+            <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 animate-slide-up flex gap-4 items-start">
+                <div className="p-2 bg-red-100 dark:bg-red-900/50 rounded-full h-fit text-red-700 dark:text-red-300">
+                    <AlertCircle className="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 className="font-bold text-red-800 dark:text-red-200">{t('admin.import_failed', 'Import Failed')}</h3>
+                    <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                        {status.message ?? t('common.unknown_error', 'Unknown error occurred.')}
+                    </p>
+                </div>
+            </div>
+        )}
+
+        {/* Info Box */}
+        <div className="bg-[var(--color-surface-container)] rounded-xl p-5 border border-[var(--color-outline-variant)]/50">
+            <h3 className="text-sm font-bold text-[var(--color-on-surface)] mb-3 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-[var(--color-primary)]" />
+                {t('admin.csv_specs', 'CSV Specifications')}
+            </h3>
+            <ul className="grid md:grid-cols-2 gap-2 text-sm text-[var(--color-on-surface-variant)]">
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--color-outline)]"/>{t('admin.csv_header_req', 'Headers: studentId, class')}</li>
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--color-outline)]"/>{t('admin.csv_id_req', 'Alphanumeric IDs')}</li>
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--color-outline)]"/>{t('admin.csv_class_req', 'Normalized class names')}</li>
+                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-[var(--color-outline)]"/>{t('admin.csv_auto_clean', 'Auto-remove duplicates')}</li>
+            </ul>
+        </div>
       </div>
     </Card>
   );

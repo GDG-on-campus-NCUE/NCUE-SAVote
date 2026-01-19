@@ -1,4 +1,3 @@
-
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Issuer, Client, TokenSet, UserinfoResponse } from 'openid-client';
@@ -23,8 +22,11 @@ export class OidcService implements OnModuleInit {
 
       this.client = new issuer.Client({
         client_id: this.configService.get<string>('OIDC_CLIENT_ID') || '',
-        client_secret: this.configService.get<string>('OIDC_CLIENT_SECRET') || '',
-        redirect_uris: [this.configService.get<string>('OIDC_CALLBACK_URL') || ''],
+        client_secret:
+          this.configService.get<string>('OIDC_CLIENT_SECRET') || '',
+        redirect_uris: [
+          this.configService.get<string>('OIDC_CALLBACK_URL') || '',
+        ],
         response_types: ['code'],
       });
     } catch (error) {
@@ -45,7 +47,11 @@ export class OidcService implements OnModuleInit {
     });
   }
 
-  async exchangeCode(req: any, code_verifier: string, state: string): Promise<{ tokenSet: TokenSet; userinfo: UserinfoResponse }> {
+  async exchangeCode(
+    req: any,
+    code_verifier: string,
+    state: string,
+  ): Promise<{ tokenSet: TokenSet; userinfo: UserinfoResponse }> {
     if (!this.client) {
       throw new Error('OIDC client not initialized');
     }
@@ -59,7 +65,7 @@ export class OidcService implements OnModuleInit {
     });
 
     if (!tokenSet.access_token) {
-        throw new Error('No access token received from OIDC provider');
+      throw new Error('No access token received from OIDC provider');
     }
 
     const userinfo = await this.client.userinfo(tokenSet.access_token);

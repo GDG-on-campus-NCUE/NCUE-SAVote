@@ -23,8 +23,9 @@ export interface UpdateCandidateRequest {
 }
 
 export const candidateApi = {
-  create: async (electionId: string, data: CreateCandidateRequest) => {
-    const response = await api.post<Candidate>(`/elections/${electionId}/candidates`, data);
+  create: async (electionId: string, data: CreateCandidateRequest | FormData) => {
+    const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    const response = await api.post<Candidate>(`/elections/${electionId}/candidates`, data, config);
     return response.data;
   },
 

@@ -12,6 +12,7 @@ import { ElectionsModule } from './elections/elections.module';
 import { UsersModule } from './users/users.module';
 import { VotersModule } from './voters/voters.module';
 import { VotesModule } from './votes/votes.module';
+import { AdminsModule } from './admins/admins.module';
 
 @Module({
   imports: [
@@ -19,10 +20,12 @@ import { VotesModule } from './votes/votes.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
@@ -30,6 +33,7 @@ import { VotesModule } from './votes/votes.module';
     ElectionsModule,
     VotersModule,
     VotesModule,
+    AdminsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -40,4 +44,4 @@ import { VotesModule } from './votes/votes.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

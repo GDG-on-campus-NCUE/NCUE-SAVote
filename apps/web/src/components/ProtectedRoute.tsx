@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
  * Redirects to setup if user has no nullifier secret
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, hasNullifierSecret } = useAuthStore();
+  const { isAuthenticated, hasNullifierSecret, user } = useAuthStore();
   const location = useLocation();
 
   if (!isAuthenticated) {
@@ -22,7 +22,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   // Get user role to check if admin
-  const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN';
 
   // Admin users don't need nullifier secret

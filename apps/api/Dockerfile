@@ -17,7 +17,7 @@ COPY packages/crypto-lib/package.json packages/crypto-lib/
 COPY packages/shared-types/package.json packages/shared-types/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 # Copy source code
 COPY . .

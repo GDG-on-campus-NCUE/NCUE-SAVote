@@ -1,11 +1,18 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Layout } from "../../../components/Layout";
+import { useTranslation } from "react-i18next";
 import { AnimatedBackground } from "../../../components/AnimatedBackground";
 import { GlowOrbs } from "../../../components/GlowOrbs";
 import { api } from "../services/auth.api";
 import { API_ENDPOINTS } from "../../../lib/constants";
 import { EnrollmentStatus, UserRole } from "@savote/shared-types";
+import { Card } from "../../../components/m3/Card";
+import { Button } from "../../../components/m3/Button";
+import { TextField } from "../../../components/m3/TextField";
+import { ThemeToggle } from "../../../components/m3/ThemeToggle";
+import { LanguageSwitcher } from "../../../components/m3/LanguageSwitcher";
+import { ArrowLeft, Lock, LogIn, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { useThemeStore } from "../../../stores/themeStore";
 
 interface AdminLoginResponse {
   success: boolean;
@@ -17,6 +24,8 @@ interface AdminLoginResponse {
       studentIdHash: string;
       class: string;
       email: string | null;
+      name: string | null;
+      ip?: string;
       role: UserRole;
     };
   };
@@ -27,9 +36,12 @@ interface AdminLoginResponse {
 }
 
 export const AdminLoginPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const { computedMode } = useThemeStore();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,7 +50,7 @@ export const AdminLoginPage = () => {
     setError(null);
 
     if (!username.trim() || !password.trim()) {
-      setError("請輸入帳號和密碼");
+      setError(t('auth.error_missing_credentials', 'Please enter username and password'));
       return;
     }
 
@@ -74,196 +86,117 @@ export const AdminLoginPage = () => {
           setNullifierSecretStatus(true);
         }
 
-        // Redirect to home
-        navigate("/", { replace: true });
+        // Redirect to admin dashboard
+        navigate("/admin", { replace: true });
       } else {
-        setError(response.data.error?.message || "登入失敗，請檢查帳號密碼");
+        setError(response.data.error?.message || t('auth.login_failed', 'Login failed'));
       }
     } catch (err: any) {
       console.error("Admin login error:", err);
-      console.error("Error response:", err.response?.data);
-      setError(err.response?.data?.error?.message || err.message || "登入失敗，請稍後再試");
+      setError(err.response?.data?.error?.message || err.message || t('auth.login_failed_retry', 'Login failed, please try again'));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Layout showFooter={false}>
-      <div className="relative flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
-        <AnimatedBackground />
-        <GlowOrbs />
-        <div className="grid-background absolute inset-0 opacity-20" />
+    <div className="relative flex justify-center items-center min-h-screen bg-[var(--color-background)] overflow-hidden transition-colors duration-300">
+        {/* Background Effects */}
+        {computedMode === 'dark' && (
+            <div className="absolute inset-0 pointer-events-none">
+                <AnimatedBackground />
+                <GlowOrbs />
+                <div className="grid-background absolute inset-0 opacity-20" />
+            </div>
+        )}
 
-        <div className="relative z-10 w-full max-w-md px-4">
-          <div
-            className="glass rounded-3xl shadow-2xl p-8 relative overflow-hidden"
-            style={{ animation: "fadeInUp 0.8s ease-out" }}
-          >
-            <div className="scan-line absolute top-0 left-0 right-0 h-1 rounded-t-3xl opacity-50" />
+        {/* Top Right Controls */}
+        <div className="absolute top-4 right-4 z-20 flex gap-2">
+            <ThemeToggle />
+            <LanguageSwitcher />
+        </div>
 
-            <div className="text-center pb-6 pt-2 stagger-fade-in">
-              <div className="mb-6">
+        <div className="relative z-10 w-full max-w-md px-4 animate-fade-in">
+          <Card variant="elevated" className="p-8 relative overflow-hidden backdrop-blur-sm bg-[var(--color-surface)]/90">
+            {/* Top Decoration */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--color-primary)] opacity-80" />
+
+            <div className="text-center pb-6 pt-2">
+              <div className="mb-6 inline-block relative">
                 <img
                   src="/sa_logo.png"
-                  alt="學生會 Logo"
+                  alt="Logo"
                   className="w-20 h-20 mx-auto rounded-2xl shadow-lg"
-                  style={{
-                    animation:
-                      "bounceIn 1s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-                  }}
                 />
+                <div className="absolute -bottom-2 -right-2 bg-[var(--color-primary)] text-[var(--color-on-primary)] p-1 rounded-full shadow-md">
+                    <Lock className="w-4 h-4" />
+                </div>
               </div>
-              <h2 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">
-                管理員登入
+              <h2 className="text-2xl font-bold text-[var(--color-on-surface)] mb-1">
+                {t('auth.admin_login_title', 'Admin Login')}
               </h2>
-              <h3 className="text-xl font-semibold text-blue-200 mb-4">
-                Admin Portal
-              </h3>
-              <p className="text-gray-300 text-sm">
-                請使用管理員帳號和密碼登入
+              <p className="text-[var(--color-on-surface-variant)] text-sm">
+                {t('auth.admin_login_subtitle', 'Secure Admin Portal')}
               </p>
             </div>
 
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-4 mt-8 stagger-fade-in"
-            >
-              <div>
-                <label
-                  htmlFor="username"
-                  className="block text-sm font-medium text-gray-300 mb-2"
-                >
-                  帳號 (Username)
-                </label>
-                <input
-                  type="text"
-                  id="username"
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <TextField
+                  label={t('auth.username', 'Username')}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-4 py-3 glass-subtle rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:glow-blue-border transition-all"
-                  placeholder="請輸入管理員帳號"
                   disabled={isLoading}
                   autoComplete="username"
-                />
-              </div>
+              />
 
-              <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-300 mb-2"
-                >
-                  密碼 (Password)
-                </label>
-                <input
-                  type="password"
-                  id="password"
+              <TextField
+                  label={t('auth.password', 'Password')}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 glass-subtle rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:glow-blue-border transition-all"
-                  placeholder="請輸入密碼"
                   disabled={isLoading}
                   autoComplete="current-password"
-                />
-              </div>
+                  endAdornment={
+                    <button
+                        type="button"
+                        className="p-1 hover:text-[var(--color-on-surface)] transition-colors focus:outline-none"
+                        onClick={() => setShowPassword(!showPassword)}
+                    >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  }
+              />
 
               {error && (
-                <div
-                  className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 glass-subtle"
-                  style={{ animation: "fadeInUp 0.3s ease-out" }}
-                >
-                  <div className="flex items-center">
-                    <svg
-                      className="h-5 w-5 text-red-400 mr-2"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    <p className="text-sm text-red-300">{error}</p>
-                  </div>
+                <div className="p-4 rounded-lg bg-[var(--color-error-container)] text-[var(--color-on-error-container)] flex items-center gap-3 animate-fade-in">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-sm font-medium">{error}</p>
                 </div>
               )}
 
-              <button
+              <Button
                 type="submit"
                 disabled={isLoading || !username.trim() || !password.trim()}
-                className="w-full flex justify-center items-center px-5 py-3.5 rounded-xl text-sm font-medium text-white glass-strong border border-blue-400/50 hover:border-blue-400/80 hover:bg-blue-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500/60 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/30 backdrop-blur-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                loading={isLoading}
+                className="w-full"
+                icon={<LogIn className="w-4 h-4" />}
               >
-                {isLoading ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    登入中...
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-5 h-5 mr-2"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                      />
-                    </svg>
-                    登入 (Sign In)
-                  </>
-                )}
-              </button>
+                {t('auth.sign_in', 'Sign In')}
+              </Button>
             </form>
 
-            <div className="pt-6 border-t border-white/10 mt-6">
-              <button
-                type="button"
+            <div className="pt-6 border-t border-[var(--color-outline-variant)] mt-6">
+              <Button
+                variant="text"
                 onClick={() => navigate("/auth/login")}
-                className="w-full flex justify-center items-center py-3 px-4 glass-subtle rounded-xl text-sm font-medium text-gray-300 hover:text-white focus:outline-none transition-all"
+                className="w-full"
+                icon={<ArrowLeft className="w-4 h-4" />}
               >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                  />
-                </svg>
-                返回一般登入
-              </button>
+                {t('auth.back_to_login', 'Back to Login')}
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
-      </div>
-    </Layout>
+    </div>
   );
 };

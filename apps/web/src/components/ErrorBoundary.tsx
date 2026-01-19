@@ -1,6 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
-import { Button } from './ui/Button';
-import { Card } from './ui/Card';
+import { Button } from './m3/Button';
+import { Card } from './m3/Card';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -38,44 +39,27 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-          padding: 'var(--spacing-md)',
-          backgroundColor: 'var(--color-background)'
-        }}>
-          <Card style={{ maxWidth: '400px', textAlign: 'center' }}>
-            <h2 style={{ 
-              color: 'var(--color-error)', 
-              marginBottom: 'var(--spacing-md)',
-              fontSize: 'var(--font-size-xl)'
-            }}>
-              發生錯誤
+        <div className="flex justify-center items-center min-h-screen p-4 bg-[var(--color-background)]">
+          <Card className="max-w-md w-full p-8 text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-[var(--color-error-container)] mb-6">
+                <AlertCircle className="h-8 w-8 text-[var(--color-on-error-container)]" />
+            </div>
+            
+            <h2 className="text-2xl font-bold mb-2 text-[var(--color-on-surface)]">
+              Something went wrong
             </h2>
-            <p style={{ 
-              color: 'var(--color-text-secondary)', 
-              marginBottom: 'var(--spacing-lg)' 
-            }}>
-              系統發生預期外的錯誤，請嘗試重新整理頁面。
+            <p className="text-[var(--color-on-surface-variant)] mb-6">
+              An unexpected error occurred. Please try reloading the page.
             </p>
+            
             {this.state.error && (
-              <pre style={{
-                textAlign: 'left',
-                backgroundColor: 'var(--color-surface-hover)',
-                padding: 'var(--spacing-sm)',
-                borderRadius: 'var(--border-radius-sm)',
-                fontSize: 'var(--font-size-xs)',
-                overflow: 'auto',
-                marginBottom: 'var(--spacing-lg)',
-                maxHeight: '200px'
-              }}>
+              <pre className="text-left bg-[var(--color-surface-variant)] p-4 rounded-lg text-xs overflow-auto mb-6 max-h-48 font-mono text-[var(--color-on-surface-variant)]">
                 {this.state.error.message}
               </pre>
             )}
-            <Button onClick={this.handleReset} variant="primary" fullWidth>
-              重新整理
+            
+            <Button onClick={this.handleReset} className="w-full" icon={<RefreshCw className="w-4 h-4" />}>
+              Reload Page
             </Button>
           </Card>
         </div>

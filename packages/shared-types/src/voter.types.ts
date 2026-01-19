@@ -2,8 +2,16 @@
 export interface Candidate {
     id: string;
     name: string;
+    bio?: string | null;
+    photoUrl?: string | null;
     description?: string | null;
     electionId: string;
+}
+
+export enum ElectionType {
+    PRESIDENTIAL = 'PRESIDENTIAL',
+    DISTRICT_COUNCILOR = 'DISTRICT_COUNCILOR',
+    AT_LARGE_COUNCILOR = 'AT_LARGE_COUNCILOR'
 }
 
 export interface Election {
@@ -11,6 +19,8 @@ export interface Election {
     name: string;
     merkleRootHash: string | null;
     status: ElectionStatus;
+    type: ElectionType;
+    config?: any;
     startTime: Date | null;
     endTime: Date | null;
     createdAt: Date;

@@ -17,7 +17,10 @@ export class SubmitVoteDto {
   @IsNotEmpty()
   proof: any;
 
-  @ApiProperty({ description: 'The public signals (nullifierHash, voteHash, root, electionId, vote)' })
+  @ApiProperty({
+    description:
+      'The public signals (nullifierHash, voteHash, root, electionId, vote)',
+  })
   @IsArray()
   @IsNotEmpty()
   publicSignals: string[];

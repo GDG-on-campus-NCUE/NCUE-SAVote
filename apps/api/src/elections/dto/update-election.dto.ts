@@ -4,19 +4,19 @@ import { IsOptional, IsString, IsDateString, IsEnum } from 'class-validator';
 import { ElectionStatus } from '@savote/shared-types';
 
 export class UpdateElectionDto extends PartialType(CreateElectionDto) {
-	@IsOptional()
-	@IsString()
-	merkleRootHash?: string;
+  @IsOptional()
+  @IsString()
+  merkleRootHash?: string;
 
-	@IsOptional()
-	@IsEnum(ElectionStatus)
-	status?: ElectionStatus;
+  @IsOptional()
+  @IsEnum(ElectionStatus)
+  status?: ElectionStatus;
 
-	@IsOptional()
-	@IsDateString()
-	startTime?: string;
+  @IsOptional()
+  @IsDateString()
+  startTime?: string;
 
-	@IsOptional()
-	@IsDateString()
-	endTime?: string;
+  @IsOptional()
+  @IsDateString()
+  endTime?: string;
 }

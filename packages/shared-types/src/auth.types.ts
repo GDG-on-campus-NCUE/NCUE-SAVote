@@ -48,6 +48,8 @@ export interface UserProfile {
     studentIdHash: string;
     class: string;
     email: string | null;
+    name: string | null;
+    ip?: string;
     enrollmentStatus: EnrollmentStatus;
     role: UserRole;
 }
