@@ -40,6 +40,10 @@ packages/circuits/*.sym
 packages/circuits/*.ptau
 packages/circuits/*.zkey
 packages/circuits/powersOfTau28_hez_final_*.ptau
+packages/crypto-lib/src/verification_key.json
+apps/web/public/zk/*.zkey
+apps/web/public/zk/*.wasm
+apps/web/public/zk/*.json
 
 # Testing
 coverage/

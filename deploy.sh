@@ -17,6 +17,28 @@ log "正在檢查環境..."
 check_cmd docker
 check_cmd curl
 
+# --- 確保 pnpm 已安裝 ---
+if ! command -v pnpm >/dev/null; then
+  log "pnpm 未安裝，正在安裝..."
+  if command -v npm >/dev/null; then
+    npm install -g pnpm || err "無法透過 npm 安裝 pnpm，請嘗試手動安裝。"
+  else
+    # 使用官方獨立安裝腳本
+    curl -fsSL https://get.pnpm.io/install.sh | sh - || err "無法透過官方腳本安裝 pnpm。"
+    # 將 pnpm 加入當前 session 的 PATH
+    export PNPM_HOME="$HOME/.local/share/pnpm"
+    case ":$PATH:" in
+      *":$PNPM_HOME:"*) ;;
+      *) export PATH="$PNPM_HOME:$PATH" ;;
+    esac
+  fi
+
+  if ! command -v pnpm >/dev/null; then
+    err "pnpm 安裝失敗，請手動安裝後再執行此腳本。"
+  fi
+  log "pnpm 安裝成功！"
+fi
+
 # 載入環境變數
 if [[ -f "$REPO_ROOT/apps/api/.env" ]]; then
   log "載入環境變數..."
@@ -44,27 +66,19 @@ fi
 
 # --- 2. 產生 JWT RSA 密鑰 ---
 log "檢查並產生 JWT RSA 密鑰對..."
-if command -v pnpm >/dev/null; then
-  # 如果還沒安裝 node_modules，先安裝以執行腳本
-  if [[ ! -d "$REPO_ROOT/apps/api/node_modules" ]]; then
-    log "安裝後端依賴以執行密鑰產生腳本..."
-    pnpm install --filter api
-  fi
-  # 執行 Node.js 密鑰產生腳本 (內部會檢查有效性)
-  pnpm --filter api gen-keys
-else
-  err "pnpm 未安裝，無法產生密鑰對。"
+# 如果還沒安裝 node_modules，先安裝以執行腳本
+if [[ ! -d "$REPO_ROOT/apps/api/node_modules" ]]; then
+  log "安裝後端依賴以執行密鑰產生腳本..."
+  pnpm install --filter api
 fi
+# 執行 Node.js 密鑰產生腳本 (內部會檢查有效性)
+pnpm --filter api gen-keys
 
 # --- 3. 建置 ZK 電路 ---
 log "建置 ZK 電路 (這可能需要一點時間)..."
-if command -v pnpm >/dev/null; then
-  pnpm install
-  pnpm --filter circuits build
-  cp "$REPO_ROOT/packages/circuits/build/verification_key.json" "$REPO_ROOT/packages/crypto-lib/src/verification_key.json" || true
-else
-  log "略過電路建置 (未安裝 pnpm)，將直接嘗試啟動 Docker。"
-fi
+pnpm install
+pnpm --filter circuits build
+cp "$REPO_ROOT/packages/circuits/build/verification_key.json" "$REPO_ROOT/packages/crypto-lib/src/verification_key.json" || true
 
 # --- 4. 啟動服務 ---
 log "啟動 Docker 服務 (自動執行遷移與初始化)..."

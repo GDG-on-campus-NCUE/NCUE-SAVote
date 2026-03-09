@@ -62,7 +62,9 @@ const main = async () => {
     // 1. Compile Circuit
     console.log('--- Compiling Circuit ---');
     // Assuming 'circom' is in PATH
-    run(`circom src/${CIRCUIT_NAME}.circom --r1cs --wasm --sym --output build`);
+    // Adding -l node_modules and -l ../../node_modules to ensure circomlib can be found
+    // regardless of where it's hoisted in the pnpm workspace.
+    run(`circom src/${CIRCUIT_NAME}.circom --r1cs --wasm --sym --output build -l node_modules -l ../../node_modules`);
 
     // 2. Download PTAU
     console.log('--- Checking Powers of Tau ---');
