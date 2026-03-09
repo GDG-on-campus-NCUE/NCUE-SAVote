@@ -6,6 +6,7 @@ import { apiClient } from '../lib/api-client';
 interface AuthStore extends AuthState {
     // Actions
     setAuth: (accessToken: string, refreshToken: string, user: UserProfile) => void;
+    setNullifierSecretStatus: (hasSecret: boolean) => void;
     clearAuth: () => void;
     loadUser: () => Promise<void>;
     logout: () => Promise<void>;
@@ -20,6 +21,7 @@ export const useAuthStore = create<AuthStore>()(
             accessToken: null,
             refreshToken: null,
             isAuthenticated: false,
+            hasNullifierSecret: false,
 
             // Set authentication tokens and user
             setAuth: (accessToken, refreshToken, user) => {
@@ -30,6 +32,10 @@ export const useAuthStore = create<AuthStore>()(
                     refreshToken,
                     isAuthenticated: true,
                 });
+            },
+
+            setNullifierSecretStatus: (hasSecret) => {
+                set({ hasNullifierSecret: hasSecret });
             },
 
             // Clear authentication

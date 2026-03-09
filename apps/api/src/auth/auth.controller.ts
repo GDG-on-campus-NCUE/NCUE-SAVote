@@ -11,9 +11,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
-import { OidcService } from './oidc.service';
+import { OidcService, OidcType } from './oidc.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type {
   RefreshTokenRequest,
@@ -21,7 +20,6 @@ import type {
   ApiResponse,
   JWTPayload,
 } from '@savote/shared-types';
-import { AdminLoginDto } from './dto/admin-login.dto';
 import { generators } from 'openid-client';
 
 @Controller('auth')
@@ -34,214 +32,121 @@ export class AuthController {
   ) {}
 
   /**
-   * Initiate OIDC login
-   * Redirects to IdP login page
+   * Voter Login Initiation
    */
   @Get('login')
   async login(@Req() req: Request, @Res() res: Response) {
+    return this.initiateOidc(OidcType.VOTER, req, res);
+  }
+
+  /**
+   * Admin Login Initiation
+   */
+  @Get('admin/login')
+  async adminLogin(@Req() req: Request, @Res() res: Response) {
+    return this.initiateOidc(OidcType.ADMIN, req, res);
+  }
+
+  private initiateOidc(type: OidcType, req: Request, res: Response) {
     const code_verifier = generators.codeVerifier();
     const code_challenge = generators.codeChallenge(code_verifier);
     const state = generators.state();
 
-    // Store verifier and state in session
-    if (req.session) {
-      (req.session as any).code_verifier = code_verifier;
-      (req.session as any).state = state;
-    } else {
+    const session = req.session as any;
+    if (!session) {
       this.logger.error('Session not initialized');
-      return res
-        .status(500)
-        .send('Internal Server Error: Session not initialized');
+      return res.status(500).send('Session not initialized');
     }
 
+    session[`${type}_code_verifier`] = code_verifier;
+    session[`${type}_state`] = state;
+
     try {
-      const authorizationUrl = this.oidcService.getAuthorizationUrl(
-        code_challenge,
-        state,
-      );
+      const authorizationUrl = this.oidcService.getAuthorizationUrl(type, code_challenge, state);
       return res.redirect(authorizationUrl);
     } catch (error) {
-      this.logger.error(
-        `Failed to generate authorization URL: ${error.message}`,
-      );
+      this.logger.error(`Failed to generate ${type} auth URL: ${error.message}`);
       return res.status(500).send('Internal Server Error');
     }
   }
 
   /**
-   * OIDC callback endpoint
-   * Processes OIDC response code and issues JWT tokens
+   * Voter Callback
    */
   @Get('callback')
   async callback(@Req() req: Request, @Res() res: Response) {
+    return this.handleCallback(OidcType.VOTER, req, res);
+  }
+
+  /**
+   * Admin Callback
+   */
+  @Get('admin/callback')
+  async adminCallback(@Req() req: Request, @Res() res: Response) {
+    return this.handleCallback(OidcType.ADMIN, req, res);
+  }
+
+  private async handleCallback(type: OidcType, req: Request, res: Response) {
     const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
+    const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
 
     try {
       const session = req.session as any;
-      if (!session || !session.code_verifier || !session.state) {
-        throw new Error('Session expired or invalid state');
-      }
+      const code_verifier = session?.[`${type}_code_verifier`];
+      const state = session?.[`${type}_state`];
 
-      const code_verifier = session.code_verifier;
-      const state = session.state;
+      if (!code_verifier || !state) throw new Error('Session expired or invalid state');
+      delete session[`${type}_code_verifier`];
+      delete session[`${type}_state`];
 
-      // Clear verifier from session
-      delete session.code_verifier;
-      delete session.state;
+      const { userinfo } = await this.oidcService.exchangeCode(type, req, code_verifier, state);
 
-      const { userinfo } = await this.oidcService.exchangeCode(
-        req,
-        code_verifier,
-        state,
-      );
+      const loginResponse = type === OidcType.VOTER 
+        ? await this.authService.handleVoterLogin(userinfo, ipAddress, userAgent)
+        : await this.authService.handleAdminOIDCLogin(userinfo, ipAddress, userAgent);
 
-      const loginResponse = await this.authService.handleOIDCLogin(
-        userinfo,
-        ipAddress,
-        userAgent,
-      );
-
-      // Redirect to frontend with tokens in query params (or use session)
-      // For security, consider using httpOnly cookies instead
-      const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
-      const userStateFlag = loginResponse.isNewUser ? '1' : '0';
-      const redirectUrl = `${frontendUrl}/auth/callback?accessToken=${loginResponse.accessToken}&refreshToken=${loginResponse.refreshToken}&isNewUser=${userStateFlag}`;
-
+      const redirectUrl = `${frontendUrl}/auth/callback?accessToken=${loginResponse.accessToken}&refreshToken=${loginResponse.refreshToken}&role=${loginResponse.user.role}`;
       return res.redirect(redirectUrl);
     } catch (error) {
-      this.logger.error(`OIDC Callback failed: ${error.message}`, error.stack);
-      if (error.response) {
-        this.logger.error(
-          `OIDC Error Response: ${JSON.stringify(error.response.body || error.response)}`,
-        );
-      }
-      if (error.error_description) {
-        this.logger.error(`OIDC Error Description: ${error.error_description}`);
-      }
-      // Redirect to error page
-      const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:5173';
-      return res.redirect(
-        `${frontendUrl}/auth/error?message=${encodeURIComponent(error.message)}`,
-      );
+      this.logger.error(`${type} Callback failed: ${error.message}`);
+      return res.redirect(`${frontendUrl}/auth/error?message=${encodeURIComponent(error.message)}`);
     }
   }
 
-  /**
-   * Refresh access token using refresh token
-   */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(
-    @Body() body: RefreshTokenRequest,
-    @Req() req: Request,
-  ): Promise<ApiResponse<RefreshTokenResponse>> {
+  async refresh(@Body() body: RefreshTokenRequest, @Req() req: Request): Promise<ApiResponse<RefreshTokenResponse>> {
     const ipAddress = req.ip || req.socket.remoteAddress || 'unknown';
-
     try {
-      const tokens = await this.authService.refreshTokens(
-        body.refreshToken,
-        ipAddress,
-      );
-      return {
-        success: true,
-        data: tokens,
-      };
+      const tokens = await this.authService.refreshTokens(body.refreshToken, ipAddress);
+      return { success: true, data: tokens };
     } catch (error) {
-      return {
-        success: false,
-        error: {
-          code: 'REFRESH_TOKEN_INVALID',
-          message: error.message,
-        },
-      };
+      return { success: false, error: { code: 'REFRESH_TOKEN_INVALID', message: error.message } };
     }
   }
 
-  /**
-   * Logout - revoke current session
-   */
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: Request): Promise<ApiResponse<void>> {
     const payload = req.user as JWTPayload;
-
     await this.authService.revokeSession(payload.jti);
-
-    return {
-      success: true,
-    };
+    return { success: true };
   }
 
-  /**
-   * Logout from all devices - revoke all sessions
-   */
-  @Post('logout-all')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async logoutAll(@Req() req: Request): Promise<ApiResponse<void>> {
-    const payload = req.user as JWTPayload;
-
-    await this.authService.revokeAllUserSessions(payload.sub);
-
-    return {
-      success: true,
-    };
-  }
-
-  /**
-   * Get current user profile
-   */
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getCurrentUser(@Req() req: Request): Promise<ApiResponse<any>> {
     const payload = req.user as JWTPayload;
-
-    // Return user info from token payload
     return {
       success: true,
       data: {
         id: payload.sub,
         studentIdHash: payload.studentIdHash,
         class: payload.class,
+        role: payload.role,
       },
     };
-  }
-
-  /**
-   * Admin login with username and password
-   * Real production admin authentication endpoint
-   */
-  @Post('admin/login')
-  @HttpCode(HttpStatus.OK)
-  async adminLogin(
-    @Body() dto: AdminLoginDto,
-    @Req() req: Request,
-  ): Promise<ApiResponse<any>> {
-    const ipAddress = req.ip || (req.socket as any).remoteAddress || 'unknown';
-    const userAgent = req.headers['user-agent'] || 'unknown';
-
-    try {
-      const loginResponse = await this.authService.handleAdminLogin(
-        dto.username,
-        dto.password,
-        ipAddress,
-        userAgent,
-      );
-
-      return {
-        success: true,
-        data: loginResponse,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: {
-          code: 'INVALID_CREDENTIALS',
-          message: error.message || 'Invalid username or password',
-        },
-      };
-    }
   }
 }

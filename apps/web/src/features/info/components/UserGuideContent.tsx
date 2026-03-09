@@ -1,25 +1,22 @@
-import { useTranslation } from 'react-i18next';
 import { ShieldCheck, UserCircle2, Vote } from 'lucide-react';
 
 export function UserGuideContent() {
-  const { t } = useTranslation();
-
   const steps = [
     {
-      title: t('info.guide_step1_title', 'SSO Authentication'),
-      desc: t('info.guide_step1_desc', 'Log in securely using your school account (NCUESA SSO). We only verify your student status and eligibility; your password and personal data are never stored.'),
+      title: '單一登入驗證',
+      desc: '使用您的學校單簽帳號進行身份驗證。系統僅確認您的學籍狀態與投票資格，絕不儲存您的密碼或個人隱私資料。',
       icon: <UserCircle2 className="w-6 h-6 md:w-8 md:h-8" />,
       color: 'bg-blue-600 text-white',
     },
     {
-      title: t('info.guide_step2_title', 'Generate Privacy Key'),
-      desc: t('info.guide_step2_desc', 'The system generates a unique cryptographic key on your device. Using Zero-Knowledge Proof (ZKP) technology, this proves "I have the right to vote" while completely concealing "Who I am".'),
+      title: '產生零知識隱私金鑰',
+      desc: '系統將於您的裝置產生唯一的加密金鑰。此金鑰採用零知識證明技術 (Zero-Knowledge Proof)，確保您在證明「我有投票權」的同時，完全隱藏「我是誰」。這是保障匿名投票的核心。',
       icon: <ShieldCheck className="w-6 h-6 md:w-8 md:h-8" />,
       color: 'bg-purple-600 text-white',
     },
     {
-      title: t('info.guide_step3_title', 'Cast Your Vote'),
-      desc: t('info.guide_step3_desc', 'Select your candidate and submit. Your vote is recorded on the blockchain ledger along with the cryptographic proof. Once written, it is immutable and untraceable.'),
+      title: '加密投票',
+      desc: '選擇候選人並送出選票。您的選票將與加密證明一同寫入區塊鏈帳本。一旦寫入，即永久不可篡改，且任何人都無法追蹤您的投票選擇。',
       icon: <Vote className="w-6 h-6 md:w-8 md:h-8" />,
       color: 'bg-green-600 text-white',
     }
@@ -64,7 +61,7 @@ export function UserGuideContent() {
         <div className="inline-flex items-center gap-3 px-4 py-2 md:px-6 md:py-3 rounded-full bg-[var(--color-primary-container)]/30 text-[var(--color-on-surface)] border border-[var(--color-outline-variant)]">
           <ShieldCheck className="w-4 h-4 md:w-5 md:h-5 text-[var(--color-primary)]" />
           <span className="font-medium text-xs md:text-sm">
-            {t('info.guide_privacy_note', 'This system uses advanced cryptography to strictly protect your privacy and anonymity.')}
+            本系統採用先進密碼學及區塊鏈技術，絕對保障您的投票隱私與匿名性。
           </span>
         </div>
       </div>

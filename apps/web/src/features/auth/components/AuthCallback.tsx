@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../stores/authStore';
+import { useAuthStore } from '../../../stores/auth.store';
 import { authApi } from '../services/auth.api';
 import { storage } from '../../../lib/localStorage';
 import { Card } from '../../../components/m3/Card';
@@ -9,7 +8,6 @@ import { Button } from '../../../components/m3/Button';
 import { Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
 
 export const AuthCallback = () => {
-  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const setAuth = useAuthStore(state => state.setAuth);
@@ -25,7 +23,6 @@ export const AuthCallback = () => {
       
       const accessToken = searchParams.get('accessToken');
       const refreshToken = searchParams.get('refreshToken');
-      // const isNewUser = searchParams.get('isNewUser') === '1'; // We treat everyone without a key as needing setup
 
       if (accessToken && refreshToken) {
         try {
@@ -33,8 +30,13 @@ export const AuthCallback = () => {
           await storage.setRefreshToken(refreshToken);
 
           const user = await authApi.getCurrentUser();
-          
           setAuth(accessToken, refreshToken, user);
+
+          // Handle Admin Redirect
+          if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+            navigate('/admin', { replace: true });
+            return;
+          }
 
           const storedSecret = await storage.getNullifierSecret();
           const hasSecretForUser = storedSecret && storedSecret.studentIdHash === user.studentIdHash;
@@ -51,10 +53,10 @@ export const AuthCallback = () => {
           
         } catch (error) {
           console.error('Callback error:', error);
-          setErrorMessage(t('auth.login_error', 'Login verification failed. Please try again.'));
+          setErrorMessage('登入驗證失敗，請稍後再試。');
         }
       } else {
-        setErrorMessage(t('auth.missing_params', 'Missing required parameters. Please login again.'));
+        setErrorMessage('缺少必要的參數，請重新登入。');
       }
     };
 
@@ -76,7 +78,7 @@ export const AuthCallback = () => {
               className="w-full"
               icon={<ArrowLeft className="w-4 h-4" />}
             >
-              {t('auth.back_to_login', 'Back to Login')}
+              返回登入
             </Button>
           </Card>
         </div>
@@ -88,8 +90,8 @@ export const AuthCallback = () => {
     <div className="flex justify-center items-center min-h-screen px-4 bg-[var(--color-background)]">
       <div className="text-center">
         <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-[var(--color-primary)]" />
-        <h2 className="text-2xl font-bold text-[var(--color-on-background)] mb-2">{t('auth.verifying', 'Verifying Login...')}</h2>
-        <p className="text-[var(--color-on-surface-variant)]">{t('common.please_wait', 'Please wait')}</p>
+        <h2 className="text-2xl font-bold text-[var(--color-on-background)] mb-2">正在驗證登入身分...</h2>
+        <p className="text-[var(--color-on-surface-variant)]">請稍候</p>
       </div>
     </div>
   );

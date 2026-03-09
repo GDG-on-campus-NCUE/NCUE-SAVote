@@ -12,7 +12,9 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async getProfile(@Req() req: Request): Promise<ApiResponse<UserProfile>> {
     const payload = req.user as JWTPayload;
-    const user = await this.usersService.findByStudentIdHash(payload.studentIdHash);
+    
+    // Always find by ID (sub) which is consistent for both students and admins
+    const user = await this.usersService.findById(payload.sub);
 
     if (!user) {
       return {

@@ -5,7 +5,9 @@
     "declarationMap": true,
     "strict": true,
     "esModuleInterop": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "types": ["node"]
   },
   "include": ["src"]
 }

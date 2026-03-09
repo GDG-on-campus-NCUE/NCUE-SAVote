@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { candidateApi } from '../../auth/services/candidate.api';
 import { api } from '../../auth/services/auth.api';
@@ -12,7 +11,7 @@ import { Button } from '../../../components/m3/Button';
 import { Dialog } from '../../../components/m3/Dialog';
 import { TextField } from '../../../components/m3/TextField';
 import { Plus, Trash2, Edit2, UserCircle } from 'lucide-react';
-import type { Election, Candidate } from '@savote/shared-types';
+import { type Election, type Candidate, UserRole } from '@savote/shared-types';
 
 // Extended type since shared-types might be out of sync with backend DTO
 interface ExtendedCandidate extends Candidate {
@@ -21,7 +20,6 @@ interface ExtendedCandidate extends Candidate {
 }
 
 export function CandidateManagementPage() {
-  const { t } = useTranslation();
   const { user } = useAuth();
   const { electionId } = useParams();
   const queryClient = useQueryClient();
@@ -29,6 +27,8 @@ export function CandidateManagementPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingCandidate, setEditingCandidate] = useState<ExtendedCandidate | null>(null);
   const [formData, setFormData] = useState({ name: '', bio: '', photoUrl: '' });
+
+  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
 
   // 1. Fetch Election Details (to show name)
   const { data: election, isLoading: isLoadingElection } = useQuery({
@@ -104,18 +104,18 @@ export function CandidateManagementPage() {
     setIsCreateOpen(true);
   };
 
-  if (user && user.role !== 'ADMIN') return <Navigate to="/" replace />;
+  if (user && !isAdmin) return <Navigate to="/" replace />;
   if (!user) return null;
   if (!electionId) return <Navigate to="/admin/elections" replace />;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 space-y-6">
       <AdminHeader 
-        title={isLoadingElection ? 'Loading...' : `${election?.name} - Candidates`}
-        subtitle={t('admin.candidate_mgmt', 'Manage candidates for this election')}
+        title={isLoadingElection ? '載入中...' : `${election?.name} - 候選人`}
+        subtitle="管理此選舉的候選人名單"
         actions={
             <Button variant="filled" icon={<Plus className="w-5 h-5" />} onClick={openCreate}>
-                {t('admin.add_candidate', 'Add Candidate')}
+                新增候選人
             </Button>
         }
       />
@@ -128,9 +128,9 @@ export function CandidateManagementPage() {
       ) : candidates.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 bg-[var(--color-surface-container)] rounded-2xl border border-[var(--color-outline-variant)] border-dashed">
               <UserCircle className="w-16 h-16 text-[var(--color-outline)] mb-4" />
-              <p className="text-[var(--color-on-surface-variant)] text-lg">{t('admin.no_candidates', 'No candidates found.')}</p>
+              <p className="text-[var(--color-on-surface-variant)] text-lg">尚無候選人。</p>
               <Button variant="text" onClick={openCreate} className="mt-2">
-                 {t('admin.add_candidate', 'Add Candidate')}
+                 新增候選人
               </Button>
           </div>
       ) : (
@@ -157,7 +157,7 @@ export function CandidateManagementPage() {
                                         {candidate.name}
                                     </h3>
                                     <p className="text-sm text-[var(--color-on-surface-variant)] line-clamp-2 mt-1 min-h-[2.5em]">
-                                        {candidate.bio || candidate.description || 'No bio provided'}
+                                        {candidate.bio || candidate.description || '尚無簡介'}
                                     </p>
                                 </div>
                           </div>
@@ -169,21 +169,21 @@ export function CandidateManagementPage() {
                                     onClick={() => openEdit(candidate)}
                                     icon={<Edit2 className="w-4 h-4" />}
                                 >
-                                    {t('common.edit', 'Edit')}
+                                    編輯
                                 </Button>
                                 <Button 
                                     variant="text" 
                                     color="error"
                                     className="h-9 px-3 hover:bg-red-50 dark:hover:bg-red-900/20" 
                                     onClick={() => {
-                                        if(window.confirm(t('admin.delete_confirm', 'Are you sure?'))) {
+                                        if(window.confirm('確定要刪除此候選人嗎？')) {
                                             deleteMutation.mutate(candidate.id);
                                         }
                                     }}
                                     icon={<Trash2 className="w-4 h-4" />}
                                     loading={deleteMutation.isPending && deleteMutation.variables === candidate.id}
                                 >
-                                    {t('common.delete', 'Delete')}
+                                    刪除
                                 </Button>
                           </div>
                       </div>
@@ -196,40 +196,40 @@ export function CandidateManagementPage() {
       <Dialog
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title={editingCandidate ? t('admin.edit_candidate', 'Edit Candidate') : t('admin.add_candidate', 'Add Candidate')}
+        title={editingCandidate ? '編輯候選人' : '新增候選人'}
         icon={<UserCircle className="w-6 h-6" />}
         actions={
             <>
                 <Button variant="text" onClick={() => setIsCreateOpen(false)}>
-                    {t('common.cancel')}
+                    取消
                 </Button>
                 <Button 
                     onClick={handleSubmit} 
                     loading={createMutation.isPending || updateMutation.isPending}
                     variant="filled"
                 >
-                    {t('common.save')}
+                    儲存
                 </Button>
             </>
         }
       >
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
             <TextField 
-                label={t('admin.candidate_name', 'Name')}
+                label="姓名"
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
                 required
                 autoFocus
             />
             <TextField 
-                label={t('admin.candidate_bio', 'Bio')}
+                label="簡介"
                 value={formData.bio}
                 onChange={e => setFormData({...formData, bio: e.target.value})}
                 multiline
                 rows={3}
             />
             <TextField 
-                label={t('admin.candidate_photo', 'Photo URL')}
+                label="照片網址"
                 value={formData.photoUrl}
                 onChange={e => setFormData({...formData, photoUrl: e.target.value})}
                 placeholder="https://..."

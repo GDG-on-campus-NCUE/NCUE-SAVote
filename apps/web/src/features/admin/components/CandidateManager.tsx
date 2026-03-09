@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import { api } from '../../auth/services/auth.api';
 import { candidateApi } from '../../auth/services/candidate.api';
 import { API_ENDPOINTS } from '../../../lib/constants';
@@ -11,7 +10,6 @@ import { TextField } from '../../../components/m3/TextField';
 import { Trash2, Plus, UserCircle, Upload } from 'lucide-react';
 
 export function CandidateManager() {
-  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [selectedElectionId, setSelectedElectionId] = useState('');
   const [newCandidate, setNewCandidate] = useState<{ name: string; bio: string; photoFile: File | null }>({ name: '', bio: '', photoFile: null });
@@ -80,13 +78,13 @@ export function CandidateManager() {
   return (
     <Card className="p-6">
       <h2 className="text-xl font-bold mb-6 text-[var(--color-on-surface)]">
-        {t('admin.candidate_mgmt', 'Candidate Management')}
+        候選人管理
       </h2>
 
       {/* Election Selector */}
       <div className="mb-6">
         <label className="block mb-2 text-sm font-medium text-[var(--color-on-surface-variant)]">
-            {t('admin.select_election', 'Select Election')}
+            選擇選舉
         </label>
         {isLoadingElections ? (
           <div className="h-10 bg-[var(--color-surface-variant)] rounded animate-pulse" />
@@ -103,16 +101,16 @@ export function CandidateManager() {
 
       {/* Add Candidate Form */}
       <form onSubmit={handleCreate} className="mb-8 p-4 bg-[var(--color-surface-variant)]/30 rounded-lg border border-[var(--color-outline-variant)]">
-        <h3 className="text-lg font-medium mb-4 text-[var(--color-on-surface)]">{t('admin.add_candidate', 'Add Candidate')}</h3>
+        <h3 className="text-lg font-medium mb-4 text-[var(--color-on-surface)]">新增候選人</h3>
         <div className="space-y-4">
           <TextField
-            label={t('admin.candidate_name', 'Name')}
+            label="姓名"
             value={newCandidate.name}
             onChange={e => setNewCandidate({ ...newCandidate, name: e.target.value })}
             className="bg-[var(--color-surface)]"
           />
           <TextField
-             label={t('admin.candidate_bio', 'Bio')}
+             label="簡介"
              value={newCandidate.bio}
              onChange={e => setNewCandidate({ ...newCandidate, bio: e.target.value })}
              className="bg-[var(--color-surface)]"
@@ -120,7 +118,7 @@ export function CandidateManager() {
           
           <div className="space-y-2">
             <label className="block text-sm font-medium text-[var(--color-on-surface-variant)]">
-                {t('admin.candidate_photo', 'Photo')}
+                照片
             </label>
             <div className="flex items-center gap-4">
                 <input 
@@ -137,7 +135,7 @@ export function CandidateManager() {
                     onClick={() => fileInputRef.current?.click()}
                     icon={<Upload className="w-4 h-4" />}
                 >
-                    {newCandidate.photoFile ? newCandidate.photoFile.name : t('common.upload_photo', 'Upload Photo')}
+                    {newCandidate.photoFile ? newCandidate.photoFile.name : '上傳照片'}
                 </Button>
                 {newCandidate.photoFile && (
                     <Button 
@@ -149,7 +147,7 @@ export function CandidateManager() {
                             if (fileInputRef.current) fileInputRef.current.value = '';
                         }}
                     >
-                        {t('common.clear', 'Clear')}
+                        清除
                     </Button>
                 )}
             </div>
@@ -161,21 +159,21 @@ export function CandidateManager() {
             loading={createMutation.isPending}
             icon={<Plus className="w-4 h-4" />}
           >
-            {t('common.add', 'Add')}
+            新增
           </Button>
         </div>
       </form>
 
       {/* Candidates List */}
       <div>
-        <h3 className="text-lg font-medium mb-4 text-[var(--color-on-surface)]">{t('admin.candidate_list', 'Candidate List')}</h3>
+        <h3 className="text-lg font-medium mb-4 text-[var(--color-on-surface)]">候選人列表</h3>
         {isLoadingCandidates ? (
           <div className="space-y-3">
               <div className="h-16 bg-[var(--color-surface-variant)] rounded animate-pulse" />
               <div className="h-16 bg-[var(--color-surface-variant)] rounded animate-pulse" />
           </div>
         ) : candidates.length === 0 ? (
-          <p className="text-[var(--color-on-surface-variant)]">{t('admin.no_candidates', 'No candidates found.')}</p>
+          <p className="text-[var(--color-on-surface-variant)]">尚無候選人。</p>
         ) : (
           <div className="grid gap-3">
             {candidates.map(candidate => (

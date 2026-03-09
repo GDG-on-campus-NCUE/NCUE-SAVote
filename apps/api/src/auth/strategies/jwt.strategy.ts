@@ -30,9 +30,16 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('Invalid token type');
     }
 
-    // Basic validation - session revocation check will be in guard
-    if (!payload.sub || !payload.jti || !payload.studentIdHash) {
-      throw new UnauthorizedException('Invalid token payload');
+    // Basic validation - sub and jti are mandatory for everyone
+    if (!payload.sub || !payload.jti) {
+      throw new UnauthorizedException('Invalid token payload: missing sub or jti');
+    }
+
+    // For non-admin roles, studentIdHash is usually required for voter eligibility
+    // However, if the payload is validly signed, we can trust the sub mapping.
+    // Let's ensure the payload at least has the essential fields.
+    if (payload.role === 'USER' && !payload.studentIdHash) {
+      throw new UnauthorizedException('Invalid token payload: missing studentIdHash for voter');
     }
 
     return payload;

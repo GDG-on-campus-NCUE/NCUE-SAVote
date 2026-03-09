@@ -1,8 +1,9 @@
 
 export interface User {
     id: string;
-    studentIdHash: string;
-    class: string;
+    studentIdHash: string | null;
+    synologySub: string | null;
+    class: string | null;
     email: string | null;
     enrollmentStatus: EnrollmentStatus;
     role: UserRole;
@@ -12,7 +13,8 @@ export interface User {
 
 export enum UserRole {
     USER = 'USER',
-    ADMIN = 'ADMIN'
+    ADMIN = 'ADMIN',
+    SUPER_ADMIN = 'SUPER_ADMIN'
 }
 
 export enum EnrollmentStatus {
@@ -45,8 +47,9 @@ export interface LoginResponse {
 
 export interface UserProfile {
     id: string;
-    studentIdHash: string;
-    class: string;
+    studentIdHash?: string | null;
+    synologySub?: string | null;
+    class?: string | null;
     email: string | null;
     name: string | null;
     ip?: string;
@@ -71,8 +74,8 @@ export interface SAMLCallbackQuery {
 export interface JWTPayload {
     sub: string; // user id
     jti: string; // session jti
-    studentIdHash: string;
-    class: string;
+    studentIdHash?: string | null;
+    class?: string | null;
     role: UserRole;
     type: 'access' | 'refresh';
     iat: number;
@@ -84,4 +87,5 @@ export interface AuthState {
     accessToken: string | null;
     refreshToken: string | null;
     isAuthenticated: boolean;
+    hasNullifierSecret?: boolean;
 }

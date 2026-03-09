@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { Button } from '../../../components/m3/Button';
@@ -10,7 +9,7 @@ import { Card } from '../../../components/m3/Card';
 import { AdminHeader } from '../components/AdminHeader';
 import { api } from '../../auth/services/auth.api';
 import { API_ENDPOINTS } from '../../../lib/constants';
-import { ElectionType, type Election, ElectionStatus } from '@savote/shared-types';
+import { ElectionType, type Election, ElectionStatus, UserRole } from '@savote/shared-types';
 import { Plus, CalendarPlus, Link as LinkIcon, Users, Trash2, Edit2, Search } from 'lucide-react';
 
 interface ExtendedElection extends Election {
@@ -18,7 +17,6 @@ interface ExtendedElection extends Election {
 }
 
 export function ElectionManagementPage() {
-  const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -32,6 +30,8 @@ export function ElectionManagementPage() {
     endTime: '',
     bulletinUrl: '',
   });
+
+  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
 
   // Fetch Elections
   const { data: elections = [], isLoading } = useQuery({
@@ -120,7 +120,7 @@ export function ElectionManagementPage() {
     }
   };
 
-  if (user && user.role !== 'ADMIN') return <Navigate to="/" replace />;
+  if (user && !isAdmin) return <Navigate to="/" replace />;
   if (!user) return null;
 
   const filteredElections = elections.filter(e => 
@@ -130,15 +130,15 @@ export function ElectionManagementPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 space-y-6">
        <AdminHeader 
-         title={t('admin.election_mgmt', 'Election Management')}
-         subtitle={t('admin.election_mgmt_desc', 'Create and manage elections')}
+         title="選舉管理"
+         subtitle="建立與管理各項選舉案件"
          actions={
             <Button 
                 variant="filled"
                 icon={<Plus className="w-5 h-5" />} 
                 onClick={handleOpenCreate}
             >
-                {t('admin.create_election', 'Create Election')}
+                建立選舉
             </Button>
          }
        />
@@ -150,7 +150,7 @@ export function ElectionManagementPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-outline)]" />
                     <input 
                         type="text" 
-                        placeholder={t('common.search', 'Search elections...')}
+                        placeholder="搜尋選舉..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 bg-transparent border-none focus:ring-0 text-[var(--color-on-surface)] placeholder-[var(--color-outline)]"
@@ -165,9 +165,9 @@ export function ElectionManagementPage() {
              ) : elections.length === 0 ? (
                  <div className="flex flex-col items-center justify-center py-20 bg-[var(--color-surface-container)] rounded-2xl border border-[var(--color-outline-variant)] border-dashed">
                      <CalendarPlus className="w-16 h-16 text-[var(--color-outline)] mb-4" />
-                     <p className="text-[var(--color-on-surface-variant)] text-lg">{t('admin.no_elections', 'No elections found.')}</p>
+                     <p className="text-[var(--color-on-surface-variant)] text-lg">找不到選舉項目。</p>
                      <Button variant="text" onClick={handleOpenCreate} className="mt-2">
-                        {t('admin.create_election', 'Create Election')}
+                        建立選舉
                      </Button>
                  </div>
              ) : (
@@ -177,10 +177,10 @@ export function ElectionManagementPage() {
                             <thead>
                                 <tr className="bg-[var(--color-surface-container)] border-b border-[var(--color-outline-variant)]">
                                     <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm w-16 text-center">#</th>
-                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm">{t('admin.election_name', 'Name')}</th>
-                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm">{t('admin.status', 'Status')}</th>
-                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm hidden lg:table-cell">{t('admin.election_time', 'Duration')}</th>
-                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm text-right">{t('common.actions', 'Actions')}</th>
+                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm">選舉名稱</th>
+                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm">狀態</th>
+                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm hidden lg:table-cell">起訖時間</th>
+                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm text-right">操作</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--color-outline-variant)]/50">
@@ -195,7 +195,7 @@ export function ElectionManagementPage() {
                                             <div>
                                                 <div className="font-bold text-[var(--color-on-surface)] text-base">{election.name}</div>
                                                 <div className="text-xs text-[var(--color-on-surface-variant)] flex items-center gap-1 mt-0.5">
-                                                     <span className="opacity-80 line-clamp-1 max-w-[200px]">{election.description || 'No description'}</span>
+                                                     <span className="opacity-80 line-clamp-1 max-w-[200px]">{election.description || '尚無描述'}</span>
                                                      {election.type && (
                                                         <span className="px-1.5 py-0.5 rounded-full bg-[var(--color-secondary-container)] text-[var(--color-on-secondary-container)] text-[10px]">
                                                             {election.type}
@@ -213,17 +213,17 @@ export function ElectionManagementPage() {
                                                      election.status === ElectionStatus.VOTING_OPEN ? 'bg-green-500' : 
                                                      election.status === ElectionStatus.VOTING_CLOSED ? 'bg-gray-500' : 'bg-blue-500'
                                                 }`} />
-                                                {election.status}
+                                                {election.status === ElectionStatus.VOTING_OPEN ? '投票中' : election.status === ElectionStatus.VOTING_CLOSED ? '已結束' : election.status}
                                             </span>
                                         </td>
                                         <td className="p-4 hidden lg:table-cell">
                                             <div className="text-xs text-[var(--color-on-surface-variant)] space-y-1">
                                                 <div className="flex items-center gap-2">
-                                                     <span className="w-12 opacity-60">Start:</span>
+                                                     <span className="w-12 opacity-60">開始:</span>
                                                      <span className="font-mono">{election.startTime ? new Date(election.startTime).toLocaleString() : '-'}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                     <span className="w-12 opacity-60">End:</span>
+                                                     <span className="w-12 opacity-60">結束:</span>
                                                      <span className="font-mono">{election.endTime ? new Date(election.endTime).toLocaleString() : '-'}</span>
                                                 </div>
                                             </div>
@@ -232,7 +232,7 @@ export function ElectionManagementPage() {
                                             <div className="flex justify-end items-center gap-1">
                                                 <Link to={`/admin/elections/${election.id}/candidates`}>
                                                     <Button variant="text" size="sm" icon={<Users className="w-4 h-4" />}>
-                                                        <span className="hidden xl:inline ml-1">{t('admin.candidate_mgmt', 'Candidates')}</span>
+                                                        <span className="hidden xl:inline ml-1">候選人管理</span>
                                                     </Button>
                                                 </Link>
                                                 <Button 
@@ -249,7 +249,7 @@ export function ElectionManagementPage() {
                                                     size="sm"
                                                     className="w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                                                     onClick={() => {
-                                                        if(window.confirm(t('admin.delete_confirm', 'Are you sure?'))) {
+                                                        if(window.confirm('確定要刪除此選舉嗎？此操作無法復原。')) {
                                                             deleteMutation.mutate(election.id);
                                                         }
                                                     }}
@@ -272,13 +272,13 @@ export function ElectionManagementPage() {
         <Dialog 
             open={isCreateOpen} 
             onClose={() => setIsCreateOpen(false)}
-            title={editingElection ? t('admin.edit_election', 'Edit Election') : t('admin.create_election', 'Create Election')}
+            title={editingElection ? '編輯選舉' : '建立選舉'}
             icon={<CalendarPlus className="w-6 h-6" />}
             className="w-full max-w-2xl"
             actions={
                 <>
                     <Button variant="text" onClick={() => setIsCreateOpen(false)}>
-                        {t('common.cancel', 'Cancel')}
+                        取消
                     </Button>
                     <Button 
                         onClick={handleSubmit} 
@@ -286,7 +286,7 @@ export function ElectionManagementPage() {
                         loading={createMutation.isPending || updateMutation.isPending}
                         variant="filled"
                     >
-                        {t('common.save', 'Save')}
+                        儲存
                     </Button>
                 </>
             }
@@ -294,7 +294,7 @@ export function ElectionManagementPage() {
             <form onSubmit={handleSubmit} className="py-4 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <TextField 
-                        label={t('admin.election_name', 'Election Name')}
+                        label="選舉名稱"
                         value={formData.name}
                         onChange={e => setFormData({...formData, name: e.target.value})}
                         required
@@ -303,7 +303,7 @@ export function ElectionManagementPage() {
                     
                     <div className="flex flex-col gap-1 md:col-span-2">
                         <label className="text-sm font-medium text-[var(--color-on-surface-variant)] px-1 mb-1">
-                            {t('admin.election_type', 'Election Type')}
+                            選舉種類
                         </label>
                         <div className="relative">
                             <select 
@@ -311,9 +311,9 @@ export function ElectionManagementPage() {
                                 onChange={e => setFormData({...formData, type: e.target.value as ElectionType})}
                                 className="w-full appearance-none rounded-lg bg-[var(--color-surface-variant)] border-0 border-b-2 border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-3 focus:border-[var(--color-primary)] focus:outline-none transition-colors cursor-pointer hover:bg-[var(--color-surface-variant)]/80"
                             >
-                                <option value={ElectionType.PRESIDENTIAL}>{t('admin.election_type_presidential')}</option>
-                                <option value={ElectionType.DISTRICT_COUNCILOR}>{t('admin.election_type_district')}</option>
-                                <option value={ElectionType.AT_LARGE_COUNCILOR}>{t('admin.election_type_at_large')}</option>
+                                <option value={ElectionType.PRESIDENTIAL}>正副會長</option>
+                                <option value={ElectionType.DISTRICT_COUNCILOR}>選區學生議員</option>
+                                <option value={ElectionType.AT_LARGE_COUNCILOR}>不分區學生議員</option>
                             </select>
                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[var(--color-on-surface-variant)]">
                                 <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
@@ -322,20 +322,20 @@ export function ElectionManagementPage() {
                     </div>
 
                     <TextField 
-                        label={t('admin.election_start', 'Start Time')}
+                        label="開始時間"
                         type="datetime-local"
                         value={formData.startTime}
                         onChange={e => setFormData({...formData, startTime: e.target.value})}
                     />
                     <TextField 
-                        label={t('admin.election_end', 'End Time')}
+                        label="結束時間"
                         type="datetime-local"
                         value={formData.endTime}
                         onChange={e => setFormData({...formData, endTime: e.target.value})}
                     />
 
                     <TextField 
-                        label={t('admin.bulletin_url', 'Bulletin URL (Google Drive)')}
+                        label="選舉公報連結 (Google Drive)"
                         value={formData.bulletinUrl}
                         onChange={e => setFormData({...formData, bulletinUrl: e.target.value})}
                         placeholder="https://drive.google.com/..."
@@ -344,7 +344,7 @@ export function ElectionManagementPage() {
                     />
 
                     <TextField 
-                        label={t('admin.election_description', 'Description')}
+                        label="選舉描述"
                         value={formData.description}
                         onChange={e => setFormData({...formData, description: e.target.value})}
                         multiline

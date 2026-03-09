@@ -1,8 +1,15 @@
 node_modules
+**/node_modules
 dist
-build
+**/dist
 .git
 .turbo
-coverage
+.next
+*.log
 .env
-.DS_Store
+.env.*
+! .env.example
+build
+out
+.cache
+.pnpm-store

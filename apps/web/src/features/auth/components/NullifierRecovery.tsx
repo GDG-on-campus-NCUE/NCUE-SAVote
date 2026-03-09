@@ -1,5 +1,4 @@
 import { FormEvent, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useNullifierSecret } from '../hooks/useNullifierSecret';
 import { Button } from '../../../components/m3/Button';
 import { TextField } from '../../../components/m3/TextField';
@@ -11,7 +10,6 @@ interface NullifierRecoveryProps {
 }
 
 export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProps) => {
-  const { t } = useTranslation();
   const { restoreSecret, validationError } = useNullifierSecret();
   const [secretInput, setSecretInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,9 +18,9 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
   const [showSecret, setShowSecret] = useState(false);
 
   const ERROR_MESSAGES: Record<string, string> = {
-    SECRET_MISMATCH: t('auth.error_secret_mismatch', 'Key mismatch. Please verify you are using the correct key for this account.'),
-    INVALID_FORMAT: t('auth.error_invalid_format', 'Invalid format. Key must be a 64-character hex string.'),
-    UNKNOWN_ERROR: t('common.unknown_error', 'An unknown error occurred.'),
+    SECRET_MISMATCH: '金鑰不相符。請確認您使用的是此帳號對應的正確金鑰。',
+    INVALID_FORMAT: '格式無效。金鑰必須是 64 個字元的 16 進位字串。',
+    UNKNOWN_ERROR: '發生未知錯誤。',
   };
 
   const handlePaste = async () => {
@@ -32,7 +30,7 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
       setError(null);
     } catch (err) {
       console.error('Failed to read clipboard:', err);
-      setError(t('auth.error_clipboard', 'Failed to read clipboard. Please paste manually.'));
+      setError('無法讀取剪貼簿。請手動貼上。');
     }
   };
 
@@ -42,14 +40,12 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target?.result as string;
-        // Extract the key from the backup file
-        // Match standard format: "Key:\n[key]" or just look for long hex string
         const match = text.match(/([a-f0-9]{64})/i); 
         if (match && match[1]) {
           setSecretInput(match[1]);
           setError(null);
         } else {
-          setError(t('auth.error_file_read', 'Could not find a valid key in the file.'));
+          setError('在檔案中找不到有效的金鑰。');
         }
       };
       reader.readAsText(file);
@@ -60,7 +56,7 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
     event.preventDefault();
 
     if (!secretInput.trim()) {
-      setError(t('auth.error_missing_key', 'Please enter your key.'));
+      setError('請輸入您的金鑰。');
       return;
     }
 
@@ -93,21 +89,21 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
           <KeyRound className="w-8 h-8 text-[var(--color-on-secondary-container)]" />
         </div>
         <h3 className="text-xl font-bold text-[var(--color-on-surface)] mb-2">
-          {t('auth.recover_key', 'Recover Anonymous Key')}
+          恢復匿名金鑰
         </h3>
         <p className="text-sm text-[var(--color-on-surface-variant)]">
-          {subtitle || t('auth.recover_desc', 'Please enter your 64-bit hex key to restore access on this device.')}
+          {subtitle || '請輸入您的 64 位元金鑰以在此裝置上恢復存取權限。'}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="relative">
           <TextField
-            label={t('auth.key_label', 'Anonymous Key (64-char hex)')}
+            label="匿名金鑰 (64位元)"
             type={showSecret ? 'text' : 'password'}
             value={secretInput}
             onChange={(e) => setSecretInput(e.target.value)}
-            placeholder="e.g. 1a2b3c..."
+            placeholder="例如：1a2b3c..."
             className="font-mono text-sm"
             error={derivedError || undefined}
           />
@@ -118,7 +114,7 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
                 variant="text"
                 className="h-8 w-8 p-0 min-w-0"
                 onClick={handlePaste}
-                title={t('common.paste', 'Paste')}
+                title="貼上"
              >
                  <ClipboardPaste className="w-4 h-4" />
              </Button>
@@ -129,12 +125,12 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
                   accept=".txt"
                   onChange={handleFileUpload}
                   className="absolute inset-0 opacity-0 cursor-pointer"
-                  title={t('common.upload', 'Upload backup file')}
+                  title="上傳備份檔案"
                 />
                 <Button
                     type="button"
                     variant="text"
-                    className="h-8 w-8 p-0 min-w-0 pointer-events-none" // pointer-events handled by input
+                    className="h-8 w-8 p-0 min-w-0 pointer-events-none"
                 >
                     <Upload className="w-4 h-4" />
                 </Button>
@@ -155,8 +151,8 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
             <div className={`mt-1 flex items-center gap-1 text-xs ${isValidFormat ? 'text-[var(--color-primary)]' : 'text-[var(--color-error)]'}`}>
                {isValidFormat ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                {isValidFormat 
-                 ? t('auth.format_valid', 'Format valid') 
-                 : t('auth.format_invalid_length', 'Length: {{current}}/64', { current: secretInput.length })
+                 ? '格式正確' 
+                 : `長度：${secretInput.length}/64`
                }
             </div>
           )}
@@ -165,7 +161,7 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
         {success && (
           <div className="p-4 rounded-lg bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] flex items-center gap-3 animate-fade-in">
             <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-            <p className="text-sm font-medium">{t('auth.recovery_success', 'Key verified. Redirecting...')}</p>
+            <p className="text-sm font-medium">金鑰驗證成功。正在重新導向...</p>
           </div>
         )}
 
@@ -176,7 +172,7 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
           className="w-full"
           icon={<KeyRound className="w-4 h-4" />}
         >
-          {t('auth.confirm_restore', 'Confirm & Restore')}
+          確認並恢復
         </Button>
       </form>
     </div>

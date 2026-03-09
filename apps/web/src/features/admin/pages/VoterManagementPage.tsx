@@ -1,16 +1,17 @@
 import { Navigate, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { VoterImport } from '../components/VoterImport';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { Button } from '../../../components/m3/Button';
 import { ArrowLeft } from 'lucide-react';
+import { UserRole } from '@savote/shared-types';
 
 export function VoterManagementPage() {
-  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  if (user && user.role !== 'ADMIN') {
+  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
+
+  if (user && !isAdmin) {
     return <Navigate to="/" replace />;
   }
 
@@ -25,8 +26,8 @@ export function VoterManagementPage() {
             <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-           <h1 className="text-3xl font-bold text-[var(--color-on-background)]">{t('admin.voter_mgmt', 'Voter Management')}</h1>
-           <p className="text-[var(--color-on-surface-variant)] mt-1">{t('admin.voter_mgmt_desc', 'Import and manage eligible voters.')}</p>
+           <h1 className="text-3xl font-bold text-[var(--color-on-background)]">選舉人名冊管理</h1>
+           <p className="text-[var(--color-on-surface-variant)] mt-1">匯入與管理符合資格的選舉人。</p>
         </div>
       </div>
 

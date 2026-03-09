@@ -1,7 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { api } from '../../auth/services/auth.api';
 import { API_ENDPOINTS } from '../../../lib/constants';
 import { type Election, ElectionStatus } from '@savote/shared-types';
@@ -24,7 +23,6 @@ interface AuditLog {
 }
 
 export function VerificationCenter() {
-  const { t } = useTranslation();
   const { electionId } = useParams<{ electionId: string }>();
   const [nullifierInput, setNullifierInput] = useState('');
   const [nullifierResult, setNullifierResult] = useState<null | { exists: boolean; createdAt?: string }>(null);
@@ -75,9 +73,9 @@ export function VerificationCenter() {
   if (!election) {
     return (
       <div className="px-6 py-10 text-center">
-        <h2 className="text-[var(--color-on-background)] text-xl font-semibold mb-2">{t('common.election_not_found', 'Election not found')}</h2>
+        <h2 className="text-[var(--color-on-background)] text-xl font-semibold mb-2">找不到選舉</h2>
         <Link to="/">
-            <Button variant="text">{t('common.back_home', 'Back to Home')}</Button>
+            <Button variant="text">返回首頁</Button>
         </Link>
       </div>
     );
@@ -123,11 +121,11 @@ export function VerificationCenter() {
       setLocalVerifyStatus({ 
           ok, 
           message: ok 
-            ? t('verify.local_success', 'Local verification successful: Proof matches public signals and verification key.') 
-            : t('verify.local_fail', 'Local verification failed: Proof invalid or tampered.') 
+            ? '本地驗證成功：證明與公開訊號及驗證金鑰相符。' 
+            : '本地驗證失敗：證明無效或已被篡改。' 
       });
     } catch (e: any) {
-      setLocalVerifyStatus({ ok: false, message: `${t('verify.local_error', 'Error during local verification')}: ${e?.message ?? 'Unknown'}` });
+      setLocalVerifyStatus({ ok: false, message: `本地驗證時發生錯誤: ${e?.message ?? '未知錯誤'}` });
     } finally {
       setIsVerifyingLocally(false);
     }
@@ -138,32 +136,32 @@ export function VerificationCenter() {
       <header className="mb-6">
         <Link to="/" className="inline-block mb-3">
             <Button variant="text" icon={<ArrowLeft className="w-4 h-4" />}>
-                {t('common.back_home', 'Back to Home')}
+                返回首頁
             </Button>
         </Link>
-        <h1 className="text-3xl font-normal text-[var(--color-on-background)]">{t('verify.title', 'Verification Center')}</h1>
-        <p className="text-[var(--color-on-surface-variant)]">{t('common.election', 'Election')}: {election.name}</p>
+        <h1 className="text-3xl font-normal text-[var(--color-on-background)]">驗證中心</h1>
+        <p className="text-[var(--color-on-surface-variant)]">選舉: {election.name}</p>
       </header>
 
       {/* Nullifier Checker */}
       <Card variant="filled" className="p-6">
         <div className="flex items-center gap-2 mb-2">
             <Search className="w-5 h-5 text-[var(--color-primary)]" />
-            <h3 className="text-lg font-medium text-[var(--color-on-surface)]">{t('verify.check_vote', 'Check My Vote')}</h3>
+            <h3 className="text-lg font-medium text-[var(--color-on-surface)]">核對我的選票</h3>
         </div>
         <p className="text-sm text-[var(--color-on-surface-variant)] mb-4">
-          {t('verify.check_vote_desc', 'Enter your Nullifier Hash to verify if your vote has been recorded. This does not reveal your choice.')}
+          輸入您的 Nullifier Hash 以驗證您的選票是否已被記錄。這不會洩露您的投票選擇。
         </p>
         <div className="flex flex-col sm:flex-row gap-3 items-end">
           <TextField
-            label={t('verify.nullifier_label', 'Nullifier Hash')}
+            label="Nullifier Hash"
             placeholder="Poseidon(secret, electionId)..."
             value={nullifierInput}
             onChange={(e) => setNullifierInput(e.target.value)}
             className="flex-1 w-full mb-0"
           />
           <Button onClick={handleCheckNullifier} className="mb-[2px]">
-            {t('common.search', 'Search')}
+            搜尋
           </Button>
         </div>
         {nullifierResult && (
@@ -171,8 +169,8 @@ export function VerificationCenter() {
             {nullifierResult.exists ? <CheckCircle2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
             <p>
               {nullifierResult.exists
-                ? t('verify.found_msg', 'Vote recorded successfully at {{date}}.', { date: nullifierResult.createdAt ? new Date(nullifierResult.createdAt).toLocaleString() : '' })
-                : t('verify.not_found_msg', 'No record found for this Nullifier.')}
+                ? `選票已於 ${nullifierResult.createdAt ? new Date(nullifierResult.createdAt).toLocaleString() : ''} 成功記錄。`
+                : '找不到此 Nullifier 的記錄。'}
             </p>
           </div>
         )}
@@ -184,9 +182,9 @@ export function VerificationCenter() {
              <AlertTriangle className="w-8 h-8" />
           </div>
           <div>
-              <h3 className="text-xl font-medium text-[var(--color-on-surface)]">{t('verify.results_hidden', 'Results Not Available')}</h3>
+              <h3 className="text-xl font-medium text-[var(--color-on-surface)]">結果尚未公佈</h3>
               <p className="text-[var(--color-on-surface-variant)]">
-                {t('verify.results_hidden_desc', 'Results and verification data will be available after the election closes.')}
+                選舉結果與驗證資料將在選舉結束後開放查詢。
               </p>
           </div>
           <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
@@ -194,7 +192,7 @@ export function VerificationCenter() {
                 ? 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)]' 
                 : 'bg-[var(--color-surface-variant)] text-[var(--color-on-surface-variant)]'
           }`}>
-            {election.status === ElectionStatus.VOTING_OPEN ? t('status.voting_open', 'Voting Open') : election.status}
+            {election.status === ElectionStatus.VOTING_OPEN ? '投票進行中' : election.status}
           </div>
         </Card>
       )}
@@ -202,9 +200,9 @@ export function VerificationCenter() {
       {canViewResults && <div className="grid gap-6 md:grid-cols-2">
         {/* Results Section */}
         <Card className="p-6 h-fit">
-          <h2 className="text-xl font-medium text-[var(--color-on-surface)] mb-6">{t('verify.results_title', 'Election Results')}</h2>
+          <h2 className="text-xl font-medium text-[var(--color-on-surface)] mb-6">選舉結果</h2>
           <div className="mb-4">
-            <p className="text-[var(--color-primary)] font-bold">{t('verify.total_votes', 'Total Votes')}: {totalVotes}</p>
+            <p className="text-[var(--color-primary)] font-bold">總票數: {totalVotes}</p>
           </div>
           <div className="grid gap-4">
             {election.candidates.map(candidate => {
@@ -229,9 +227,9 @@ export function VerificationCenter() {
         <Card className="p-6 h-fit">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-xl font-medium text-[var(--color-on-surface)]">{t('verify.audit_logs', 'Audit Logs')}</h2>
+              <h2 className="text-xl font-medium text-[var(--color-on-surface)]">稽核日誌</h2>
               <p className="text-xs text-[var(--color-on-surface-variant)]">
-                {t('verify.audit_desc', 'Raw ZK proofs for third-party auditing.')}
+                供第三方稽核使用的原始零知識證明資料。
               </p>
             </div>
             {logs && logs.length > 0 && (
@@ -244,7 +242,7 @@ export function VerificationCenter() {
           {selectedLog && (
             <div className="mb-4 p-4 rounded-lg bg-[var(--color-secondary-container)] text-[var(--color-on-secondary-container)] text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <span className="font-bold flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> {t('verify.dev_tool', 'Developer Verification')}</span>
+                <span className="font-bold flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> 開發者驗證工具</span>
                 <Button 
                     variant="filled" 
                     className="h-6 text-[10px] px-2"
@@ -252,7 +250,7 @@ export function VerificationCenter() {
                     disabled={isVerifyingLocally}
                     loading={isVerifyingLocally}
                 >
-                  {t('verify.verify_proof', 'Verify Proof')}
+                  驗證證明
                 </Button>
               </div>
               {localVerifyStatus && (
@@ -261,7 +259,7 @@ export function VerificationCenter() {
                 </p>
               )}
               <p className="opacity-70">
-                {t('verify.dev_hint', 'Loads verification_key.json and verifies proof/publicSignals locally in browser.')}
+                從瀏覽器載入 verification_key.json 並本地驗證證明與公開訊號。
               </p>
             </div>
           )}
@@ -293,7 +291,7 @@ export function VerificationCenter() {
               </div>
             ))}
             {logs?.length === 0 && (
-              <p className="text-center text-[var(--color-on-surface-variant)] py-4">{t('verify.no_votes', 'No votes cast yet.')}</p>
+              <p className="text-center text-[var(--color-on-surface-variant)] py-4">尚無投票記錄。</p>
             )}
           </div>
         </Card>

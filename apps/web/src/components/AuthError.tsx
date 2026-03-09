@@ -1,5 +1,4 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { Card } from './m3/Card';
 import { Button } from './m3/Button';
 import { AlertCircle, ArrowLeft, Home } from 'lucide-react';
@@ -9,10 +8,9 @@ import { AlertCircle, ArrowLeft, Home } from 'lucide-react';
  * Displays error message from SAML SSO or other auth failures
  */
 export function AuthError() {
-  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const errorMessage = searchParams.get('message') || t('auth.login_error_default', 'An error occurred during login.');
+  const errorMessage = searchParams.get('message') || '登入過程中發生錯誤。';
 
   return (
     <div className="flex justify-center items-center min-h-screen p-4 bg-[var(--color-background)]">
@@ -22,7 +20,7 @@ export function AuthError() {
         </div>
 
         <h2 className="text-2xl font-bold mb-2 text-[var(--color-on-surface)]">
-          {t('auth.login_failed', 'Login Failed')}
+          登入失敗
         </h2>
 
         <p className="text-[var(--color-on-surface-variant)] mb-8">
@@ -35,7 +33,7 @@ export function AuthError() {
             className="w-full"
             icon={<ArrowLeft className="w-4 h-4" />}
           >
-            {t('auth.try_again', 'Try Again')}
+            再試一次
           </Button>
 
           <Button
@@ -44,7 +42,7 @@ export function AuthError() {
             className="w-full"
             icon={<Home className="w-4 h-4" />}
           >
-            {t('common.back_home', 'Back to Home')}
+            返回首頁
           </Button>
         </div>
       </Card>

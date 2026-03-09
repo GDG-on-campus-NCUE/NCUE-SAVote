@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Download, X, PlusSquare } from 'lucide-react';
 import { Button } from './m3/Button';
 import { Card } from './m3/Card';
 
 export const InstallPrompt = () => {
-  const { t } = useTranslation();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
@@ -46,7 +44,7 @@ export const InstallPrompt = () => {
 
   const handleDownloadApk = () => {
     // Placeholder for APK download logic
-    alert(t('app.apk_download_coming_soon', 'APK download coming soon! Please use "Install App" or "Add to Home Screen" for now.'));
+    alert('APK 下載即將推出！目前請先使用「安裝應用程式」或「加入主畫面」。');
   };
 
   if (!isVisible) return null;
@@ -59,10 +57,10 @@ export const InstallPrompt = () => {
                 <img src="/pwa-192x192.png" alt="App Icon" className="w-12 h-12 rounded-xl shadow-md" />
                 <div>
                     <h3 className="font-bold text-[var(--color-on-surface)]">
-                        {t('app.install_title', 'Install NCUESA Vote')}
+                        安裝 彰師大學生會投票系統
                     </h3>
                     <p className="text-sm text-[var(--color-on-surface-variant)]">
-                        {t('app.install_desc', 'Install for a better experience')}
+                        安裝應用程式以獲得更好的使用體驗
                     </p>
                 </div>
             </div>
@@ -82,7 +80,7 @@ export const InstallPrompt = () => {
                     onClick={handleInstallClick}
                     icon={<PlusSquare className="w-4 h-4" />}
                 >
-                    {t('app.install_app', 'Install App')}
+                    安裝 App
                 </Button>
             )}
             
@@ -93,7 +91,7 @@ export const InstallPrompt = () => {
                     onClick={handleDownloadApk}
                     icon={<Download className="w-4 h-4" />}
                 >
-                    {t('app.download_apk', 'Download APK')}
+                    下載 APK
                 </Button>
             )}
         </div>

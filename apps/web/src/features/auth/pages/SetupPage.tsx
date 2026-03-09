@@ -1,11 +1,8 @@
-import { useTranslation } from 'react-i18next';
 import { NullifierSetup } from '../components/NullifierSetup';
 import { Card } from '../../../components/m3/Card';
 import { MainLayout } from '../../../components/layout/MainLayout';
 
 export const SetupPage = () => {
-  const { t } = useTranslation();
-
   return (
     <MainLayout>
       <div className="flex justify-center items-center min-h-[80vh] px-4 animate-fade-in">
@@ -13,10 +10,10 @@ export const SetupPage = () => {
           <Card className="p-8">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-[var(--color-on-surface)] mb-2">
-                  {t('auth.setup_key_title', 'Setup Anonymous Voting Key')}
+                  設定匿名投票金鑰
               </h2>
               <p className="text-[var(--color-on-surface-variant)]">
-                  {t('auth.setup_key_desc', 'To ensure anonymity, the system has generated a unique key for you. Please keep it safe.')}
+                  為了確保投票的匿名性，系統已為您產生了一個唯一的金鑰。請務必妥善保存。
               </p>
             </div>
             <NullifierSetup />
@@ -26,4 +23,3 @@ export const SetupPage = () => {
     </MainLayout>
   );
 };
-

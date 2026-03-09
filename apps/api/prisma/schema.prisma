@@ -25,19 +25,40 @@ enum EnrollmentStatus {
 enum UserRole {
   USER
   ADMIN
+  SUPER_ADMIN
+}
+
+// ============================================================================
+// Admin Permission Entity
+// ============================================================================
+// Stores the Synology OIDC sub (UID) for admin users.
+// This allows local authorization management.
+model AdminPermission {
+  id           String    @id @default(uuid())
+  synologySub  String    @unique @db.VarChar(100) // The "sub" field from Synology OIDC
+  role         UserRole  @default(ADMIN)
+  name         String?   @db.VarChar(100)         // Optional memo
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("admin_permissions")
 }
 
 model User {
   id               String           @id @default(uuid())
-  studentIdHash    String           @unique @db.VarChar(64) // SHA-256 hash (hex)
-  class            String           @db.VarChar(50)         // e.g., "CSIE_3A"
-  email            String?          @db.VarChar(255)        // Optional for recovery
+  studentIdHash    String?          @unique @db.VarChar(64) // SHA-256 hash (hex) - Nullable for admins
+  class            String?          @db.VarChar(50)         // Optional for admins
+  email            String?          @db.VarChar(255)        
   
-  // Admin Login
-  username         String?          @unique @db.VarChar(100) // Optional for admin login
-  password         String?          @db.VarChar(255)         // Hashed password for admin login
-  name             String?          @db.VarChar(100)         // For admins
-  lastLoginIp      String?          @db.VarChar(45)          // For admins
+  // Synology OIDC identifier (for Admins)
+  synologySub      String?          @unique @db.VarChar(100) 
+
+  // Fields for recovery/admin legacy (will be deprecated as OIDC is phased in)
+  username         String?          @unique @db.VarChar(100) 
+  password         String?          @db.VarChar(255)         
+  name             String?          @db.VarChar(100)         
+  lastLoginIp      String?          @db.VarChar(45)          
 
   enrollmentStatus EnrollmentStatus @default(ACTIVE)
   role             UserRole         @default(USER)

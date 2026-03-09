@@ -3,127 +3,75 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateAdminDto } from './dto/create-admin.dto';
-import { UpdateAdminDto } from './dto/update-admin.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
-import { UserRole, EnrollmentStatus } from '@savote/shared-types';
+import { UserRole } from '@savote/shared-types';
 
 @Injectable()
 export class AdminsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createAdminDto: CreateAdminDto) {
-    const { username, password, name } = createAdminDto;
-
-    // Check if username exists
-    const existingAdmin = await this.prisma.user.findUnique({
-      where: { username },
+  async create(data: { synologySub: string; name: string; role: UserRole }) {
+    const existing = await this.prisma.adminPermission.findUnique({
+      where: { synologySub: data.synologySub },
     });
 
-    if (existingAdmin) {
-      throw new ConflictException('Username already exists');
+    if (existing) {
+      throw new ConflictException('Admin with this Synology ID already exists');
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Generate dummy studentIdHash for admin
-    const studentIdHash = crypto
-      .createHash('sha256')
-      .update(`admin_${username}`)
-      .digest('hex');
-
-    // Create admin user
-    const admin = await this.prisma.user.create({
+    return this.prisma.adminPermission.create({
       data: {
-        username,
-        password: hashedPassword,
-        name,
-        role: UserRole.ADMIN,
-        studentIdHash,
-        class: 'ADMIN', // Dummy class
-        enrollmentStatus: EnrollmentStatus.ACTIVE,
-      },
-      select: {
-        id: true,
-        username: true,
-        name: true,
-        role: true,
-        lastLoginIp: true,
-        createdAt: true,
+        synologySub: data.synologySub,
+        name: data.name,
+        role: data.role as any,
       },
     });
-
-    return admin;
   }
 
   async findAll() {
-    return this.prisma.user.findMany({
-      where: { role: UserRole.ADMIN },
-      select: {
-        id: true,
-        username: true,
-        name: true,
-        role: true,
-        lastLoginIp: true,
-        createdAt: true,
-      },
+    return this.prisma.adminPermission.findMany({
+      orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findOne(id: string) {
-    const admin = await this.prisma.user.findUnique({
-      where: { id, role: UserRole.ADMIN },
-      select: {
-        id: true,
-        username: true,
-        name: true,
-        role: true,
-        lastLoginIp: true,
-        createdAt: true,
-      },
-    });
-
-    if (!admin) {
-      throw new NotFoundException(`Admin with ID ${id} not found`);
-    }
-
-    return admin;
-  }
-
-  async update(id: string, updateAdminDto: UpdateAdminDto) {
-    const { password, ...otherData } = updateAdminDto;
-
-    // Ensure admin exists
-    await this.findOne(id);
-
-    const data: any = { ...otherData };
-
-    if (password) {
-      data.password = await bcrypt.hash(password, 10);
-    }
-
-    return this.prisma.user.update({
+  async updateRole(id: string, role: UserRole) {
+    const permission = await this.prisma.adminPermission.findUnique({
       where: { id },
-      data,
-      select: {
-        id: true,
-        username: true,
-        name: true,
-        role: true,
-        lastLoginIp: true,
-        updatedAt: true,
-      },
     });
+
+    if (!permission) throw new NotFoundException('Permission record not found');
+
+    // Update permission table
+    const updated = await this.prisma.adminPermission.update({
+      where: { id },
+      data: { role: role as any },
+    });
+
+    // Sync to User table if they have logged in before
+    await this.prisma.user.updateMany({
+      where: { synologySub: permission.synologySub },
+      data: { role: role as any },
+    });
+
+    return updated;
   }
 
   async remove(id: string) {
-    await this.findOne(id); // Ensure exists
-
-    return this.prisma.user.delete({
+    const permission = await this.prisma.adminPermission.findUnique({
       where: { id },
     });
+
+    if (!permission) throw new NotFoundException('Permission record not found');
+
+    // Remove from permission table
+    await this.prisma.adminPermission.delete({ where: { id } });
+
+    // Sync to User table: Demote to USER
+    await this.prisma.user.updateMany({
+      where: { synologySub: permission.synologySub },
+      data: { role: UserRole.USER as any },
+    });
+
+    return { success: true };
   }
 }

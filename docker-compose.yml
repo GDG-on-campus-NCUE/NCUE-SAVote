@@ -1,41 +1,68 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16
+  # --- 1. 資料庫 (PostgreSQL) ---
+  db:
+    image: postgres:16-alpine
+    container_name: savote-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: voting_app
+      POSTGRES_DB: savote_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - savote-network
 
+  # --- 2. 後端 (NestJS API) ---
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    ports:
-      - "3000:3000"
+    container_name: savote-api
+    env_file:
+      - ./apps/api/.env
     environment:
-      DATABASE_URL: "postgresql://postgres:password@postgres:5432/voting_app?schema=public"
-      NODE_ENV: "production"
-      # OIDC
-      OIDC_ISSUER: ${OIDC_ISSUER}
-      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
-      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
-      OIDC_CALLBACK_URL: ${OIDC_CALLBACK_URL}
-      CORS_ORIGIN: ${CORS_ORIGIN}
+      DATABASE_URL: "postgresql://postgres:password@db:5432/savote_db?schema=public"
+      NODE_ENV: development
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
+    # 使用 db push 模式：既能同步結構，又能保留現有資料
+    command: >
+      sh -c "cd apps/api && npx prisma db push && npx prisma db seed && npm run start:prod"
     restart: always
+    networks:
+      - savote-network
+
+  # --- 3. 前端 + 網關 (Nginx + React) ---
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: "${CORS_ORIGIN:-http://127.0.0.1:8080}/api"
+    container_name: savote-web
+    ports:
+      - "8080:80"
+    environment:
+      VITE_API_BASE_URL: "${CORS_ORIGIN:-http://127.0.0.1:8080}/api"
+    depends_on:
+      - api
+    restart: always
+    networks:
+      - savote-network
+
+networks:
+  savote-network:
+    driver: bridge
 
 volumes:
   postgres_data:

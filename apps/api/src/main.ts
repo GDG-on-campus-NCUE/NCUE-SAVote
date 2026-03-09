@@ -80,9 +80,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
-  console.log(`🚀 API server running on http://0.0.0.0:${port}`);
-  console.log(
-    `📚 Swagger documentation available at http://0.0.0.0:${port}/api`,
-  );
+  const displayUrl = process.env.CORS_ORIGIN || `http://127.0.0.1:8080`;
+  console.log(`系統已啟動：${displayUrl}`);
 }
 bootstrap();

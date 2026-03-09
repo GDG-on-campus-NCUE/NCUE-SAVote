@@ -7,49 +7,45 @@ import {
   Param,
   Delete,
   UseGuards,
-  Request,
+  SetMetadata,
 } from '@nestjs/common';
 import { AdminsService } from './admins.service';
-import { CreateAdminDto } from './dto/create-admin.dto';
-import { UpdateAdminDto } from './dto/update-admin.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole, ApiResponse } from '@savote/shared-types';
 
-@ApiTags('admins')
+export const Roles = (...roles: UserRole[]) => SetMetadata('roles', roles);
+
 @Controller('admins')
-@UseGuards(JwtAuthGuard, AdminGuard)
-@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new admin' })
-  create(@Body() createAdminDto: CreateAdminDto) {
-    return this.adminsService.create(createAdminDto);
+  @Roles(UserRole.SUPER_ADMIN)
+  async create(@Body() createDto: { synologySub: string; name: string; role: UserRole }): Promise<ApiResponse<any>> {
+    const data = await this.adminsService.create(createDto);
+    return { success: true, data };
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all admins' })
-  findAll() {
-    return this.adminsService.findAll();
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  async findAll(): Promise<ApiResponse<any>> {
+    const data = await this.adminsService.findAll();
+    return { success: true, data };
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get an admin by ID' })
-  findOne(@Param('id') id: string) {
-    return this.adminsService.findOne(id);
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update an admin' })
-  update(@Param('id') id: string, @Body() updateAdminDto: UpdateAdminDto) {
-    return this.adminsService.update(id, updateAdminDto);
+  @Patch(':id/role')
+  @Roles(UserRole.SUPER_ADMIN)
+  async updateRole(@Param('id') id: string, @Body('role') role: UserRole): Promise<ApiResponse<any>> {
+    const data = await this.adminsService.updateRole(id, role);
+    return { success: true, data };
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete an admin' })
-  remove(@Param('id') id: string) {
-    return this.adminsService.remove(id);
+  @Roles(UserRole.SUPER_ADMIN)
+  async remove(@Param('id') id: string): Promise<ApiResponse<any>> {
+    await this.adminsService.remove(id);
+    return { success: true };
   }
 }

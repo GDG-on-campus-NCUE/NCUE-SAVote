@@ -5,7 +5,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   LoginResponse,
-  UserProfile,
   JWTPayload,
   EnrollmentStatus,
   RefreshTokenResponse,
@@ -15,7 +14,6 @@ import { UserinfoResponse } from 'openid-client';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -27,265 +25,153 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {
-    // Load RSA private key for signing
     const privateKeyPath = path.resolve(
       process.cwd(),
-      this.configService.get<string>('JWT_PRIVATE_KEY_PATH') ||
-        './secrets/jwt-private.key',
+      this.configService.get<string>('JWT_PRIVATE_KEY_PATH') || './secrets/jwt-private.key',
     );
     this.privateKey = fs.readFileSync(privateKeyPath, 'utf8');
   }
 
   /**
-   * Process admin credentials login
+   * Process Voter OIDC login
    */
-  async handleAdminLogin(
-    username: string,
-    password: string,
-    ipAddress: string,
-    userAgent: string,
-  ): Promise<LoginResponse> {
-    this.logger.log(`Processing admin login for username: ${username}`);
-
-    // Find user by username
-    const user = await this.prisma.user.findUnique({
-      where: { username },
-    });
-
-    if (!user || !user.password) {
-      this.logger.warn(
-        `Admin login failed: user not found or no password set for username: ${username}`,
-      );
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    // Verify role
-    if (user.role !== 'ADMIN') {
-      this.logger.warn(
-        `Admin login failed: user ${username} does not have ADMIN role`,
-      );
-      throw new UnauthorizedException('Access denied');
-    }
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      this.logger.warn(
-        `Admin login failed: invalid password for username: ${username}`,
-      );
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    this.logger.log(`Admin login successful for user: ${user.id}`);
-
-    // Log login (Update lastLoginIp and create log entry)
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        lastLoginIp: ipAddress,
-        adminLoginLogs: {
-          create: {
-            ipAddress: ipAddress,
-          },
-        },
-      },
-    });
-
-    // Generate tokens
-    const tokens = await this.generateTokens(
-      user.id,
-      user.studentIdHash,
-      user.class,
-      user.role,
-      ipAddress,
-      userAgent,
-    );
-
-    return {
-      ...tokens,
-      isNewUser: false,
-      user: {
-        id: user.id,
-        studentIdHash: user.studentIdHash,
-        class: user.class,
-        email: user.email,
-        name: user.name,
-        ip: ipAddress,
-        enrollmentStatus: user.enrollmentStatus as EnrollmentStatus,
-        role: user.role as UserRole,
-      },
-    };
-  }
-
-  /**
-   * Process OIDC login and create/update user session
-   */
-  async handleOIDCLogin(
+  async handleVoterLogin(
     userinfo: UserinfoResponse,
     ipAddress: string,
     userAgent: string,
   ): Promise<LoginResponse> {
-    // Mapping based on NCUE OIDC claims or standard OIDC
-    // Assuming preferred_username is the Student ID, fallback to sub
     const studentId = userinfo.preferred_username || userinfo.sub;
+    if (!studentId) throw new UnauthorizedException('Student ID not found in OIDC info');
 
-    this.logger.log(`Processing OIDC login for studentId: ${studentId}`);
-
-    if (!studentId) {
-      this.logger.error('Student ID not found in OIDC userinfo');
-      throw new UnauthorizedException('Student ID not found');
-    }
-
-    // Additional claims if available
-    // Note: Check actual claim names from IdP
-    const userClass = (userinfo['class'] ||
-      userinfo['ou'] ||
-      'UNKNOWN') as string;
+    const userClass = (userinfo['class'] || userinfo['ou'] || 'UNKNOWN') as string;
     const email = userinfo.email || null;
     const name = userinfo.name || userinfo.preferred_username || null;
+    const studentIdHash = crypto.createHash('sha256').update(studentId).digest('hex');
 
-    // Hash student ID with SHA-256
-    const studentIdHash = crypto
-      .createHash('sha256')
-      .update(studentId)
-      .digest('hex');
-
-    const existingUser = await this.prisma.user.findUnique({
-      where: { studentIdHash },
-    });
-
+    const existingUser = await this.prisma.user.findUnique({ where: { studentIdHash } });
     const isNewUser = !existingUser;
 
     let user = existingUser;
-
     if (!user) {
-      this.logger.log(`Creating new user for studentIdHash: ${studentIdHash}`);
       user = await this.prisma.user.create({
         data: {
           studentIdHash,
           class: userClass,
           email,
           name,
-          enrollmentStatus: EnrollmentStatus.ACTIVE,
+          role: UserRole.USER,
         },
       });
     } else {
-      this.logger.log(`Updating existing user: ${user.id}`);
       user = await this.prisma.user.update({
         where: { id: user.id },
-        data: {
-          class: userClass,
-          email: email || user.email,
-          name: name || user.name,
-        },
+        data: { class: userClass, email: email || user.email, name: name || user.name },
       });
     }
 
-    // Generate tokens
-    const tokens = await this.generateTokens(
-      user.id,
-      studentIdHash,
-      userClass,
-      user.role,
-      ipAddress,
-      userAgent,
-    );
+    const tokens = await this.generateTokens(user, ipAddress, userAgent);
 
     return {
       ...tokens,
       isNewUser,
-      user: {
-        id: user.id,
-        studentIdHash: user.studentIdHash,
-        class: user.class,
-        email: user.email,
-        name: user.name,
-        ip: ipAddress,
-        enrollmentStatus: user.enrollmentStatus as EnrollmentStatus,
-        role: user.role as UserRole,
-      },
+      user: this.mapToUserProfile(user, ipAddress),
     };
   }
+
   /**
-   * Refresh access token using refresh token
+   * Process Admin OIDC login (Synology)
    */
-  async refreshTokens(
-    refreshToken: string,
+  async handleAdminOIDCLogin(
+    userinfo: UserinfoResponse,
     ipAddress: string,
-  ): Promise<RefreshTokenResponse> {
+    userAgent: string,
+  ): Promise<LoginResponse> {
+    const synologySub = userinfo.sub;
+    if (!synologySub) throw new UnauthorizedException('Synology Sub not found');
+
+    // 1. Check local permission table
+    const permission = await this.prisma.adminPermission.findUnique({
+      where: { synologySub },
+    });
+
+    if (!permission) {
+      this.logger.warn(`Unauthorized admin login attempt for sub: ${synologySub}`);
+      throw new UnauthorizedException('You do not have administrative access to this system.');
+    }
+
+    // 2. Sync with User table
+    let user = await this.prisma.user.findUnique({ where: { synologySub } });
+    const isNewUser = !user;
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          synologySub,
+          name: permission.name || userinfo.name || 'Admin',
+          email: userinfo.email || null,
+          role: permission.role,
+        },
+      });
+    } else {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          role: permission.role,
+          name: permission.name || userinfo.name || user.name,
+          lastLoginIp: ipAddress,
+        },
+      });
+    }
+
+    // 3. Log admin login
+    await this.prisma.adminLoginLog.create({
+      data: { userId: user.id, ipAddress },
+    });
+
+    const tokens = await this.generateTokens(user, ipAddress, userAgent);
+
+    return {
+      ...tokens,
+      isNewUser,
+      user: this.mapToUserProfile(user, ipAddress),
+    };
+  }
+
+  private mapToUserProfile(user: any, ip: string) {
+    return {
+      id: user.id,
+      studentIdHash: user.studentIdHash,
+      class: user.class,
+      email: user.email,
+      name: user.name,
+      ip: ip,
+      enrollmentStatus: user.enrollmentStatus as EnrollmentStatus,
+      role: user.role as UserRole,
+    };
+  }
+
+  async refreshTokens(refreshToken: string, ipAddress: string): Promise<RefreshTokenResponse> {
     try {
-      // Verify refresh token
       const payload = this.jwtService.verify<JWTPayload>(refreshToken, {
         secret: this.privateKey,
         algorithms: ['RS256'],
       });
 
-      if (payload.type !== 'refresh') {
-        throw new UnauthorizedException('Invalid token type');
-      }
-
-      // Check session validity
       const session = await this.prisma.session.findUnique({
         where: { jti: payload.jti },
         include: { user: true },
       });
 
-      if (!session) {
-        this.logger.warn(`Session not found for JTI: ${payload.jti}`);
-        throw new UnauthorizedException('Session not found');
+      if (!session || session.revoked || session.expiresAt < new Date() || session.refreshToken !== refreshToken) {
+        throw new UnauthorizedException('Invalid or expired session');
       }
 
-      if (session.revoked) {
-        this.logger.warn(`Session revoked for JTI: ${payload.jti}`);
-        throw new UnauthorizedException('Session has been revoked');
-      }
-
-      if (session.expiresAt < new Date()) {
-        this.logger.warn(`Session expired for JTI: ${payload.jti}`);
-        await this.autoRevokeExpiredSession(session.jti);
-        throw new UnauthorizedException('Session has expired');
-      }
-
-      // Verify refresh token matches
-      if (session.refreshToken !== refreshToken) {
-        // Token reuse detected - revoke session
-        this.logger.error(
-          `Token reuse detected for JTI: ${session.jti}. Revoking session.`,
-        );
-        await this.revokeSession(session.jti);
-        throw new UnauthorizedException(
-          'Token reuse detected - session revoked',
-        );
-      }
-
-      // Generate new token pair
       const newJti = crypto.randomUUID();
-      const accessTokenExpiresIn =
-        this.configService.get<string>('JWT_ACCESS_TOKEN_EXPIRES_IN') || '15m';
-      const refreshTokenExpiresIn =
-        this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRES_IN') || '7d';
+      const accessToken = await this.signToken(session.user, newJti, 'access', '15m');
+      const newRefreshToken = await this.signToken(session.user, newJti, 'refresh', '7d');
 
-      const accessToken = await this.generateAccessToken(
-        session.userId,
-        payload.studentIdHash,
-        payload.class,
-        payload.role,
-        newJti,
-        accessTokenExpiresIn,
-      );
-
-      const newRefreshToken = await this.generateRefreshToken(
-        session.userId,
-        payload.studentIdHash,
-        payload.class,
-        payload.role,
-        newJti,
-        refreshTokenExpiresIn,
-      );
-
-      // Update session with new tokens
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+      expiresAt.setDate(expiresAt.getDate() + 7);
 
       await this.prisma.session.update({
         where: { jti: session.jti },
@@ -299,172 +185,56 @@ export class AuthService {
         },
       });
 
-      return {
-        accessToken,
-        refreshToken: newRefreshToken,
-      };
+      return { accessToken, refreshToken: newRefreshToken };
     } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
-      this.logger.error(`Refresh token failed: ${error.message}`);
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Refresh failed');
     }
   }
 
-  /**
-   * Revoke a session (logout)
-   */
   async revokeSession(jti: string): Promise<void> {
-    this.logger.log(`Revoking session: ${jti}`);
     await this.prisma.session.update({
       where: { jti },
-      data: {
-        revoked: true,
-        revokedAt: new Date(),
-      },
+      data: { revoked: true, revokedAt: new Date() },
     });
   }
 
-  /**
-   * Revoke all sessions for a user
-   */
   async revokeAllUserSessions(userId: string): Promise<void> {
-    this.logger.log(`Revoking all sessions for user: ${userId}`);
     await this.prisma.session.updateMany({
-      where: {
-        userId,
-        revoked: false,
-      },
-      data: {
-        revoked: true,
-        revokedAt: new Date(),
-      },
+      where: { userId, revoked: false },
+      data: { revoked: true, revokedAt: new Date() },
     });
   }
 
-  /**
-   * Clean up expired sessions daily
-   */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupExpiredSessions() {
-    this.logger.log('Running daily session cleanup job');
-    const result = await this.prisma.session.deleteMany({
-      where: {
-        OR: [{ expiresAt: { lt: new Date() } }, { revoked: true }],
-      },
+    await this.prisma.session.deleteMany({
+      where: { OR: [{ expiresAt: { lt: new Date() } }, { revoked: true }] },
     });
-    this.logger.log(`Cleaned up ${result.count} expired/revoked sessions`);
   }
 
-  /**
-   * Generate access and refresh tokens with session tracking
-   */
-  private async generateTokens(
-    userId: string,
-    studentIdHash: string,
-    userClass: string,
-    role: string,
-    ipAddress: string,
-    deviceInfo: string,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  private async generateTokens(user: any, ipAddress: string, deviceInfo: string) {
     const jti = crypto.randomUUID();
-    const accessTokenExpiresIn =
-      this.configService.get<string>('JWT_ACCESS_TOKEN_EXPIRES_IN') || '15m';
-    const refreshTokenExpiresIn =
-      this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRES_IN') || '7d';
+    const accessToken = await this.signToken(user, jti, 'access', '15m');
+    const refreshToken = await this.signToken(user, jti, 'refresh', '7d');
 
-    const accessToken = await this.generateAccessToken(
-      userId,
-      studentIdHash,
-      userClass,
-      role,
-      jti,
-      accessTokenExpiresIn,
-    );
-
-    const refreshToken = await this.generateRefreshToken(
-      userId,
-      studentIdHash,
-      userClass,
-      role,
-      jti,
-      refreshTokenExpiresIn,
-    );
-
-    // Calculate expiration date
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+    expiresAt.setDate(expiresAt.getDate() + 7);
 
-    // Create session record
     await this.prisma.session.create({
-      data: {
-        userId,
-        jti,
-        accessToken,
-        refreshToken,
-        expiresAt,
-        deviceInfo,
-        ipAddress,
-      },
+      data: { userId: user.id, jti, accessToken, refreshToken, expiresAt, deviceInfo, ipAddress },
     });
 
     return { accessToken, refreshToken };
   }
 
-  private async autoRevokeExpiredSession(jti: string): Promise<void> {
-    try {
-      await this.prisma.session.update({
-        where: { jti },
-        data: {
-          revoked: true,
-          revokedAt: new Date(),
-        },
-      });
-    } catch {
-      // Swallow errors to avoid leaking implementation details during refresh attempts
-    }
-  }
-
-  private async generateAccessToken(
-    userId: string,
-    studentIdHash: string,
-    userClass: string,
-    role: string,
-    jti: string,
-    expiresIn: string,
-  ): Promise<string> {
+  private async signToken(user: any, jti: string, type: 'access' | 'refresh', expiresIn: string) {
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
-      sub: userId,
+      sub: user.id,
       jti,
-      studentIdHash,
-      class: userClass,
-      role: role as UserRole,
-      type: 'access',
-    };
-
-    return this.jwtService.sign(payload, {
-      privateKey: this.privateKey,
-      algorithm: 'RS256',
-      expiresIn,
-    });
-  }
-
-  private async generateRefreshToken(
-    userId: string,
-    studentIdHash: string,
-    userClass: string,
-    role: string,
-    jti: string,
-    expiresIn: string,
-  ): Promise<string> {
-    const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
-      sub: userId,
-      jti,
-      studentIdHash,
-      class: userClass,
-      role: role as UserRole,
-      type: 'refresh',
+      studentIdHash: user.studentIdHash,
+      class: user.class,
+      role: user.role as UserRole,
+      type,
     };
 
     return this.jwtService.sign(payload, {

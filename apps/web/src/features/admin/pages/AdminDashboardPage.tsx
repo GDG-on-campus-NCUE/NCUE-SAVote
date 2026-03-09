@@ -1,6 +1,5 @@
 import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
-import { useTranslation } from 'react-i18next';
 import { Card } from '../../../components/m3/Card';
 import { 
     Vote, 
@@ -9,12 +8,14 @@ import {
     ShieldCheck, 
     ChevronRight 
 } from 'lucide-react';
+import { UserRole } from '@savote/shared-types';
 
 export function AdminDashboardPage() {
   const { user } = useAuth();
-  const { t } = useTranslation();
 
-  if (user && user.role !== 'ADMIN') {
+  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
+
+  if (user && !isAdmin) {
     return <Navigate to="/" replace />;
   }
 
@@ -22,29 +23,29 @@ export function AdminDashboardPage() {
 
   const adminFeatures = [
       {
-          title: t('admin.election_mgmt'),
-          description: t('admin.election_mgmt_desc'),
+          title: '選舉管理',
+          description: '建立選舉與管理候選人。',
           icon: <Vote className="w-8 h-8 text-[var(--color-primary)]" />,
           to: '/admin/elections',
           color: 'bg-blue-100 dark:bg-blue-900/20'
       },
       {
-          title: t('admin.voter_mgmt'),
-          description: t('admin.voter_mgmt_desc'),
+          title: '選舉人名冊管理',
+          description: '匯入與管理符合資格的選舉人。',
           icon: <Users className="w-8 h-8 text-[var(--color-primary)]" />,
           to: '/admin/voters',
           color: 'bg-green-100 dark:bg-green-900/20'
       },
       {
-          title: t('admin.monitoring'),
-          description: t('admin.monitoring_desc'),
+          title: '開票監控',
+          description: '查看已結束選舉的結果。',
           icon: <Activity className="w-8 h-8 text-[var(--color-primary)]" />,
           to: '/admin/monitoring',
           color: 'bg-orange-100 dark:bg-orange-900/20'
       },
       {
-          title: t('admin.account_mgmt'),
-          description: t('admin.account_mgmt_desc'),
+          title: '管理員帳號管理',
+          description: '管理後台管理員帳號。',
           icon: <ShieldCheck className="w-8 h-8 text-[var(--color-primary)]" />,
           to: '/admin/accounts',
           color: 'bg-purple-100 dark:bg-purple-900/20'
@@ -55,10 +56,10 @@ export function AdminDashboardPage() {
     <div className="space-y-6 animate-fade-in">
         <div className="flex flex-col gap-2">
             <h2 className="text-3xl font-bold text-[var(--color-on-background)]">
-                {t('nav.admin_dashboard')}
+                管理後台總覽
             </h2>
             <p className="text-[var(--color-on-surface-variant)]">
-                {t('auth.admin_login_subtitle')}
+                安全管理後台
             </p>
         </div>
 

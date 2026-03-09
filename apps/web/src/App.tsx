@@ -7,11 +7,11 @@ import { InstallPrompt } from "./components/InstallPrompt";
 import { AuthError } from "./components/AuthError";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Loader2 } from 'lucide-react';
+import { UserRole } from '@savote/shared-types';
 
 // Eager load critical auth pages
 import { LoginPage } from "./features/auth/pages/LoginPage";
 import { CallbackPage } from "./features/auth/pages/CallbackPage";
-import { AdminLoginPage } from './features/auth/pages/AdminLoginPage';
 
 // Lazy load feature pages
 const SetupPage = lazy(() => import("./features/auth/pages/SetupPage").then(module => ({ default: module.SetupPage })));
@@ -58,7 +58,6 @@ function App() {
             <Routes>
               {/* Auth Routes */}
               <Route path="/auth/login" element={<LoginPage />} />
-              <Route path="/auth/admin/login" element={<AdminLoginPage />} />
               <Route path="/auth/callback" element={<CallbackPage />} />
               <Route path="/auth/error" element={<AuthError />} />
               
@@ -145,7 +144,7 @@ function App() {
               <Route
                 path="/admin"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
                     <MainLayout>
                       <AdminDashboardPage />
                     </MainLayout>
@@ -155,7 +154,7 @@ function App() {
               <Route
                 path="/admin/voters"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
                     <MainLayout>
                       <VoterManagementPage />
                     </MainLayout>
@@ -165,7 +164,7 @@ function App() {
               <Route
                 path="/admin/elections"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
                     <MainLayout>
                       <ElectionManagementPage />
                     </MainLayout>
@@ -175,7 +174,7 @@ function App() {
               <Route
                 path="/admin/elections/:electionId/candidates"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
                     <MainLayout>
                       <CandidateManagementPage />
                     </MainLayout>
@@ -185,7 +184,7 @@ function App() {
               <Route
                 path="/admin/monitoring"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
                     <MainLayout>
                       <AdminMonitoringPage />
                     </MainLayout>
@@ -195,7 +194,7 @@ function App() {
               <Route
                 path="/admin/accounts"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
                     <MainLayout>
                       <AdminAccountManagementPage />
                     </MainLayout>

@@ -83,7 +83,7 @@ export class VotersController {
     const result = await this.votersService.verifyEligibility(
       dto.electionId,
       payload.studentIdHash,
-      payload.class,
+      payload.class || '',
     );
 
     return {

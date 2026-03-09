@@ -14,9 +14,18 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowJs": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+
+    /* Paths */
+    "baseUrl": ".",
+    "paths": {
+      "@savote/shared-types": ["../../packages/shared-types/src/index.ts"]
+    },
 
     /* Linting */
-    "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,

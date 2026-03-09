@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { api } from "../../auth/services/auth.api";
 import { API_ENDPOINTS } from "../../../lib/constants";
-import { Card } from "../../../components/m3/Card";
-import { Button } from "../../../components/m3/Button";
-import { type Election, ElectionStatus, type Candidate } from "@savote/shared-types";
+import { Card } from '../../../components/m3/Card';
+import { Button } from '../../../components/m3/Button';
+import { type Election, ElectionStatus, type Candidate, UserRole } from "@savote/shared-types";
 import { Loader2, RefreshCw, BarChart3, ArrowLeft, Trophy, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -34,10 +33,11 @@ interface AdminSummaryResponse {
 }
 
 export function AdminMonitoringPage() {
-  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedElectionId, setSelectedElectionId] = useState<string>("");
+
+  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
 
   const { data: elections = [] } = useQuery({
     queryKey: ["elections"],
@@ -63,6 +63,11 @@ export function AdminMonitoringPage() {
     refetchOnWindowFocus: false,
   });
 
+  if (user && !isAdmin) {
+    navigate("/");
+    return null;
+  }
+
   const closedOrTallied = elections.filter(
     (e) =>
       e.status === ElectionStatus.VOTING_CLOSED ||
@@ -77,9 +82,9 @@ export function AdminMonitoringPage() {
                 <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-                <h1 className="text-3xl font-bold text-[var(--color-on-background)]">{t('admin.monitoring', 'Vote Monitoring')}</h1>
+                <h1 className="text-3xl font-bold text-[var(--color-on-background)]">開票監控</h1>
                 <p className="text-[var(--color-on-surface-variant)] mt-1">
-                {t('admin.monitoring_desc', 'View results for closed elections.')}
+                查看已結束選舉的結果。
                 </p>
             </div>
         </div>
@@ -87,7 +92,7 @@ export function AdminMonitoringPage() {
           <div className="flex items-center gap-2 self-start bg-[var(--color-surface-container)] px-4 py-2 rounded-full border border-[var(--color-outline-variant)]">
              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
              <span className="text-xs font-mono font-medium text-[var(--color-on-surface)]">
-                ADMIN: {user.name || user.studentIdHash?.substring(0, 6)}
+                管理員: {user.name || user.id?.substring(0, 6)}
              </span>
           </div>
         )}
@@ -98,7 +103,7 @@ export function AdminMonitoringPage() {
             <div className="space-y-4">
             <div>
                 <label className="block text-sm font-medium text-[var(--color-on-surface-variant)] mb-2 px-1">
-                {t('admin.select_closed_election', 'Select Closed Election')}
+                選擇已結束選舉
                 </label>
                 <div className="relative">
                     <select
@@ -106,7 +111,7 @@ export function AdminMonitoringPage() {
                         value={selectedElectionId}
                         onChange={(e) => setSelectedElectionId(e.target.value)}
                     >
-                    <option value="">{t('common.select', 'Select...')}</option>
+                    <option value="">請選擇...</option>
                     {closedOrTallied.map((election) => (
                         <option key={election.id} value={election.id}>
                         {election.name} ({election.status})
@@ -120,7 +125,7 @@ export function AdminMonitoringPage() {
                 {closedOrTallied.length === 0 && (
                 <p className="mt-2 text-xs text-[var(--color-error)] flex items-center gap-1">
                      <span className="w-1 h-1 rounded-full bg-current" />
-                    {t('admin.no_closed_elections', 'No closed or tallied elections found.')}
+                    找不到已結束或已計票的選舉。
                 </p>
                 )}
             </div>
@@ -133,11 +138,11 @@ export function AdminMonitoringPage() {
                     variant="tonal"
                     icon={<RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />}
                 >
-                {t('common.refresh', 'Refresh Data')}
+                重新整理數據
                 </Button>
                 {error && (
                 <p className="text-xs text-[var(--color-error)] bg-[var(--color-error-container)] px-3 py-1 rounded-full">
-                    {t('common.error_loading', 'Error loading data.')}
+                    載入失敗。
                 </p>
                 )}
             </div>
@@ -148,7 +153,7 @@ export function AdminMonitoringPage() {
             <div className="flex justify-center p-12">
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className="w-10 h-10 animate-spin text-[var(--color-primary)]" />
-                    <p className="text-sm text-[var(--color-on-surface-variant)] animate-pulse">Fetching results...</p>
+                    <p className="text-sm text-[var(--color-on-surface-variant)] animate-pulse">正在取得結果...</p>
                 </div>
             </div>
         )}
@@ -162,13 +167,13 @@ export function AdminMonitoringPage() {
                          <BarChart3 className="w-5 h-5" />
                     </div>
                     <h2 className="text-sm font-bold uppercase tracking-wider">
-                    {t('admin.summary', 'Summary')}
+                    總覽
                     </h2>
                 </div>
                 
                 <div className="space-y-4">
                     <div>
-                        <p className="text-xs font-medium text-[var(--color-on-surface-variant)] uppercase mb-1">{t('common.election', 'Election')}</p>
+                        <p className="text-xs font-medium text-[var(--color-on-surface-variant)] uppercase mb-1">選舉</p>
                         <p className="text-xl font-bold text-[var(--color-on-surface)] leading-tight">
                         {summary.election.name}
                         </p>
@@ -176,13 +181,13 @@ export function AdminMonitoringPage() {
                     
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <p className="text-xs font-medium text-[var(--color-on-surface-variant)] uppercase mb-1">{t('admin.total_votes', 'Total Votes')}</p>
+                            <p className="text-xs font-medium text-[var(--color-on-surface-variant)] uppercase mb-1">總票數</p>
                             <p className="text-2xl font-black text-[var(--color-primary)] tracking-tight">
                             {summary.totalVotes}
                             </p>
                         </div>
                         <div>
-                             <p className="text-xs font-medium text-[var(--color-on-surface-variant)] uppercase mb-1">Total Eligible</p>
+                             <p className="text-xs font-medium text-[var(--color-on-surface-variant)] uppercase mb-1">資格人數</p>
                              <div className="flex items-center gap-1 text-[var(--color-on-surface)]">
                                 <Users className="w-4 h-4 text-[var(--color-on-surface-variant)]" />
                                 <span className="text-xl font-bold">{summary.tally.totalEligibleVoters}</span>
@@ -197,13 +202,13 @@ export function AdminMonitoringPage() {
                         <div className="flex items-start gap-2">
                              <Trophy className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                              <div>
-                                 <p className="text-xs font-bold uppercase text-[var(--color-on-surface-variant)] mb-1">Result</p>
+                                 <p className="text-xs font-bold uppercase text-[var(--color-on-surface-variant)] mb-1">結果</p>
                                  <p className="text-sm font-medium text-[var(--color-on-surface)]">
                                      {summary.tally.result.note}
                                  </p>
                                  {summary.tally.result.threshold && (
                                      <p className="text-xs text-[var(--color-on-surface-variant)] mt-1">
-                                         Threshold: {summary.tally.result.threshold} votes
+                                         當選門檻: {summary.tally.result.threshold} 票
                                      </p>
                                  )}
                              </div>
@@ -215,16 +220,16 @@ export function AdminMonitoringPage() {
             {/* Detailed Results */}
             <Card className="md:col-span-2 p-6">
                 <h2 className="text-xl font-bold text-[var(--color-on-surface)] mb-6 flex items-center gap-2">
-                    {t('admin.tally_results', 'Tally Results')}
+                    計票結果
                     <span className="text-xs font-normal text-[var(--color-on-surface-variant)] bg-[var(--color-surface-variant)] px-2 py-1 rounded-full ml-auto">
-                        Official Count
+                        官方統計
                     </span>
                 </h2>
                 {(!summary.tally.candidates || summary.tally.candidates.length === 0) ? (
                 <div className="flex flex-col items-center justify-center py-12 text-[var(--color-on-surface-variant)] opacity-60">
                      <BarChart3 className="w-12 h-12 mb-2" />
                     <p className="text-sm">
-                        {t('admin.no_tally', 'No tally data available.')}
+                        尚無計票資料。
                     </p>
                 </div>
                 ) : (

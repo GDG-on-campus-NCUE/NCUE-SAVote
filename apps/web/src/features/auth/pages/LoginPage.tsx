@@ -1,28 +1,23 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import { AnimatedBackground } from "../../../components/AnimatedBackground";
 import { GlowOrbs } from "../../../components/GlowOrbs";
 import { Card } from "../../../components/m3/Card";
 import { Button } from "../../../components/m3/Button";
 import { Dialog } from "../../../components/m3/Dialog";
 import { ThemeToggle } from "../../../components/m3/ThemeToggle";
-import { LanguageSwitcher } from "../../../components/m3/LanguageSwitcher";
 import { LockKeyhole, GraduationCap, ArrowRight, FileText } from "lucide-react";
 import { useThemeStore } from "../../../stores/themeStore";
 import { UserGuideContent } from "../../info/components/UserGuideContent";
 
 export const LoginPage = () => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  // Ensure we use the production API URL for SSO redirect
   const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
     
   const { computedMode } = useThemeStore();
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const handleAdminLogin = () => {
-    navigate('/auth/admin/login');
+    window.location.href = `${API_URL}/auth/admin/login`;
   };
 
   const handleSSOClick = () => {
@@ -33,7 +28,6 @@ export const LoginPage = () => {
     window.location.href = `${API_URL}/auth/login`;
   };
 
-  // Prevent scrolling on login page
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -43,7 +37,6 @@ export const LoginPage = () => {
 
   return (
     <div className="relative flex justify-center items-center min-h-screen bg-[var(--color-background)] overflow-hidden transition-colors duration-300">
-        {/* Background Effects */}
         {computedMode === 'dark' && (
             <div className="absolute inset-0 pointer-events-none">
                 <AnimatedBackground />
@@ -52,20 +45,14 @@ export const LoginPage = () => {
             </div>
         )}
 
-        {/* Top Right Controls */}
         <div className="absolute top-4 right-4 z-20 flex gap-2">
-            <div title={t('common.toggle_theme', 'Switch Theme')}>
+            <div title="切換主題">
                 <ThemeToggle />
-            </div>
-            <div title={t('common.toggle_language', 'Switch Language')}>
-                <LanguageSwitcher />
             </div>
         </div>
         
-        {/* Main Card */}
         <div className="relative z-10 w-[90%] max-w-[360px] animate-fade-in space-y-4">
           <Card variant="elevated" className="p-6 md:p-8 relative overflow-hidden text-center space-y-4 md:space-y-6 backdrop-blur-sm bg-[var(--color-surface)]/90 shadow-2xl border border-[var(--color-outline-variant)]">
-            {/* Top Decoration */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
             
             <div className="space-y-4">
@@ -80,15 +67,11 @@ export const LoginPage = () => {
               
               <div>
                   <h2 className="text-xl md:text-2xl font-bold text-[var(--color-on-surface)] leading-snug">
-                    {t('app.name').includes('投票系統') ? (
-                        <>
-                            國立彰化師範大學學生會<br/>
-                            <span className="text-2xl md:text-3xl text-[var(--color-primary)]">投票系統</span>
-                        </>
-                    ) : t('app.name')}
+                    國立彰化師範大學學生會<br/>
+                    <span className="text-2xl md:text-3xl text-[var(--color-primary)]">投票系統</span>
                   </h2>
                   <p className="text-[var(--color-on-surface-variant)] mt-2 text-sm">
-                    {t('auth.login_subtitle')}
+                    請使用學校帳號登入
                   </p>
               </div>
             </div>
@@ -99,7 +82,7 @@ export const LoginPage = () => {
                 className="w-full h-12 text-lg font-medium shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
                 icon={<GraduationCap className="w-5 h-5" />}
               >
-                {t('auth.login_sso')}
+                使用 NCUESA SSO 登入
               </Button>
 
                <Link to="/info/bulletin" className="block w-full">
@@ -108,7 +91,7 @@ export const LoginPage = () => {
                     className="w-full h-11"
                     icon={<FileText className="w-5 h-5" />}
                   >
-                    {t('nav.bulletin', 'Election Bulletin')}
+                    選舉公報
                   </Button>
                </Link>
               
@@ -117,7 +100,7 @@ export const LoginPage = () => {
                   <div className="w-full border-t border-[var(--color-outline-variant)]"></div>
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-[var(--color-surface)] px-3 text-[var(--color-on-surface-variant)] font-medium tracking-wider">{t('common.or')}</span>
+                  <span className="bg-[var(--color-surface)] px-3 text-[var(--color-on-surface-variant)] font-medium tracking-wider">或</span>
                 </div>
               </div>
 
@@ -127,39 +110,35 @@ export const LoginPage = () => {
                 className="w-full h-10 border-[var(--color-outline)] hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/5"
                 icon={<LockKeyhole className="w-4 h-4" />}
               >
-                {t('auth.admin_login')}
+                管理員登入
               </Button>
             </div>
           </Card>
           
           <div className="mt-8 text-center space-y-2 animate-fade-in opacity-80 pb-6">
             <p className="text-[var(--color-on-surface-variant)] text-sm font-semibold">
-              {t('app.developed_by')}
+              Developed by Tai Ming Chen
             </p>
             <div className="flex flex-col gap-0.5">
                 <p className="text-[var(--color-on-surface-variant)] text-xs">
-                {t('app.license')}
-                </p>
-                <p className="text-[var(--color-on-surface-variant)] text-[10px] opacity-60 font-mono">
-                {t('app.copyright')}
+                授權內容為 PolyForm Noncommercial License 不可商用
                 </p>
             </div>
           </div>
         </div>
 
-        {/* User Guide Dialog */}
         <Dialog 
           open={isGuideOpen} 
           onClose={() => setIsGuideOpen(false)}
-          title={t('info.guide_title', 'Voting Guide')}
+          title="投票系統操作指南"
           className="max-w-2xl"
           actions={
             <>
                <Button variant="text" onClick={() => setIsGuideOpen(false)}>
-                  {t('common.cancel')}
+                  取消
                </Button>
                <Button onClick={handleSSOConfirm} icon={<ArrowRight className="w-4 h-4" />}>
-                  {t('common.agree_continue')}
+                  同意並繼續
                </Button>
             </>
           }

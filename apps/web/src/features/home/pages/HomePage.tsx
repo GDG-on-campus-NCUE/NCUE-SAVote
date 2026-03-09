@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { api } from '../../auth/services/auth.api';
 import { API_ENDPOINTS } from '../../../lib/constants';
 import { type Election, ElectionStatus } from '@savote/shared-types';
@@ -9,8 +8,6 @@ import { Button } from '../../../components/m3/Button';
 import { Calendar, CheckCircle2, AlertCircle, Vote } from 'lucide-react';
 
 export const HomePage = () => {
-    const { t } = useTranslation();
-
     const { data: elections = [], isLoading } = useQuery({
         queryKey: ["elections"],
         queryFn: async () => {
@@ -28,18 +25,24 @@ export const HomePage = () => {
     };
 
     const getStatusText = (status: ElectionStatus) => {
-         // TODO: Add translation keys for status
-         return status; 
+        switch (status) {
+            case ElectionStatus.DRAFT: return '草稿';
+            case ElectionStatus.REGISTRATION_OPEN: return '報名中';
+            case ElectionStatus.VOTING_OPEN: return '投票中';
+            case ElectionStatus.VOTING_CLOSED: return '已結束';
+            case ElectionStatus.TALLIED: return '已計票';
+            default: return status;
+        }
     };
 
     return (
         <div className="space-y-8 animate-fade-in">
             <div className="flex flex-col gap-2">
                 <h2 className="text-3xl font-bold text-[var(--color-on-background)]">
-                    {t('nav.elections', 'Elections')}
+                    選舉列表
                 </h2>
                 <p className="text-[var(--color-on-surface-variant)]">
-                    {t('home.subtitle', 'View and participate in ongoing elections.')}
+                    查看並參與進行中的選舉。
                 </p>
             </div>
 
@@ -50,16 +53,15 @@ export const HomePage = () => {
             ) : elections.length === 0 ? (
                 <Card className="p-10 text-center flex flex-col items-center gap-4">
                     <AlertCircle className="w-12 h-12 text-[var(--color-outline)]" />
-                    <h3 className="text-lg font-medium">{t('home.no_elections', 'No elections found')}</h3>
+                    <h3 className="text-lg font-medium">找不到選舉</h3>
                     <p className="text-[var(--color-on-surface-variant)]">
-                        {t('home.check_back_later', 'Please check back later.')}
+                        請稍後再試。
                     </p>
                 </Card>
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {elections.map((election) => (
                         <Card key={election.id} variant="elevated" className="flex flex-col h-full hover:scale-[1.01] transition-transform duration-300">
-                             {/* Image Placeholder or Gradient Header */}
                             <div className="h-32 bg-gradient-to-br from-[var(--color-primary-container)] to-[var(--color-tertiary-container)] relative overflow-hidden">
                                 <div className="absolute top-4 right-4">
                                      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(election.status)}`}>
@@ -80,20 +82,20 @@ export const HomePage = () => {
                                 </h3>
                                 
                                 <p className="text-sm text-[var(--color-on-surface-variant)] mb-6 line-clamp-2 flex-1">
-                                    {t('home.default_desc', 'Please click below to enter the voting page.')}
+                                    請點擊下方進入投票頁面。
                                 </p>
 
                                 <div className="flex flex-col gap-3 mt-auto">
                                     {election.status === ElectionStatus.VOTING_OPEN && (
                                         <Link to={`/vote/${election.id}`} className="w-full">
                                             <Button className="w-full" icon={<Vote className="w-4 h-4" />}>
-                                                {t('home.vote_now', 'Vote Now')}
+                                                立即投票
                                             </Button>
                                         </Link>
                                     )}
                                     <Link to={`/verify/${election.id}`} className="w-full">
                                         <Button variant="tonal" className="w-full" icon={<CheckCircle2 className="w-4 h-4" />}>
-                                            {t('home.view_results', 'View Results / Verify')}
+                                            查看結果 / 驗證
                                         </Button>
                                     </Link>
                                 </div>
