@@ -17,14 +17,16 @@ export function VoterManagementPage() {
   if (!user) return null;
 
   return (
-    <div className="space-y-10 animate-fade-in pb-24">
-      <AdminHeader 
-        title="選舉人名冊管理"
-        subtitle="匯入與管理符合資格的選舉人名冊，設定投票權限。"
-      />
+    <div className="space-y-10 animate-fade-in pb-24 flex flex-col items-center">
+      <div className="w-full">
+        <AdminHeader 
+            title="選舉人名冊管理"
+            subtitle="匯入與管理符合資格的選舉人名冊，設定投票權限。"
+        />
+      </div>
 
-      <div className="max-w-4xl animate-slide-up">
-         <div className="bg-[var(--color-surface-container-low)] rounded-[40px] p-2 md:p-4 border border-[var(--color-outline-variant)]/30 elevation-1">
+      <div className="w-full max-w-6xl animate-slide-up">
+         <div className="bg-[var(--color-surface-container-low)] rounded-[40px] p-4 md:p-8 border border-[var(--color-outline-variant)]/30 elevation-1">
             <VoterImport />
          </div>
       </div>

@@ -10,7 +10,7 @@ import { Card } from '../../../components/m3/Card';
 import { Button } from '../../../components/m3/Button';
 import { Dialog } from '../../../components/m3/Dialog';
 import { TextField } from '../../../components/m3/TextField';
-import { Plus, Trash2, Edit2, UserCircle, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Edit2, UserCircle, Image as ImageIcon, Lock } from 'lucide-react';
 import { type Election, type Candidate, UserRole } from '@savote/shared-types';
 
 interface ExtendedCandidate extends Candidate {
@@ -38,6 +38,8 @@ export function CandidateManagementPage() {
     },
     enabled: !!electionId,
   });
+
+  const isLocked = election?.startTime ? new Date() >= new Date(election.startTime) : false;
 
   const { data: candidates = [], isLoading: isLoadingCandidates } = useQuery({
     queryKey: ['admin', 'candidates', electionId],
@@ -76,8 +78,8 @@ export function CandidateManagementPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLocked) return;
     const payload: any = { name: formData.name, bio: formData.bio };
-    // Only send photoUrl if it's not empty to avoid backend validation errors
     if (formData.photoUrl && formData.photoUrl.trim() !== '') {
         payload.photoUrl = formData.photoUrl;
     }
@@ -90,12 +92,14 @@ export function CandidateManagementPage() {
   };
 
   const openCreate = () => {
+    if (isLocked) return;
     setEditingCandidate(null);
     setFormData({ name: '', bio: '', photoUrl: '' });
     setIsCreateOpen(true);
   };
 
   const openEdit = (candidate: ExtendedCandidate) => {
+    if (isLocked) return;
     setEditingCandidate(candidate);
     setFormData({ 
         name: candidate.name, 
@@ -115,16 +119,30 @@ export function CandidateManagementPage() {
         title={isLoadingElection ? '載入中...' : `${election?.name}`}
         subtitle="管理此選舉活動的候選人名單與簡介資訊"
         actions={
-            <Button 
-                variant="filled" 
-                icon={<Plus className="w-5 h-5" />} 
-                onClick={openCreate}
-                className="h-12 px-6 rounded-2xl shadow-lg shadow-[var(--color-primary)]/20"
-            >
-                新增候選人
-            </Button>
+            !isLocked && (
+                <Button 
+                    variant="filled" 
+                    icon={<Plus className="w-5 h-5" />} 
+                    onClick={openCreate}
+                    className="h-12 px-6 rounded-2xl shadow-lg shadow-[var(--color-primary)]/20"
+                >
+                    新增候選人
+                </Button>
+            )
         }
       />
+
+      {isLocked && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-6 rounded-[32px] flex items-center gap-4 text-amber-800 dark:text-amber-200 animate-slide-up">
+              <div className="p-3 bg-amber-100 dark:bg-amber-800/40 rounded-2xl">
+                <Lock className="w-6 h-6" />
+              </div>
+              <div>
+                  <p className="font-bold text-lg">名單已凍結</p>
+                  <p className="text-sm opacity-80">選舉已經開始或已結束，為了確保公平性，候選人資訊目前不開放修改。</p>
+              </div>
+          </div>
+      )}
 
       {isLoadingCandidates ? (
          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -136,9 +154,11 @@ export function CandidateManagementPage() {
                 <UserCircle className="w-16 h-16 text-[var(--color-outline)] opacity-40" />
               </div>
               <p className="text-xl font-bold text-[var(--color-on-surface-variant)] opacity-60">目前尚無候選人</p>
-              <Button variant="text" onClick={openCreate} className="mt-4 font-bold">
-                 點擊此處新增第一位候選人
-              </Button>
+              {!isLocked && (
+                <Button variant="text" onClick={openCreate} className="mt-4 font-bold">
+                    點擊此處新增第一位候選人
+                </Button>
+              )}
           </div>
       ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -166,20 +186,22 @@ export function CandidateManagementPage() {
                                     </div>
                                 )}
                                 
-                                <div className="flex gap-1">
-                                    <button 
-                                        onClick={() => openEdit(candidate)}
-                                        className="w-10 h-10 rounded-xl hover:bg-[var(--color-primary-container)] hover:text-[var(--color-on-primary-container)] text-[var(--color-on-surface-variant)] transition-all flex items-center justify-center"
-                                    >
-                                        <Edit2 className="w-4 h-4" />
-                                    </button>
-                                    <button 
-                                        onClick={() => { if(window.confirm('確定要刪除此候選人嗎？')) deleteMutation.mutate(candidate.id); }}
-                                        className="w-10 h-10 rounded-xl hover:bg-[var(--color-error-container)] hover:text-[var(--color-on-error-container)] text-[var(--color-error)] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
+                                {!isLocked && (
+                                    <div className="flex gap-1">
+                                        <button 
+                                            onClick={() => openEdit(candidate)}
+                                            className="w-10 h-10 rounded-xl hover:bg-[var(--color-primary-container)] hover:text-[var(--color-on-primary-container)] text-[var(--color-on-surface-variant)] transition-all flex items-center justify-center"
+                                        >
+                                            <Edit2 className="w-4 h-4" />
+                                        </button>
+                                        <button 
+                                            onClick={() => { if(window.confirm('確定要刪除此候選人嗎？')) deleteMutation.mutate(candidate.id); }}
+                                            className="w-10 h-10 rounded-xl hover:bg-[var(--color-error-container)] hover:text-[var(--color-on-error-container)] text-[var(--color-error)] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
                           </div>
 
                           <div className="flex-1">

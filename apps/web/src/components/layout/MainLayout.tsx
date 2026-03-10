@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { Navigation, NavItem } from '../m3/Navigation';
@@ -7,6 +7,7 @@ import { Home, Settings, LogOut, BookOpen, LockKeyhole, LayoutDashboard, User, A
 import { Button } from '../m3/Button';
 import { InstallPrompt } from '../InstallPrompt';
 import { UserRole } from '@savote/shared-types';
+import { useToastStore } from '../../stores/toastStore';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -15,13 +16,30 @@ interface MainLayoutProps {
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const addToast = useToastStore((state) => state.addToast);
 
     const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
     const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
 
-    const handleLogout = async () => {
-        await logout();
-        navigate('/auth/login', { replace: true });
+    const handleLogout = useCallback(async () => {
+        try {
+            await logout();
+            // Important: Use setTimeout to ensure state cleanup happens before navigation
+            // to avoid React Error #300 / hook mismatch during unmount
+            setTimeout(() => {
+                navigate('/auth/login', { replace: true });
+            }, 0);
+        } catch (error) {
+            addToast('登出時發生錯誤', 'error');
+        }
+    }, [logout, navigate, addToast]);
+
+    const handleNavClick = (requiredRole?: UserRole) => {
+        if (requiredRole === UserRole.SUPER_ADMIN && !isSuperAdmin) {
+            addToast('您無權限存取權限管理頁面', 'warning');
+            return true; // prevent navigation
+        }
+        return false;
     };
 
     const actualNavItems: NavItem[] = [];
@@ -56,14 +74,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             to: '/admin/monitoring' 
         });
 
-        if (isSuperAdmin) {
-            actualNavItems.push({ 
-                label: '權限管理', 
-                icon: <LockKeyhole className="w-6 h-6" strokeWidth={1.5} />, 
-                activeIcon: <LockKeyhole className="w-6 h-6" strokeWidth={2.5} />, 
-                to: '/admin/accounts' 
-            });
-        }
+        actualNavItems.push({ 
+            label: '權限管理', 
+            icon: <LockKeyhole className="w-6 h-6" strokeWidth={1.5} />, 
+            activeIcon: <LockKeyhole className="w-6 h-6" strokeWidth={2.5} />, 
+            to: '/admin/accounts' 
+        });
     } else {
         actualNavItems.push({ 
             label: '首頁', 
@@ -82,16 +98,16 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     }
 
     const TopBar = () => (
-        <header className="fixed top-0 left-0 right-0 h-16 bg-[var(--color-surface)]/80 backdrop-blur-xl z-40 border-b border-[var(--color-outline-variant)]/20 px-4 md:px-8 flex items-center justify-between transition-colors duration-500 md:pl-[104px]">
-             <div className="flex items-center gap-3 animate-fade-in">
-                <div className="p-1.5 rounded-xl bg-[var(--color-surface-container-high)] elevation-1 hidden sm:block">
-                    <img src="/sa_logo.webp" alt="Logo" className="w-6 h-6 object-contain" />
+        <header className="fixed top-0 left-0 right-0 h-20 bg-[var(--color-surface)]/80 backdrop-blur-xl z-40 border-b border-[var(--color-outline-variant)]/20 px-4 md:px-8 flex items-center justify-between transition-colors duration-500 md:pl-[104px]">
+             <div className="flex items-center gap-4 animate-fade-in">
+                <div className="p-2 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-outline-variant)]/20 elevation-1">
+                    <img src="/sa_logo.webp" alt="Logo" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
                 </div>
                 <div className="flex flex-col">
-                    <h1 className="text-sm font-bold text-[var(--color-on-surface)] leading-tight">
-                        {isAdmin ? "國立彰化師範大學 投票系統" : "國立彰化師範大學學生會"}
+                    <h1 className="text-base md:text-lg font-black text-[var(--color-on-surface)] leading-tight tracking-tight">
+                        {isAdmin ? "國立彰化師範大學 投票系統" : "國立彰化師範大學 學生會"}
                     </h1>
-                    <span className="text-[10px] text-[var(--color-primary)] font-medium tracking-widest uppercase opacity-80">
+                    <span className="text-[10px] md:text-[11px] text-[var(--color-primary)] font-bold tracking-[0.1em] uppercase opacity-90">
                         NCUE Student Association
                     </span>
                 </div>
@@ -99,7 +115,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
              <div className="flex items-center gap-3">
                  {user && (
-                     <div className="hidden lg:flex items-center gap-3 px-4 py-1.5 rounded-full bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)]/30">
+                     <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-full bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)]/30">
                          <div className="flex flex-col items-end">
                             <span className="text-xs font-bold text-[var(--color-on-surface)]">
                                 {user.name || 'User'}
@@ -124,15 +140,29 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     );
 
     return (
-        <div className="min-h-screen bg-[var(--color-surface)] text-[var(--color-on-surface)] transition-colors duration-500">
-            <Navigation items={actualNavItems} orientation="vertical" />
+        <div className="min-h-screen bg-[var(--color-surface)] text-[var(--color-on-surface)] transition-colors duration-500 select-none">
+            <Navigation 
+                items={actualNavItems} 
+                orientation="vertical" 
+                onItemClick={(to) => {
+                    if (to === '/admin/accounts') {
+                        return handleNavClick(UserRole.SUPER_ADMIN);
+                    }
+                    return false;
+                }}
+            />
             <TopBar />
 
-            <main className="pt-20 pb-28 md:pl-[80px] md:pb-12 px-4 md:px-12 max-w-7xl mx-auto min-h-screen relative z-10 animate-fade-in">
+            <main className="pt-24 pb-28 md:pl-[80px] md:pb-12 px-4 md:px-12 max-w-7xl mx-auto min-h-screen relative z-10 animate-fade-in">
                 {children}
             </main>
 
-            <Navigation items={actualNavItems} orientation="horizontal" />
+            <Navigation items={actualNavItems} orientation="horizontal" onItemClick={(to) => {
+                if (to === '/admin/accounts') {
+                    return handleNavClick(UserRole.SUPER_ADMIN);
+                }
+                return false;
+            }} />
             <InstallPrompt />
         </div>
     );

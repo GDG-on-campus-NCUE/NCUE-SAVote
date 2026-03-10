@@ -80,7 +80,7 @@ export function AdminAccountManagementPage() {
   );
 
   return (
-    <div className="space-y-10 animate-fade-in pb-24">
+    <div className="space-y-10 animate-fade-in pb-24 select-none">
       <AdminHeader 
         title="後台權限管理"
         subtitle="管理系統管理員名單及其權限級別，確保系統操作的安全性。"
@@ -119,7 +119,7 @@ export function AdminAccountManagementPage() {
                     />
 
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-[var(--color-on-surface-variant)] px-1">權限角色級別</label>
+                        <label className="text-sm font-bold text-[var(--color-on-surface-variant)] px-1">權限管理</label>
                         <select 
                             className="w-full h-14 px-6 rounded-2xl bg-[var(--color-surface-container-high)] border-none text-[var(--color-on-surface)] font-bold transition-all outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 cursor-pointer appearance-none elevation-1"
                             value={newAdmin.role}
@@ -148,7 +148,7 @@ export function AdminAccountManagementPage() {
             </Card>
         </div>
 
-        {/* Admin List */}
+        {/* Admin List (Table Format) */}
         <div className="lg:col-span-8 order-1 lg:order-2 space-y-6">
             
             {/* Search */}
@@ -178,88 +178,104 @@ export function AdminAccountManagementPage() {
                     <p className="text-xl font-bold text-[var(--color-on-surface-variant)] opacity-50">未找到符合條件的管理員</p>
                 </div>
             ) : (
-                <div className="grid gap-4 animate-slide-up">
-                    {filteredAdmins.map((admin) => (
-                        <div 
-                            key={admin.id} 
-                            className={cn(
-                                "group p-6 rounded-[28px] bg-[var(--color-surface-container-low)] border transition-all duration-300 flex flex-col sm:flex-row items-center gap-6",
-                                admin.synologySub === user?.synologySub 
-                                    ? "border-[var(--color-primary)] elevation-2" 
-                                    : "border-[var(--color-outline-variant)]/20 hover:border-[var(--color-primary)]/30 hover:elevation-2"
-                            )}
-                        >
-                            <div className={cn(
-                                "w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 elevation-1 transition-transform group-hover:scale-105",
-                                admin.role === UserRole.SUPER_ADMIN 
-                                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" 
-                                    : "bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)]"
-                            )}>
-                                {admin.role === UserRole.SUPER_ADMIN ? <ShieldCheck className="w-8 h-8" /> : <User className="w-8 h-8" />}
-                            </div>
-
-                            <div className="flex-1 text-center sm:text-left">
-                                <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 mb-2">
-                                    <h3 className="text-2xl font-black text-[var(--color-on-surface)]">
-                                        {admin.name}
-                                    </h3>
-                                    <div className="flex gap-2 justify-center sm:justify-start">
-                                        <span className={cn(
-                                            "px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-widest uppercase",
-                                            admin.role === UserRole.SUPER_ADMIN 
-                                                ? "bg-amber-500 text-white" 
-                                                : "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
-                                        )}>
-                                            {admin.role}
-                                        </span>
-                                        {admin.synologySub === user?.synologySub && (
-                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[var(--color-tertiary-container)] text-[var(--color-on-tertiary-container)] uppercase tracking-widest">
-                                                Me
-                                            </span>
+                <div className="bg-[var(--color-surface-container-low)] rounded-[32px] border border-[var(--color-outline-variant)]/30 overflow-hidden elevation-1">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-[var(--color-surface-container-high)]/50 border-b border-[var(--color-outline-variant)]/30">
+                                    <th className="px-8 py-5 text-sm font-bold text-[var(--color-on-surface-variant)] opacity-70">管理員資訊</th>
+                                    <th className="px-6 py-5 text-sm font-bold text-[var(--color-on-surface-variant)] opacity-70">權限級別</th>
+                                    <th className="px-6 py-5 text-sm font-bold text-[var(--color-on-surface-variant)] opacity-70 hidden md:table-cell">加入時間</th>
+                                    <th className="px-8 py-5 text-sm font-bold text-[var(--color-on-surface-variant)] opacity-70 text-right">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--color-outline-variant)]/20">
+                                {filteredAdmins.map((admin) => (
+                                    <tr 
+                                        key={admin.id} 
+                                        className={cn(
+                                            "group transition-all duration-300",
+                                            admin.synologySub === user?.synologySub 
+                                                ? "bg-[var(--color-primary-container)]/5" 
+                                                : "hover:bg-[var(--color-surface)]"
                                         )}
-                                    </div>
-                                </div>
-                                
-                                <div className="flex flex-wrap justify-center sm:justify-start items-center gap-4 text-xs font-bold text-[var(--color-on-surface-variant)] opacity-60">
-                                    <div className="flex items-center gap-1.5 bg-[var(--color-surface-container-high)] px-3 py-1 rounded-full">
-                                        <Fingerprint className="w-3.5 h-3.5" />
-                                        <span className="font-mono">{admin.synologySub}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <Clock className="w-3.5 h-3.5" />
-                                        <span>{new Date(admin.createdAt).toLocaleDateString()} 加入</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 pt-4 sm:pt-0 sm:pl-6 sm:border-l border-[var(--color-outline-variant)]/30">
-                                {isSuperAdmin && admin.synologySub !== user?.synologySub && (
-                                    <>
-                                        <select 
-                                            className="h-10 px-4 rounded-xl bg-[var(--color-surface-container-high)] border-none text-[10px] font-black focus:ring-2 focus:ring-[var(--color-primary)]/30 transition-all outline-none cursor-pointer appearance-none elevation-1"
-                                            value={admin.role}
-                                            onChange={(e) => updateRoleMutation.mutate({ id: admin.id, role: e.target.value as UserRole })}
-                                        >
-                                            <option value={UserRole.ADMIN}>ADMIN</option>
-                                            <option value={UserRole.SUPER_ADMIN}>SUPER</option>
-                                        </select>
-                                        
-                                        <button 
-                                            className="w-10 h-10 rounded-xl hover:bg-[var(--color-error-container)] hover:text-[var(--color-on-error-container)] text-[var(--color-error)] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
-                                            onClick={() => { if(window.confirm(`確定要移除 ${admin.name} 的管理權限嗎？`)) deleteMutation.mutate(admin.id); }}
-                                            disabled={deleteMutation.isPending}
-                                        >
-                                            <Trash2 className="w-5 h-5" />
-                                        </button>
-                                    </>
-                                )}
-                                
-                                {admin.synologySub !== user?.synologySub && (
-                                    <ChevronRight className="w-5 h-5 text-[var(--color-outline)] opacity-20 group-hover:translate-x-1 transition-all" />
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                                    >
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className={cn(
+                                                    "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 elevation-1 transition-transform group-hover:scale-105",
+                                                    admin.role === UserRole.SUPER_ADMIN 
+                                                        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" 
+                                                        : "bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)]"
+                                                )}>
+                                                    {admin.role === UserRole.SUPER_ADMIN ? <ShieldCheck className="w-6 h-6" /> : <User className="w-6 h-6" />}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-[var(--color-on-surface)] text-lg truncate">
+                                                            {admin.name}
+                                                        </span>
+                                                        {admin.synologySub === user?.synologySub && (
+                                                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-[var(--color-tertiary-container)] text-[var(--color-on-tertiary-container)] uppercase tracking-widest">
+                                                                ME
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 text-xs text-[var(--color-on-surface-variant)] opacity-60 font-mono">
+                                                        <Fingerprint className="w-3 h-3" />
+                                                        {admin.synologySub}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-6">
+                                            <div className="flex items-center gap-3">
+                                                <span className={cn(
+                                                    "px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase",
+                                                    admin.role === UserRole.SUPER_ADMIN 
+                                                        ? "bg-amber-500 text-white shadow-sm shadow-amber-500/20" 
+                                                        : "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
+                                                )}>
+                                                    {admin.role}
+                                                </span>
+                                                
+                                                {isSuperAdmin && admin.synologySub !== user?.synologySub && (
+                                                    <select 
+                                                        className="h-8 px-2 rounded-lg bg-[var(--color-surface-container-high)] border-none text-[10px] font-black focus:ring-2 focus:ring-[var(--color-primary)]/30 transition-all outline-none cursor-pointer appearance-none elevation-1"
+                                                        value={admin.role}
+                                                        onChange={(e) => updateRoleMutation.mutate({ id: admin.id, role: e.target.value as UserRole })}
+                                                    >
+                                                        <option value={UserRole.ADMIN}>ADMIN</option>
+                                                        <option value={UserRole.SUPER_ADMIN}>SUPER</option>
+                                                    </select>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-6 hidden md:table-cell">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-[var(--color-on-surface-variant)] opacity-60">
+                                                <Clock className="w-3.5 h-3.5" />
+                                                {new Date(admin.createdAt).toLocaleDateString()}
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            {isSuperAdmin && admin.synologySub !== user?.synologySub && (
+                                                <button 
+                                                    className="w-10 h-10 rounded-xl hover:bg-[var(--color-error-container)] hover:text-[var(--color-on-error-container)] text-[var(--color-error)] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center inline-flex"
+                                                    onClick={() => { if(window.confirm(`確定要移除 ${admin.name} 的管理權限嗎？`)) deleteMutation.mutate(admin.id); }}
+                                                    disabled={deleteMutation.isPending}
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            )}
+                                            {admin.synologySub !== user?.synologySub && (
+                                                <ChevronRight className="w-5 h-5 text-[var(--color-outline)] opacity-20 group-hover:translate-x-1 transition-all inline-flex ml-2" />
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

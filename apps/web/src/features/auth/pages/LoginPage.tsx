@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "../../../components/m3/ThemeToggle";
 import { LockKeyhole, GraduationCap, ArrowRight, FileText, ShieldCheck, ChevronRight } from "lucide-react";
@@ -22,16 +22,8 @@ export const LoginPage = () => {
     window.location.href = `${API_URL}/auth/login`;
   };
 
-  useEffect(() => {
-    // Ensure smooth entry
-    document.body.classList.add('overflow-hidden');
-    return () => {
-      document.body.classList.remove('overflow-hidden');
-    };
-  }, []);
-
   return (
-    <div className="relative flex flex-col md:flex-row min-h-[100dvh] bg-[var(--color-surface)] transition-colors duration-500 font-sans select-none selection:bg-transparent">
+    <div className="relative flex flex-col md:flex-row min-h-[100dvh] bg-[var(--color-surface)] transition-colors duration-500 font-sans select-none selection:bg-transparent overflow-y-auto md:overflow-hidden">
         
         {/* Decorative Side Panel (Desktop Only) */}
         <div className="hidden md:flex md:w-1/2 lg:w-[55%] bg-[var(--color-surface-container-low)] dark:bg-[var(--color-surface-container-lowest)] relative items-center justify-center overflow-hidden border-r border-[var(--color-outline-variant)]/20">
@@ -67,15 +59,15 @@ export const LoginPage = () => {
         </div>
         
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative bg-[var(--color-surface)]">
+        <main className="flex-1 flex flex-col items-center justify-center px-6 py-8 md:py-12 relative bg-[var(--color-surface)] min-h-fit">
             
             {/* Mobile Header */}
-            <div className="md:hidden mb-12 flex flex-col items-center text-center animate-fade-in">
-                <div className="mb-6 p-4 rounded-[32px] bg-[var(--color-surface-container-high)] elevation-1">
+            <div className="md:hidden mb-8 flex flex-col items-center text-center animate-fade-in">
+                <div className="mb-4 p-4 rounded-[32px] bg-[var(--color-surface-container-high)] elevation-1">
                     <img 
                         src="/sa_logo.webp"
                         alt="Logo"
-                        className="w-20 h-20 object-contain"
+                        className="w-16 h-16 object-contain"
                     />
                 </div>
                 <h2 className="type-headline-small text-[var(--color-on-surface)] font-bold">
@@ -90,7 +82,7 @@ export const LoginPage = () => {
             <div className="w-full max-w-[420px] animate-slide-up">
                 <div className="bg-[var(--color-surface-container-low)] md:bg-[var(--color-surface)] border border-[var(--color-outline-variant)]/50 rounded-[40px] p-8 md:p-12 elevation-1 hover:elevation-2 transition-all duration-500">
                     
-                    <div className="mb-10 text-center md:text-left">
+                    <div className="mb-8 text-center md:text-left">
                         <h3 className="text-3xl font-bold text-[var(--color-on-surface)] mb-2 tracking-tight">
                             歡迎回來
                         </h3>
@@ -124,7 +116,7 @@ export const LoginPage = () => {
                     </div>
 
                     {/* Divider */}
-                    <div className="relative flex items-center my-12">
+                    <div className="relative flex items-center my-10">
                         <div className="grow h-[1px] bg-[var(--color-outline-variant)]/30" />
                         <span className="px-5 text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-[0.2em] opacity-40">
                             Admin Access
@@ -144,10 +136,10 @@ export const LoginPage = () => {
             </div>
 
             {/* Enhanced Footer */}
-            <footer className="mt-16 text-center space-y-5">
-                <div className="flex items-center justify-center gap-3 py-1.5 px-5 rounded-full bg-[var(--color-surface-container-high)] border border-[var(--color-outline-variant)]/20 text-[var(--color-on-surface)] elevation-1">
+            <footer className="mt-12 md:mt-16 text-center space-y-5 pb-8 md:pb-0">
+                <div className="flex items-center justify-center gap-3 py-1.5 px-5 rounded-full bg-[var(--color-surface-container-high)] border border-[var(--color-outline-variant)]/20 text-[var(--color-on-surface)] elevation-1 mx-auto w-fit">
                     <ShieldCheck className="w-4 h-4 text-[var(--color-primary)] opacity-80" />
-                    <span className="text-xs font-medium tracking-wide opacity-80">Decentralized Voting System</span>
+                    <span className="text-xs font-medium tracking-wide opacity-80">Secure Voting Environment</span>
                 </div>
                 
                 <div className="space-y-1.5">

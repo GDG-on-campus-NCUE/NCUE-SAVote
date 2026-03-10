@@ -10,6 +10,7 @@ import { api } from '../../auth/services/auth.api';
 import { API_ENDPOINTS } from '../../../lib/constants';
 import { ElectionType, type Election, UserRole } from '@savote/shared-types';
 import { Plus, CalendarPlus, Link as LinkIcon, Users, Trash2, Edit2, Search, Calendar, Clock, ArrowRight } from 'lucide-react';
+import { useToastStore } from '../../../stores/toastStore';
 
 interface ExtendedElection extends Election {
     description?: string;
@@ -18,6 +19,7 @@ interface ExtendedElection extends Election {
 export function ElectionManagementPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { addToast } = useToastStore();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingElection, setEditingElection] = useState<ExtendedElection | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,17 +46,38 @@ export function ElectionManagementPage() {
   // Mutations
   const createMutation = useMutation({
     mutationFn: (data: any) => api.post(API_ENDPOINTS.ELECTIONS.CREATE, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] }); setIsCreateOpen(false); resetForm(); },
+    onSuccess: () => { 
+        queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] }); 
+        setIsCreateOpen(false); 
+        resetForm(); 
+        addToast('選舉建立成功', 'success');
+    },
+    onError: (error: any) => {
+        const msg = error.response?.data?.message;
+        addToast(`建立失敗：${Array.isArray(msg) ? msg.join(', ') : msg || '伺服器錯誤'}`, 'error');
+    }
   });
 
   const updateMutation = useMutation({
     mutationFn: (data: { id: string; payload: any }) => api.patch(`${API_ENDPOINTS.ELECTIONS.CREATE}/${data.id}`, data.payload),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] }); setIsCreateOpen(false); resetForm(); },
+    onSuccess: () => { 
+        queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] }); 
+        setIsCreateOpen(false); 
+        resetForm(); 
+        addToast('選舉修改成功', 'success');
+    },
+    onError: (error: any) => {
+        const msg = error.response?.data?.message;
+        addToast(`修改失敗：${Array.isArray(msg) ? msg.join(', ') : msg || '伺服器錯誤'}`, 'error');
+    }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`${API_ENDPOINTS.ELECTIONS.CREATE}/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] }); },
+    onSuccess: () => { 
+        queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] }); 
+        addToast('選舉已刪除', 'info');
+    },
   });
 
   const resetForm = () => {
@@ -79,16 +102,26 @@ export function ElectionManagementPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Frontend Validation
+    if (!formData.name.trim()) return addToast('請填寫選舉名稱', 'warning');
+    if (!formData.type) return addToast('請選擇選舉種類', 'warning');
+    if (!formData.startTime) return addToast('請設定開始投票時間', 'warning');
+    if (!formData.endTime) return addToast('請設定結束投票時間', 'warning');
+
+    const start = new Date(formData.startTime);
+    const end = new Date(formData.endTime);
+    if (end <= start) return addToast('結束時間必須晚於開始時間', 'warning');
+
     const payload: any = {
       name: formData.name,
       description: formData.description,
       type: formData.type,
       config: { bulletinUrl: formData.bulletinUrl },
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
     };
     
-    if (formData.startTime) payload.startTime = new Date(formData.startTime).toISOString();
-    if (formData.endTime) payload.endTime = new Date(formData.endTime).toISOString();
-
     if (editingElection) updateMutation.mutate({ id: editingElection.id, payload });
     else createMutation.mutate(payload);
   };
@@ -99,17 +132,29 @@ export function ElectionManagementPage() {
     const end = election.endTime ? new Date(election.endTime) : null;
 
     if (!start || !end) {
-        return { label: '設定未完成', color: 'bg-gray-100 text-gray-500 border-gray-200', dot: 'bg-gray-400' };
+        return { label: '設定未完成', color: 'bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-400', dot: 'bg-gray-500' };
     }
 
     if (now < start) {
-        return { label: '即將開始', color: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800', dot: 'bg-blue-500' };
+        return { 
+            label: '即將開始', 
+            color: 'bg-blue-100 text-blue-900 border-blue-300 dark:bg-blue-900/40 dark:text-blue-100 dark:border-blue-700', 
+            dot: 'bg-blue-600 dark:bg-blue-400' 
+        };
     }
     if (now >= start && now <= end) {
-        return { label: '投票進行中', color: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800', dot: 'bg-green-500 animate-pulse' };
+        return { 
+            label: '投票進行中', 
+            color: 'bg-green-100 text-green-900 border-green-300 dark:bg-green-900/40 dark:text-green-100 dark:border-green-700', 
+            dot: 'bg-green-600 dark:bg-green-400 animate-pulse' 
+        };
     }
     if (now > end) {
-        return { label: '已結束(待計票)', color: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/40 dark:text-gray-400 dark:border-gray-700', dot: 'bg-gray-400' };
+        return { 
+            label: '已結束(待計票)', 
+            color: 'bg-gray-200 text-gray-900 border-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600', 
+            dot: 'bg-gray-600' 
+        };
     }
 
     return { label: '狀態未知', color: 'bg-gray-100 text-gray-500 border-gray-200', dot: 'bg-gray-400' };
@@ -295,6 +340,7 @@ export function ElectionManagementPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <TextField 
                         label="選舉名稱"
+                        placeholder="請輸入選舉名稱 (必填)"
                         value={formData.name}
                         onChange={e => setFormData({...formData, name: e.target.value})}
                         required
@@ -303,7 +349,7 @@ export function ElectionManagementPage() {
                     
                     <div className="flex flex-col gap-1 md:col-span-2">
                         <label className="text-sm font-bold text-[var(--color-on-surface-variant)] px-1 mb-2">
-                            選舉種類
+                            選舉種類 <span className="text-red-500">*</span>
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {[
@@ -333,12 +379,16 @@ export function ElectionManagementPage() {
                         type="datetime-local"
                         value={formData.startTime}
                         onChange={e => setFormData({...formData, startTime: e.target.value})}
+                        required
+                        helperText="請設定正確的開始時間 (必填)"
                     />
                     <TextField 
                         label="結束投票時間"
                         type="datetime-local"
                         value={formData.endTime}
                         onChange={e => setFormData({...formData, endTime: e.target.value})}
+                        required
+                        helperText="結束時間必須晚於開始時間 (必填)"
                     />
 
                     <TextField 

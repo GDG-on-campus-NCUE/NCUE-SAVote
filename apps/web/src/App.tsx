@@ -2,208 +2,110 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "./components/m3/ThemeProvider";
+import { ToastContainer } from "./components/m3/ToastContainer";
 import { MainLayout } from "./components/layout/MainLayout";
-import { InstallPrompt } from "./components/InstallPrompt";
-import { AuthError } from "./components/AuthError";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { Loader2 } from 'lucide-react';
-import { UserRole } from '@savote/shared-types';
+import { UserRole } from "@savote/shared-types";
 
-// Eager load critical auth pages
-import { LoginPage } from "./features/auth/pages/LoginPage";
-import { CallbackPage } from "./features/auth/pages/CallbackPage";
+// Lazy Pages
+const LoginPage = lazy(() => import("./features/auth/pages/LoginPage").then(m => ({ default: m.LoginPage })));
+const CallbackPage = lazy(() => import("./features/auth/pages/CallbackPage").then(m => ({ default: m.CallbackPage })));
+const SetupPage = lazy(() => import("./features/auth/pages/SetupPage").then(m => ({ default: m.SetupPage })));
+const HomePage = lazy(() => import("./features/home/pages/HomePage").then(m => ({ default: m.HomePage })));
+const VotingBooth = lazy(() => import("./features/voting/pages/VotingBooth").then(m => ({ default: m.VotingBooth })));
+const VoteSuccess = lazy(() => import("./features/voting/pages/VoteSuccess").then(m => ({ default: m.VoteSuccess })));
+const KeySetupPage = lazy(() => import("./features/voting/pages/KeySetupPage").then(m => ({ default: m.KeySetupPage })));
 
-// Lazy load feature pages
-const SetupPage = lazy(() => import("./features/auth/pages/SetupPage").then(module => ({ default: module.SetupPage })));
-const HomePage = lazy(() => import("./features/home/pages/HomePage").then(module => ({ default: module.HomePage })));
-const UserGuidePage = lazy(() => import("./features/info/pages/UserGuidePage").then(module => ({ default: module.UserGuidePage })));
-const ElectionBulletinPage = lazy(() => import("./features/info/pages/ElectionBulletinPage").then(module => ({ default: module.ElectionBulletinPage })));
+const AdminDashboardPage = lazy(() => import("./features/admin/pages/AdminDashboardPage").then(m => ({ default: m.AdminDashboardPage })));
+const ElectionManagementPage = lazy(() => import("./features/admin/pages/ElectionManagementPage").then(m => ({ default: m.ElectionManagementPage })));
+const CandidateManagementPage = lazy(() => import("./features/admin/pages/CandidateManagementPage").then(m => ({ default: m.CandidateManagementPage })));
+const AdminAccountManagementPage = lazy(() => import("./features/admin/pages/AdminAccountManagementPage").then(m => ({ default: m.AdminAccountManagementPage })));
+const AdminMonitoringPage = lazy(() => import("./features/admin/pages/AdminMonitoringPage").then(m => ({ default: m.AdminMonitoringPage })));
+const VoterManagementPage = lazy(() => import("./features/admin/pages/VoterManagementPage").then(m => ({ default: m.VoterManagementPage })));
+const ElectionBulletinPage = lazy(() => import("./features/info/pages/ElectionBulletinPage").then(m => ({ default: m.ElectionBulletinPage })));
+const VerificationCenter = lazy(() => import("./features/verify/pages/VerificationCenter").then(m => ({ default: m.VerificationCenter })));
 
-// Voting
-const KeySetupPage = lazy(() => import("./features/voting/pages/KeySetupPage").then(module => ({ default: module.KeySetupPage })));
-const VotingBooth = lazy(() => import("./features/voting/pages/VotingBooth").then(module => ({ default: module.VotingBooth })));
-const VoteSuccess = lazy(() => import("./features/voting/pages/VoteSuccess").then(module => ({ default: module.VoteSuccess })));
-const VerificationCenter = lazy(() => import("./features/verify/pages/VerificationCenter").then(module => ({ default: module.VerificationCenter })));
+// Auth Error (Static import to ensure it shows up immediately on failure)
+import { AuthError } from "./components/AuthError";
 
-// Admin
-const AdminDashboardPage = lazy(() => import("./features/admin/pages/AdminDashboardPage").then(module => ({ default: module.AdminDashboardPage })));
-const VoterManagementPage = lazy(() => import("./features/admin/pages/VoterManagementPage").then(module => ({ default: module.VoterManagementPage })));
-const ElectionManagementPage = lazy(() => import("./features/admin/pages/ElectionManagementPage").then(module => ({ default: module.ElectionManagementPage })));
-const CandidateManagementPage = lazy(() => import("./features/admin/pages/CandidateManagementPage").then(module => ({ default: module.CandidateManagementPage })));
-const AdminMonitoringPage = lazy(() => import("./features/admin/pages/AdminMonitoringPage").then(module => ({ default: module.AdminMonitoringPage })));
-const AdminAccountManagementPage = lazy(() => import("./features/admin/pages/AdminAccountManagementPage").then(module => ({ default: module.AdminAccountManagementPage })));
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
-const PageLoader = () => (
-  <div className="flex h-screen w-full items-center justify-center bg-[var(--color-background)]">
-    <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)]" />
-  </div>
-);
+const queryClient = new QueryClient();
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <InstallPrompt />
+        <ToastContainer />
         <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
+          <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-[var(--color-surface)]" />}>
             <Routes>
-              {/* Auth Routes */}
+              {/* Public Routes */}
               <Route path="/auth/login" element={<LoginPage />} />
               <Route path="/auth/callback" element={<CallbackPage />} />
               <Route path="/auth/error" element={<AuthError />} />
-              
-              <Route
-                path="/auth/setup"
-                element={
-                  <ProtectedRoute>
-                    <SetupPage />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/info/bulletin" element={<ElectionBulletinPage />} />
+              <Route path="/verify/:electionId" element={<VerificationCenter />} />
 
-              {/* Public Info */}
-              <Route
-                path="/info/bulletin"
-                element={<ElectionBulletinPage />}
-              />
-
-              {/* Protected Routes */}
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <HomePage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* Voting Process */}
-              <Route
-                path="/elections/:electionId/setup-key"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <KeySetupPage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/vote/:electionId"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <VotingBooth />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/vote/success"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <VoteSuccess />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/verify/:electionId"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <VerificationCenter />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/info/guide"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <UserGuidePage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
+              {/* Protected Voter Routes */}
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <MainLayout><HomePage /></MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/auth/setup" element={
+                <ProtectedRoute>
+                   <SetupPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/vote/:electionId" element={
+                <ProtectedRoute>
+                  <MainLayout><VotingBooth /></MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/vote/success" element={
+                <ProtectedRoute>
+                  <MainLayout><VoteSuccess /></MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/vote/keys" element={
+                <ProtectedRoute>
+                  <MainLayout><KeySetupPage /></MainLayout>
+                </ProtectedRoute>
+              } />
 
               {/* Admin Routes */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                    <MainLayout>
-                      <AdminDashboardPage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/voters"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                    <MainLayout>
-                      <VoterManagementPage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/elections"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                    <MainLayout>
-                      <ElectionManagementPage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/elections/:electionId/candidates"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                    <MainLayout>
-                      <CandidateManagementPage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/monitoring"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                    <MainLayout>
-                      <AdminMonitoringPage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/accounts"
-                element={
-                  <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
-                    <MainLayout>
-                      <AdminAccountManagementPage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-              
+              <Route path="/admin" element={
+                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
+                  <MainLayout><AdminDashboardPage /></MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/elections" element={
+                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
+                  <MainLayout><ElectionManagementPage /></MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/elections/:electionId/candidates" element={
+                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
+                  <MainLayout><CandidateManagementPage /></MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/voters" element={
+                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
+                  <MainLayout><VoterManagementPage /></MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/monitoring" element={
+                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
+                  <MainLayout><AdminMonitoringPage /></MainLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/accounts" element={
+                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
+                  <MainLayout><AdminAccountManagementPage /></MainLayout>
+                </ProtectedRoute>
+              } />
+
               {/* Fallback */}
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/admin" replace />} />
             </Routes>
           </Suspense>
         </BrowserRouter>

@@ -14,9 +14,10 @@ export interface NavigationProps {
     items: NavItem[];
     className?: string;
     orientation?: 'horizontal' | 'vertical'; // vertical = rail, horizontal = bottom bar
+    onItemClick?: (to: string) => boolean; // return true to prevent default navigation
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ items, className, orientation = 'horizontal' }) => {
+export const Navigation: React.FC<NavigationProps> = ({ items, className, orientation = 'horizontal', onItemClick }) => {
     return (
         <nav className={cn(
             "bg-[var(--color-surface)] text-[var(--color-on-surface)] transition-all duration-500",
@@ -30,6 +31,11 @@ export const Navigation: React.FC<NavigationProps> = ({ items, className, orient
                     key={item.to}
                     to={item.to}
                     end={item.end}
+                    onClick={(e) => {
+                        if (onItemClick && onItemClick(item.to)) {
+                            e.preventDefault();
+                        }
+                    }}
                     className={({ isActive }) => cn(
                         "flex flex-col items-center justify-center gap-1 w-full relative group transition-all duration-300",
                         "cursor-pointer select-none py-2",

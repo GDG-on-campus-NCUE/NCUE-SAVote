@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 import { UpdateCandidateDto } from './dto/update-candidate.dto';
@@ -7,15 +7,20 @@ import { UpdateCandidateDto } from './dto/update-candidate.dto';
 export class CandidatesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(electionId: string, dto: CreateCandidateDto) {
-    // Verify election exists
+  private async assertElectionNotStarted(electionId: string) {
     const election = await this.prisma.election.findUnique({
       where: { id: electionId },
     });
-    if (!election) {
-      throw new NotFoundException('Election not found');
-    }
+    if (!election) throw new NotFoundException('Election not found');
 
+    const now = new Date();
+    if (election.startTime && now >= new Date(election.startTime)) {
+      throw new BadRequestException('Election has already started. Candidates cannot be modified.');
+    }
+  }
+
+  async create(electionId: string, dto: CreateCandidateDto) {
+    await this.assertElectionNotStarted(electionId);
     return this.prisma.candidate.create({
       data: {
         ...dto,
@@ -42,7 +47,8 @@ export class CandidatesService {
   }
 
   async update(id: string, dto: UpdateCandidateDto) {
-    await this.findOne(id); // Ensure exists
+    const candidate = await this.findOne(id);
+    await this.assertElectionNotStarted(candidate.electionId);
     return this.prisma.candidate.update({
       where: { id },
       data: dto,
@@ -50,7 +56,8 @@ export class CandidatesService {
   }
 
   async remove(id: string) {
-    await this.findOne(id); // Ensure exists
+    const candidate = await this.findOne(id);
+    await this.assertElectionNotStarted(candidate.electionId);
     await this.prisma.candidate.delete({
       where: { id },
     });

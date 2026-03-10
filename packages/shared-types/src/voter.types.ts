@@ -41,6 +41,7 @@ export interface EligibleVoter {
     electionId: string;
     studentId: string;
     class: string;
+    identityCommitment?: string | null;
     createdAt: Date;
 }
 
