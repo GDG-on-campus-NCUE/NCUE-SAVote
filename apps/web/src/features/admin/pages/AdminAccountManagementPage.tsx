@@ -82,7 +82,7 @@ export function AdminAccountManagementPage() {
   return (
     <div className="space-y-6 md:space-y-8 animate-fade-in pb-24 select-none">
       <AdminHeader 
-        title="後台權限管理"
+        title="權限管理"
         subtitle="管理系統管理員名單及其權限級別"
       />
 

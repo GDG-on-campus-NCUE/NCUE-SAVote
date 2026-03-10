@@ -20,6 +20,7 @@ const AdminDashboardPage = lazy(() => import("./features/admin/pages/AdminDashbo
 const ElectionManagementPage = lazy(() => import("./features/admin/pages/ElectionManagementPage").then(m => ({ default: m.ElectionManagementPage })));
 const CandidateManagementPage = lazy(() => import("./features/admin/pages/CandidateManagementPage").then(m => ({ default: m.CandidateManagementPage })));
 const AdminAccountManagementPage = lazy(() => import("./features/admin/pages/AdminAccountManagementPage").then(m => ({ default: m.AdminAccountManagementPage })));
+const AdminSettingsPage = lazy(() => import("./features/admin/pages/AdminSettingsPage").then(m => ({ default: m.AdminSettingsPage })));
 const AdminMonitoringPage = lazy(() => import("./features/admin/pages/AdminMonitoringPage").then(m => ({ default: m.AdminMonitoringPage })));
 const VoterManagementPage = lazy(() => import("./features/admin/pages/VoterManagementPage").then(m => ({ default: m.VoterManagementPage })));
 const ElectionBulletinPage = lazy(() => import("./features/info/pages/ElectionBulletinPage").then(m => ({ default: m.ElectionBulletinPage })));
@@ -45,26 +46,24 @@ function App() {
               <Route path="/info/bulletin" element={<ElectionBulletinPage />} />
               <Route path="/verify/:electionId" element={<VerificationCenter />} />
 
-              {/* Protected Voter Routes with Persistent Layout */}
+              {/* All Protected Routes with Persistent Layout */}
               <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+                {/* Voter Routes */}
                 <Route path="/" element={<HomePage />} />
                 <Route path="/vote/:electionId" element={<VotingBooth />} />
                 <Route path="/vote/success" element={<VoteSuccess />} />
                 <Route path="/vote/keys" element={<KeySetupPage />} />
-              </Route>
 
-              {/* Protected Admin Routes with Persistent Layout */}
-              <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}><MainLayout /></ProtectedRoute>}>
-                <Route path="/admin" element={<AdminDashboardPage />} />
-                <Route path="/admin/elections" element={<ElectionManagementPage />} />
-                <Route path="/admin/elections/:electionId/candidates" element={<CandidateManagementPage />} />
-                <Route path="/admin/voters" element={<VoterManagementPage />} />
-                <Route path="/admin/monitoring" element={<AdminMonitoringPage />} />
-              </Route>
+                {/* Admin Routes */}
+                <Route path="/admin" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}><AdminDashboardPage /></ProtectedRoute>} />
+                <Route path="/admin/elections" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}><ElectionManagementPage /></ProtectedRoute>} />
+                <Route path="/admin/elections/:electionId/candidates" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}><CandidateManagementPage /></ProtectedRoute>} />
+                <Route path="/admin/voters" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}><VoterManagementPage /></ProtectedRoute>} />
+                <Route path="/admin/monitoring" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}><AdminMonitoringPage /></ProtectedRoute>} />
 
-              {/* Super Admin Only with Persistent Layout */}
-              <Route element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}><MainLayout /></ProtectedRoute>}>
-                <Route path="/admin/accounts" element={<AdminAccountManagementPage />} />
+                {/* Super Admin Routes */}
+                <Route path="/admin/accounts" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}><AdminAccountManagementPage /></ProtectedRoute>} />
+                <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}><AdminSettingsPage /></ProtectedRoute>} />
               </Route>
 
               {/* Standalone Protected Routes */}

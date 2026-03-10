@@ -224,3 +224,8 @@ model Vote {
   @@index([electionId])
   @@map("votes")
 }
+model SystemConfig {
+  key       String   @id @db.VarChar(100)
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
