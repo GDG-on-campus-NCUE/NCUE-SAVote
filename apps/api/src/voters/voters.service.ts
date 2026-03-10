@@ -3,11 +3,9 @@ import {
   Injectable,
   NotFoundException,
   Logger,
-  OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { parse } from 'csv-parse/sync';
-import { poseidonHash } from '@savote/crypto-lib';
 import type {
   VoterEligibilityResponse,
   Election as SharedElection,
@@ -58,7 +56,9 @@ export class VotersService {
       throw new NotFoundException('ELECTION_NOT_FOUND');
     }
 
-    if (election.status !== 'REGISTRATION_OPEN') {
+    // Registration is only allowed BEFORE the election starts
+    const now = new Date();
+    if (election.startTime && now >= new Date(election.startTime)) {
       throw new BadRequestException('REGISTRATION_CLOSED');
     }
 
@@ -251,11 +251,20 @@ export class VotersService {
   }
 
   private toSharedElection(election: PrismaElection): SharedElection {
+    const now = new Date();
+    let computedStatus: any = 'DRAFT';
+    
+    if (election.startTime && election.endTime) {
+      if (now < new Date(election.startTime)) computedStatus = 'REGISTRATION_OPEN';
+      else if (now <= new Date(election.endTime)) computedStatus = 'VOTING_OPEN';
+      else computedStatus = 'VOTING_CLOSED';
+    }
+
     return {
       id: election.id,
       name: election.name,
       merkleRootHash: election.merkleRoot,
-      status: election.status as unknown as ElectionStatus,
+      status: computedStatus as unknown as ElectionStatus,
       type: election.type as unknown as ElectionType,
       startTime: election.startTime,
       endTime: election.endTime,

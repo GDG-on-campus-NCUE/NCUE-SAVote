@@ -10,10 +10,9 @@ import { Card } from '../../../components/m3/Card';
 import { Button } from '../../../components/m3/Button';
 import { Dialog } from '../../../components/m3/Dialog';
 import { TextField } from '../../../components/m3/TextField';
-import { Plus, Trash2, Edit2, UserCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, UserCircle, Image as ImageIcon } from 'lucide-react';
 import { type Election, type Candidate, UserRole } from '@savote/shared-types';
 
-// Extended type since shared-types might be out of sync with backend DTO
 interface ExtendedCandidate extends Candidate {
     bio?: string;
     photoUrl?: string;
@@ -30,7 +29,6 @@ export function CandidateManagementPage() {
 
   const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
 
-  // 1. Fetch Election Details (to show name)
   const { data: election, isLoading: isLoadingElection } = useQuery({
     queryKey: ['election', electionId],
     queryFn: async () => {
@@ -41,7 +39,6 @@ export function CandidateManagementPage() {
     enabled: !!electionId,
   });
 
-  // 2. Fetch Candidates
   const { data: candidates = [], isLoading: isLoadingCandidates } = useQuery({
     queryKey: ['admin', 'candidates', electionId],
     queryFn: async () => {
@@ -51,9 +48,8 @@ export function CandidateManagementPage() {
     enabled: !!electionId,
   });
 
-  // Create Mutation
   const createMutation = useMutation({
-    mutationFn: (data: typeof formData) => candidateApi.create(electionId!, data),
+    mutationFn: (data: any) => candidateApi.create(electionId!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'candidates', electionId] });
       setIsCreateOpen(false);
@@ -61,17 +57,16 @@ export function CandidateManagementPage() {
     },
   });
 
-  // Update Mutation
   const updateMutation = useMutation({
-    mutationFn: (data: { id: string; dto: typeof formData }) => candidateApi.update(data.id, data.dto),
+    mutationFn: (data: { id: string; dto: any }) => candidateApi.update(data.id, data.dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'candidates', electionId] });
+      setIsCreateOpen(false);
       setEditingCandidate(null);
       setFormData({ name: '', bio: '', photoUrl: '' });
     },
   });
 
-  // Delete Mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) => candidateApi.remove(id),
     onSuccess: () => {
@@ -81,10 +76,16 @@ export function CandidateManagementPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const payload: any = { name: formData.name, bio: formData.bio };
+    // Only send photoUrl if it's not empty to avoid backend validation errors
+    if (formData.photoUrl && formData.photoUrl.trim() !== '') {
+        payload.photoUrl = formData.photoUrl;
+    }
+
     if (editingCandidate) {
-      updateMutation.mutate({ id: editingCandidate.id, dto: formData });
+      updateMutation.mutate({ id: editingCandidate.id, dto: payload });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(payload);
     }
   };
 
@@ -98,7 +99,7 @@ export function CandidateManagementPage() {
     setEditingCandidate(candidate);
     setFormData({ 
         name: candidate.name, 
-        bio: candidate.bio || (candidate.description as string) || '', 
+        bio: candidate.bio || '', 
         photoUrl: candidate.photoUrl || '' 
     });
     setIsCreateOpen(true);
@@ -109,82 +110,85 @@ export function CandidateManagementPage() {
   if (!electionId) return <Navigate to="/admin/elections" replace />;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 space-y-6">
+    <div className="space-y-8 animate-fade-in pb-24">
       <AdminHeader 
-        title={isLoadingElection ? '載入中...' : `${election?.name} - 候選人`}
-        subtitle="管理此選舉的候選人名單"
+        title={isLoadingElection ? '載入中...' : `${election?.name}`}
+        subtitle="管理此選舉活動的候選人名單與簡介資訊"
         actions={
-            <Button variant="filled" icon={<Plus className="w-5 h-5" />} onClick={openCreate}>
+            <Button 
+                variant="filled" 
+                icon={<Plus className="w-5 h-5" />} 
+                onClick={openCreate}
+                className="h-12 px-6 rounded-2xl shadow-lg shadow-[var(--color-primary)]/20"
+            >
                 新增候選人
             </Button>
         }
       />
 
-      {/* Candidates List - Redesigned Grid */}
       {isLoadingCandidates ? (
-         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[1,2,3].map(i => <div key={i} className="h-40 bg-[var(--color-surface-variant)]/50 rounded-xl animate-pulse" />)}
+         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[1,2,3].map(i => <div key={i} className="h-64 bg-[var(--color-surface-container)] rounded-[32px] animate-pulse" />)}
          </div>
       ) : candidates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-[var(--color-surface-container)] rounded-2xl border border-[var(--color-outline-variant)] border-dashed">
-              <UserCircle className="w-16 h-16 text-[var(--color-outline)] mb-4" />
-              <p className="text-[var(--color-on-surface-variant)] text-lg">尚無候選人。</p>
-              <Button variant="text" onClick={openCreate} className="mt-2">
-                 新增候選人
+          <div className="flex flex-col items-center justify-center py-24 bg-[var(--color-surface-container-low)] rounded-[40px] border-2 border-dashed border-[var(--color-outline-variant)]">
+              <div className="p-6 rounded-full bg-[var(--color-surface-container-high)] mb-6">
+                <UserCircle className="w-16 h-16 text-[var(--color-outline)] opacity-40" />
+              </div>
+              <p className="text-xl font-bold text-[var(--color-on-surface-variant)] opacity-60">目前尚無候選人</p>
+              <Button variant="text" onClick={openCreate} className="mt-4 font-bold">
+                 點擊此處新增第一位候選人
               </Button>
           </div>
       ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {candidates.map((candidate) => (
-                  <Card key={candidate.id} className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-[var(--color-primary)] opacity-0 group-hover:opacity-100 transition-opacity" />
-                      
-                      <div className="p-6 flex flex-col h-full">
-                          <div className="flex items-start gap-4 mb-4">
+                  <Card 
+                    key={candidate.id} 
+                    className="group relative overflow-hidden transition-[transform,box-shadow] duration-300 ease-out hover:-translate-y-1 hover:elevation-3 rounded-[32px] border border-[var(--color-outline-variant)]/20 p-8"
+                  >
+                      <div className="flex flex-col h-full relative z-10">
+                          <div className="flex items-start justify-between mb-6">
                                 {candidate.photoUrl ? (
-                                    <img 
-                                        src={candidate.photoUrl} 
-                                        alt={candidate.name} 
-                                        className="w-16 h-16 rounded-full object-cover ring-2 ring-[var(--color-surface-variant)]" 
-                                    />
+                                    <div className="relative">
+                                        <img 
+                                            src={candidate.photoUrl} 
+                                            alt={candidate.name} 
+                                            className="w-24 h-24 rounded-3xl object-cover elevation-1 group-hover:scale-105 transition-transform duration-500" 
+                                        />
+                                        <div className="absolute -bottom-2 -right-2 p-2 rounded-xl bg-[var(--color-primary)] text-[var(--color-on-primary)] elevation-2">
+                                            <ImageIcon className="w-3 h-3" />
+                                        </div>
+                                    </div>
                                 ) : (
-                                    <div className="w-16 h-16 rounded-full bg-[var(--color-primary-container)] flex items-center justify-center text-[var(--color-on-primary-container)] text-2xl font-bold ring-2 ring-[var(--color-surface-variant)]">
+                                    <div className="w-24 h-24 rounded-3xl bg-[var(--color-primary-container)] flex items-center justify-center text-[var(--color-on-primary-container)] text-4xl font-black elevation-1">
                                         {candidate.name.charAt(0)}
                                     </div>
                                 )}
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="text-lg font-bold text-[var(--color-on-surface)] truncate" title={candidate.name}>
-                                        {candidate.name}
-                                    </h3>
-                                    <p className="text-sm text-[var(--color-on-surface-variant)] line-clamp-2 mt-1 min-h-[2.5em]">
-                                        {candidate.bio || candidate.description || '尚無簡介'}
-                                    </p>
+                                
+                                <div className="flex gap-1">
+                                    <button 
+                                        onClick={() => openEdit(candidate)}
+                                        className="w-10 h-10 rounded-xl hover:bg-[var(--color-primary-container)] hover:text-[var(--color-on-primary-container)] text-[var(--color-on-surface-variant)] transition-all flex items-center justify-center"
+                                    >
+                                        <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button 
+                                        onClick={() => { if(window.confirm('確定要刪除此候選人嗎？')) deleteMutation.mutate(candidate.id); }}
+                                        className="w-10 h-10 rounded-xl hover:bg-[var(--color-error-container)] hover:text-[var(--color-on-error-container)] text-[var(--color-error)] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
                                 </div>
                           </div>
 
-                          <div className="mt-auto flex justify-end gap-2 pt-4 border-t border-[var(--color-outline-variant)]/50">
-                                <Button 
-                                    variant="tonal" 
-                                    className="h-9 px-3" 
-                                    onClick={() => openEdit(candidate)}
-                                    icon={<Edit2 className="w-4 h-4" />}
-                                >
-                                    編輯
-                                </Button>
-                                <Button 
-                                    variant="text" 
-                                    color="error"
-                                    className="h-9 px-3 hover:bg-red-50 dark:hover:bg-red-900/20" 
-                                    onClick={() => {
-                                        if(window.confirm('確定要刪除此候選人嗎？')) {
-                                            deleteMutation.mutate(candidate.id);
-                                        }
-                                    }}
-                                    icon={<Trash2 className="w-4 h-4" />}
-                                    loading={deleteMutation.isPending && deleteMutation.variables === candidate.id}
-                                >
-                                    刪除
-                                </Button>
+                          <div className="flex-1">
+                                <h3 className="text-2xl font-black text-[var(--color-on-surface)] mb-3 group-hover:text-[var(--color-primary)] transition-colors">
+                                    {candidate.name}
+                                </h3>
+                                <p className="text-[var(--color-on-surface-variant)] leading-relaxed type-body-medium opacity-80 line-clamp-4">
+                                    {candidate.bio || '尚未提供候選人詳細簡介。'}
+                                </p>
                           </div>
                       </div>
                   </Card>
@@ -192,47 +196,49 @@ export function CandidateManagementPage() {
           </div>
       )}
 
-      {/* Create/Edit Dialog */}
       <Dialog
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title={editingCandidate ? '編輯候選人' : '新增候選人'}
-        icon={<UserCircle className="w-6 h-6" />}
+        title={editingCandidate ? '編輯候選人資訊' : '新增候選人'}
+        className="w-full max-w-xl"
         actions={
             <>
-                <Button variant="text" onClick={() => setIsCreateOpen(false)}>
+                <Button variant="text" onClick={() => setIsCreateOpen(false)} className="font-bold">
                     取消
                 </Button>
                 <Button 
                     onClick={handleSubmit} 
                     loading={createMutation.isPending || updateMutation.isPending}
                     variant="filled"
+                    className="px-8 rounded-xl font-bold"
                 >
-                    儲存
+                    確認儲存
                 </Button>
             </>
         }
       >
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <form onSubmit={handleSubmit} className="py-4 space-y-6">
             <TextField 
-                label="姓名"
+                label="候選人姓名"
+                placeholder="請輸入真實姓名或名稱"
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
                 required
-                autoFocus
             />
             <TextField 
-                label="簡介"
+                label="照片網址 (選填)"
+                value={formData.photoUrl}
+                onChange={e => setFormData({...formData, photoUrl: e.target.value})}
+                placeholder="例如：https://imgur.com/..."
+                helperText="請提供公開的圖片連結"
+            />
+            <TextField 
+                label="候選人簡介"
+                placeholder="請輸入政見或自我介紹..."
                 value={formData.bio}
                 onChange={e => setFormData({...formData, bio: e.target.value})}
                 multiline
-                rows={3}
-            />
-            <TextField 
-                label="照片網址"
-                value={formData.photoUrl}
-                onChange={e => setFormData({...formData, photoUrl: e.target.value})}
-                placeholder="https://..."
+                rows={5}
             />
         </form>
       </Dialog>

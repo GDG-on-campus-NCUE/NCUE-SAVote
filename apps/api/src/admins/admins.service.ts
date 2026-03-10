@@ -5,14 +5,18 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@savote/shared-types';
+import { normalizeSub } from '../utils/auth-utils';
 
 @Injectable()
 export class AdminsService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: { synologySub: string; name: string; role: UserRole }) {
+    // Normalize sub (e.g. "NCUESA\S123" -> "S123")
+    const synologySub = normalizeSub(data.synologySub);
+
     const existing = await this.prisma.adminPermission.findUnique({
-      where: { synologySub: data.synologySub },
+      where: { synologySub },
     });
 
     if (existing) {
@@ -21,7 +25,7 @@ export class AdminsService {
 
     return this.prisma.adminPermission.create({
       data: {
-        synologySub: data.synologySub,
+        synologySub,
         name: data.name,
         role: data.role as any,
       },

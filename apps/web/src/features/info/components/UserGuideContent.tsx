@@ -1,53 +1,66 @@
-import { ShieldCheck, UserCircle2, Vote } from 'lucide-react';
+import { UserCircle2, Lock, Fingerprint, Database } from 'lucide-react';
 
 export function UserGuideContent() {
   const steps = [
     {
-      title: '單一登入驗證',
-      desc: '使用您的學校單簽帳號進行身份驗證。系統僅確認您的學籍狀態與投票資格，絕不儲存您的密碼或個人隱私資料。',
-      icon: <UserCircle2 className="w-6 h-6 md:w-8 md:h-8" />,
-      color: 'bg-blue-600 text-white',
+      title: '彰師單一登入 (SSO) 驗證',
+      desc: '對接彰師標準授權介面進行資格審查。系統僅獲取必要的投票權限聲明，全程不經手且不儲存您的登入憑據，確保個人身分資訊受技術與法律雙重保障。',
+      icon: <UserCircle2 className="w-6 h-6 md:w-7 md:h-7" />,
+      color: 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)]',
     },
     {
-      title: '產生零知識隱私金鑰',
-      desc: '系統將於您的裝置產生唯一的加密金鑰。此金鑰採用零知識證明技術 (Zero-Knowledge Proof)，確保您在證明「我有投票權」的同時，完全隱藏「我是誰」。這是保障匿名投票的核心。',
-      icon: <ShieldCheck className="w-6 h-6 md:w-8 md:h-8" />,
-      color: 'bg-purple-600 text-white',
+      title: '隱私保護金鑰與零知識證明生成',
+      desc: '在您的本地終端生成專屬加密金鑰。基於零知識證明 (Zero-Knowledge Proof) 技術，您可在不揭露真實身分的前提下，向系統證明合法的投票權，實現絕對匿名與抗關聯性。',
+      icon: <Fingerprint className="w-6 h-6 md:w-7 md:h-7" />,
+      color: 'bg-[var(--color-secondary-container)] text-[var(--color-on-secondary-container)]',
     },
     {
-      title: '加密投票',
-      desc: '選擇候選人並送出選票。您的選票將與加密證明一同寫入區塊鏈帳本。一旦寫入，即永久不可篡改，且任何人都無法追蹤您的投票選擇。',
-      icon: <Vote className="w-6 h-6 md:w-8 md:h-8" />,
-      color: 'bg-green-600 text-white',
+      title: '端對端加密投票與分散式存證',
+      desc: '選票經由高強度非對稱加密後傳輸，並寫入去中心化帳本存證。一旦完成提交，內容即具備不可竄改性與公開可稽核性，確保選舉過程絕對公正、透明。',
+      icon: <Database className="w-6 h-6 md:w-7 md:h-7" />,
+      color: 'bg-[var(--color-tertiary-container)] text-[var(--color-on-tertiary-container)]',
     }
   ];
 
   return (
-    <div className="py-4 px-2 md:px-4 max-w-5xl mx-auto">
+    <div className="py-2 px-1 md:px-2 max-w-4xl mx-auto scrollbar-hide">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `}} />
+      
       <div className="relative">
-        {/* Vertical connecting line */}
-        <div className="absolute left-6 top-8 bottom-8 w-1 bg-[var(--color-outline-variant)] opacity-30 hidden md:block" />
+        {/* Vertical connecting line - Material 3 Outline Variant */}
+        <div className="absolute left-6 md:left-8 top-10 bottom-10 w-0.5 bg-[var(--color-outline-variant)] hidden md:block opacity-50" />
 
-        <div className="space-y-8 md:space-y-16">
+        <div className="space-y-6 md:space-y-10">
           {steps.map((step, index) => (
             <div key={index} className="relative flex flex-col md:flex-row gap-4 md:gap-8 items-start group">
               
-              {/* Number/Icon Indicator */}
-              <div className="relative z-10 flex-none self-center md:self-auto">
-                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-lg transform transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 ${step.color}`}>
+              {/* Step Indicator Container */}
+              <div className="relative z-10 flex-none hidden md:block">
+                <div className={`w-16 h-16 rounded-[24px] flex items-center justify-center transition-all duration-300 group-hover:scale-105 shadow-sm ${step.color}`}>
                   {step.icon}
                 </div>
-                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-2xl md:text-4xl font-black text-[var(--color-surface-variant)] opacity-20 select-none">
-                  0{index + 1}
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-sm font-medium text-[var(--color-outline)] opacity-40 font-mono">
+                  STEP 0{index + 1}
                 </div>
               </div>
 
-              {/* Content */}
-              <div className="flex-1 pt-2 space-y-2 bg-[var(--color-surface)] p-4 md:p-6 rounded-2xl md:rounded-3xl border border-[var(--color-outline-variant)]/30 hover:shadow-xl hover:border-[var(--color-primary)]/30 transition-all duration-300">
-                <h3 className="text-lg md:text-2xl font-bold text-[var(--color-on-surface)] group-hover:text-[var(--color-primary)] transition-colors">
+              {/* Mobile Step Indicator */}
+              <div className="flex items-center gap-3 md:hidden">
+                <div className={`p-2 rounded-xl ${step.color}`}>
+                  {step.icon}
+                </div>
+                <span className="text-xs font-bold tracking-widest text-[var(--color-primary)] opacity-70">STEP 0{index + 1}</span>
+              </div>
+
+              {/* Content Card - Material 3 Surface Container */}
+              <div className="flex-1 w-full p-5 md:p-8 rounded-[28px] bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)]/20 hover:border-[var(--color-primary)]/30 transition-all duration-400 group-hover:shadow-md">
+                <h3 className="text-lg md:text-xl font-semibold text-[var(--color-on-surface)] mb-3 tracking-tight">
                   {step.title}
                 </h3>
-                <p className="text-[var(--color-on-surface-variant)] text-sm md:text-lg leading-relaxed">
+                <p className="text-[var(--color-on-surface-variant)] text-sm md:text-base leading-relaxed font-normal">
                   {step.desc}
                 </p>
               </div>
@@ -56,12 +69,12 @@ export function UserGuideContent() {
         </div>
       </div>
 
-      {/* Privacy Note Footer */}
-      <div className="mt-12 md:mt-20 flex justify-center">
-        <div className="inline-flex items-center gap-3 px-4 py-2 md:px-6 md:py-3 rounded-full bg-[var(--color-primary-container)]/30 text-[var(--color-on-surface)] border border-[var(--color-outline-variant)]">
-          <ShieldCheck className="w-4 h-4 md:w-5 md:h-5 text-[var(--color-primary)]" />
-          <span className="font-medium text-xs md:text-sm">
-            本系統採用先進密碼學及區塊鏈技術，絕對保障您的投票隱私與匿名性。
+      {/* Security Assurance Footer */}
+      <div className="mt-10 md:mt-16 flex justify-center px-4">
+        <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-[var(--color-surface-container-high)] border border-[var(--color-outline-variant)]/50">
+          <Lock className="w-4 h-4 text-[var(--color-primary)]" />
+          <span className="text-[var(--color-on-surface-variant)] text-xs md:text-sm font-medium">
+            基於後量子密碼學技術標準，確保所有選票均受到端對端隱私保護。
           </span>
         </div>
       </div>

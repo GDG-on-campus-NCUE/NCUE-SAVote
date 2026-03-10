@@ -5,7 +5,7 @@ import {
   IsEnum,
   IsObject,
 } from 'class-validator';
-import { ElectionStatus, ElectionType } from '@savote/shared-types';
+import { ElectionType } from '@savote/shared-types';
 
 export class CreateElectionDto {
   @IsString()
@@ -25,10 +25,6 @@ export class CreateElectionDto {
   @IsOptional()
   @IsString()
   merkleRootHash?: string;
-
-  @IsOptional()
-  @IsEnum(ElectionStatus)
-  status?: ElectionStatus;
 
   @IsOptional()
   @IsDateString()

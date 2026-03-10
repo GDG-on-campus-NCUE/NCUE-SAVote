@@ -35,7 +35,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    # 使用 db push 模式：既能同步結構，又能保留現有資料
+    # 使用 db push 模式：同步結構並保留現有資料
     command: >
       sh -c "cd apps/api && npx prisma db push && npx prisma db seed && npm run start:prod"
     restart: always

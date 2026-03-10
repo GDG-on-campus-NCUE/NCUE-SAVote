@@ -6,9 +6,8 @@ async function main() {
   console.log('Seeding administrative permissions...');
 
   // 1. Create/Update Initial Super Admin Permission
-  // We use double backslash for the hardcoded fallback
   const superAdminSub =
-    process.env.INITIAL_SUPER_ADMIN_SUB || 'NCUESA\\S1354032';
+    process.env.INITIAL_SUPER_ADMIN_SUB || 'S1354032';
   const superAdminName = process.env.INITIAL_SUPER_ADMIN_NAME || '陳泰銘';
 
   // We use upsert to ensure that if the record exists, it gets updated with the correct role/name

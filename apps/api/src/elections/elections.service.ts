@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateElectionDto } from './dto/create-election.dto';
@@ -14,13 +15,23 @@ import { CreateEligibleVoterDto } from './dto/create-eligible-voter.dto';
 export class ElectionsService {
   constructor(private prisma: PrismaService) {}
 
-  private assertCanModifyElection(status: string) {
-    if (
-      status === 'VOTING_OPEN' ||
-      status === 'VOTING_CLOSED' ||
-      status === 'TALLIED'
-    ) {
-      throw new BadRequestException('Election can no longer be modified');
+  /**
+   * Internal check to prevent modification or deletion after an election starts.
+   */
+  private assertCanModifyElection(election: any) {
+    const now = new Date();
+    if (election.startTime && now >= new Date(election.startTime)) {
+      throw new BadRequestException('Election has already started and cannot be modified or deleted');
+    }
+  }
+
+  /**
+   * Internal check to prevent viewing results before an election ends.
+   */
+  private assertCanViewResults(election: any) {
+    const now = new Date();
+    if (!election.endTime || now < new Date(election.endTime)) {
+      throw new ForbiddenException('Results are sealed until the election ends');
     }
   }
 
@@ -32,7 +43,6 @@ export class ElectionsService {
         type: dto.type,
         config: dto.config,
         merkleRoot: dto.merkleRootHash ?? null,
-        status: dto.status ?? 'DRAFT',
         startTime: dto.startTime ? new Date(dto.startTime) : undefined,
         endTime: dto.endTime ? new Date(dto.endTime) : undefined,
       } as any,
@@ -53,11 +63,14 @@ export class ElectionsService {
 
   async update(id: string, dto: UpdateElectionDto) {
     const existing = await this.findOne(id);
-    this.assertCanModifyElection(existing.status as string);
+    this.assertCanModifyElection(existing);
     return this.prisma.election.update({
       where: { id },
       data: {
-        ...dto,
+        name: dto.name,
+        description: dto.description,
+        type: dto.type,
+        config: dto.config,
         merkleRoot: dto.merkleRootHash ?? undefined,
         startTime: dto.startTime ? new Date(dto.startTime) : undefined,
         endTime: dto.endTime ? new Date(dto.endTime) : undefined,
@@ -67,13 +80,27 @@ export class ElectionsService {
 
   async remove(id: string) {
     const existing = await this.findOne(id);
-    this.assertCanModifyElection(existing.status as string);
+    this.assertCanModifyElection(existing);
     await this.prisma.election.delete({ where: { id } });
     return { success: true };
   }
 
+  /**
+   * Enhanced result fetching with strict time check.
+   */
+  async getAdminSummary(id: string) {
+    const election = await this.findOne(id);
+    this.assertCanViewResults(election);
+    
+    // Original logic to fetch tally would go here or be called from votes service
+    // This is a placeholder indicating that we perform the check BEFORE data retrieval
+    return election; 
+  }
+
   async importEligibleVoters(electionId: string, dto: ImportEligibleVotersDto) {
-    // Parse CSV: expect columns studentId,class
+    const election = await this.findOne(electionId);
+    this.assertCanModifyElection(election);
+
     const lines = dto.csv.trim().split(/\r?\n/);
     const voters: CreateEligibleVoterDto[] = [];
     for (const line of lines) {
@@ -82,7 +109,6 @@ export class ElectionsService {
         voters.push({ studentId, class: className, electionId });
       }
     }
-    // Bulk create, skip duplicates
     const created = await this.prisma.eligibleVoter.createMany({
       data: voters,
       skipDuplicates: true,
@@ -98,18 +124,8 @@ export class ElectionsService {
   }
 
   async finalizeVoterList(electionId: string) {
-    const election = await this.prisma.election.findUnique({
-      where: { id: electionId },
-    });
-    if (!election) throw new NotFoundException('Election not found');
-
-    if (
-      election.status === 'VOTING_OPEN' ||
-      election.status === 'VOTING_CLOSED' ||
-      election.status === 'TALLIED'
-    ) {
-      throw new BadRequestException('Election already started or finished');
-    }
+    const election = await this.findOne(electionId);
+    this.assertCanModifyElection(election);
 
     const voters = await this.prisma.eligibleVoter.findMany({
       where: { electionId },
@@ -120,23 +136,14 @@ export class ElectionsService {
       throw new BadRequestException('No eligible voters to finalize');
     }
 
-    // merkleRoot is expected to be pre-computed and set on election via update
     if (!election.merkleRoot) {
       throw new BadRequestException(
         'merkleRoot must be set before finalizing voter list',
       );
     }
 
-    const updated = await this.prisma.election.update({
-      where: { id: electionId },
-      data: {
-        status: 'VOTING_OPEN',
-      } as any,
-    });
-
     return {
       success: true,
-      election: updated,
       totalVoters: voters.length,
     };
   }

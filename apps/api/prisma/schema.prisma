@@ -137,7 +137,6 @@ model Election {
   merkleRoot      String?         @db.VarChar(100) // Root of the voter tree at snapshot time
   merkleTreeDepth Int             @default(20)
   
-  status          ElectionStatus  @default(DRAFT)
   startTime       DateTime?
   endTime         DateTime?
   createdAt       DateTime        @default(now())
@@ -148,17 +147,8 @@ model Election {
   candidates      Candidate[]
   votes           Vote[]
   
-  @@index([status])
   @@index([startTime, endTime])
   @@map("elections")
-}
-
-enum ElectionStatus {
-  DRAFT
-  REGISTRATION_OPEN
-  VOTING_OPEN
-  VOTING_CLOSED
-  TALLIED
 }
 
 // ============================================================================

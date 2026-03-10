@@ -8,15 +8,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SubmitVoteDto } from './dto/submit-vote.dto';
 import { verifyVoteProof } from '@savote/crypto-lib';
 import { bigIntToUuid } from '../utils/zk-utils';
-import { ElectionType } from '@prisma/client';
 
 @Injectable()
 export class VotesService {
   constructor(private prisma: PrismaService) {}
 
   async submitVote(dto: SubmitVoteDto) {
-    const { proof, publicSignals, electionId, vote } = dto;
-    // publicSignals order from main.circom: [root, electionId, vote, nullifierHash]
+    const { publicSignals, electionId, proof } = dto;
     const [root, pubElectionId, pubVote, nullifierHash] = publicSignals;
 
     // 1. Verify Consistency
@@ -27,12 +25,18 @@ export class VotesService {
       );
     }
 
-    // 2. Check if Election exists
+    // 2. Check if Election exists and is open
     const election = await this.prisma.election.findUnique({
       where: { id: electionId },
     });
-    if (!election) {
-      throw new NotFoundException('Election not found');
+    if (!election) throw new NotFoundException('Election not found');
+
+    const now = new Date();
+    if (election.startTime && now < new Date(election.startTime)) {
+        throw new BadRequestException('Voting has not started yet');
+    }
+    if (election.endTime && now > new Date(election.endTime)) {
+        throw new BadRequestException('Voting has already ended');
     }
 
     // 3. Check Double Voting (Nullifier)
@@ -69,7 +73,7 @@ export class VotesService {
     return this.prisma.vote.create({
       data: {
         nullifierHash: nullifierHash,
-        proof: proof, // Prisma Json type
+        proof: proof,
         publicSignals: publicSignals as any,
         electionId: electionId,
         candidateId: candidateId,
@@ -78,58 +82,44 @@ export class VotesService {
   }
 
   async getTally(electionId: string) {
-    // Check if election exists and get its status
     const election = await this.prisma.election.findUnique({
       where: { id: electionId },
-      include: {
-        candidates: true,
-      },
+      include: { candidates: true },
     });
 
-    if (!election) {
-      throw new NotFoundException('Election not found');
-    }
+    if (!election) throw new NotFoundException('Election not found');
 
     // Only allow viewing results after voting is closed
-    if (election.status !== 'VOTING_CLOSED' && election.status !== 'TALLIED') {
-      // Return a restricted object or throw. The UI should handle 400.
-      // User asked: "Monitor to confirm it can be displayed AFTER voting ends".
-      // So enforcing closed status is correct.
+    const now = new Date();
+    if (!election.endTime || now < new Date(election.endTime)) {
       throw new BadRequestException(
-        'Results not available yet - election must be closed by admin',
+        'Results not available yet - voting period is still active',
       );
     }
 
-    // Get Total Votes Cast
     const votes = await this.prisma.vote.findMany({
       where: { electionId },
       select: { candidateId: true },
     });
 
-    // Get Total Eligible Voters (for thresholds)
     const totalEligibleVoters = await this.prisma.eligibleVoter.count({
       where: { electionId },
     });
 
-    // Count votes
     const voteCounts: Record<string, number> = {};
     votes.forEach((v) => {
       voteCounts[v.candidateId] = (voteCounts[v.candidateId] || 0) + 1;
     });
 
-    // Calculate Results based on Type
     const candidatesWithVotes = election.candidates.map((c) => ({
       ...c,
       voteCount: voteCounts[c.id] || 0,
     }));
 
     let resultSummary: any = {};
-    const totalVotesCast = votes.length;
 
     switch (election.type) {
-      case ElectionType.PRESIDENTIAL: {
-        // Type 1: President/VP
-        // If only 1 candidate (Same-number election)
+      case 'PRESIDENTIAL': {
         if (candidatesWithVotes.length === 1) {
           const c = candidatesWithVotes[0];
           const threshold = totalEligibleVoters * 0.1;
@@ -139,86 +129,45 @@ export class VotesService {
             threshold: Math.ceil(threshold),
             winner: isElected ? c : null,
             isElected,
-            note: isElected
-              ? 'Elected (Passed 10% threshold)'
-              : 'Not Elected (Failed 10% threshold)',
+            note: isElected ? 'Elected' : 'Not Elected',
           };
         } else {
-          // Simple Majority
-          // Sort desc
-          const sorted = [...candidatesWithVotes].sort(
-            (a, b) => b.voteCount - a.voteCount,
-          );
+          const sorted = [...candidatesWithVotes].sort((a, b) => b.voteCount - a.voteCount);
           const winner = sorted[0];
           const runnerUp = sorted[1];
-
-          // Check tie
           if (runnerUp && winner.voteCount === runnerUp.voteCount) {
-            resultSummary = {
-              type: 'PRESIDENTIAL_CONTESTED',
-              winner: null,
-              tie: true,
-              note: 'Tie detected. Re-election required.',
-            };
+            resultSummary = { type: 'PRESIDENTIAL_CONTESTED', winner: null, tie: true, note: 'Tie' };
           } else {
-            resultSummary = {
-              type: 'PRESIDENTIAL_CONTESTED',
-              winner: winner,
-              tie: false,
-              note: 'Elected by simple majority',
-            };
+            resultSummary = { type: 'PRESIDENTIAL_CONTESTED', winner: winner, tie: false, note: 'Elected' };
           }
         }
         break;
       }
-      case ElectionType.DISTRICT_COUNCILOR: {
-        // Type 2: District (Simple Majority)
-        // Sort desc
-        const sorted = [...candidatesWithVotes].sort(
-          (a, b) => b.voteCount - a.voteCount,
-        );
+      case 'DISTRICT_COUNCILOR': {
+        const sorted = [...candidatesWithVotes].sort((a, b) => b.voteCount - a.voteCount);
         if (sorted.length === 0) {
-          resultSummary = {
-            type: 'DISTRICT',
-            winner: null,
-            note: 'No candidates',
-          };
-          break;
-        }
-        const winner = sorted[0];
-        const runnerUp = sorted[1];
-
-        if (runnerUp && winner.voteCount === runnerUp.voteCount) {
-          resultSummary = {
-            type: 'DISTRICT',
-            winner: null,
-            tie: true,
-            note: 'Tie detected. Draw lots required.',
-          };
+          resultSummary = { type: 'DISTRICT', winner: null, note: 'No candidates' };
         } else {
-          resultSummary = {
-            type: 'DISTRICT',
-            winner: winner,
-            note: 'Elected',
-          };
+          const winner = sorted[0];
+          const runnerUp = sorted[1];
+          if (runnerUp && winner.voteCount === runnerUp.voteCount) {
+            resultSummary = { type: 'DISTRICT', winner: null, tie: true, note: 'Tie' };
+          } else {
+            resultSummary = { type: 'DISTRICT', winner: winner, note: 'Elected' };
+          }
         }
         break;
       }
-      case ElectionType.AT_LARGE_COUNCILOR: {
-        // Type 3: SNTV (Threshold 1%, Top 16)
+      case 'AT_LARGE_COUNCILOR': {
         const threshold = totalEligibleVoters * 0.01;
-        const qualified = candidatesWithVotes.filter(
-          (c) => c.voteCount >= threshold,
-        );
+        const qualified = candidatesWithVotes.filter((c) => c.voteCount >= threshold);
         const sorted = qualified.sort((a, b) => b.voteCount - a.voteCount);
         const winners = sorted.slice(0, 16);
-
         resultSummary = {
           type: 'AT_LARGE_SNTV',
           threshold: Math.ceil(threshold),
           winners: winners,
-          totalQualified: qualified.length,
-          note: `Top ${winners.length} elected (passed 1% threshold)`,
+          note: `Top ${winners.length} elected`,
         };
         break;
       }
@@ -226,7 +175,7 @@ export class VotesService {
 
     return {
       tally: voteCounts,
-      totalVotes: totalVotesCast,
+      totalVotes: votes.length,
       totalEligibleVoters,
       candidates: candidatesWithVotes,
       result: resultSummary,
@@ -234,21 +183,15 @@ export class VotesService {
   }
 
   async getAuditLogs(electionId: string) {
-    // Check if election exists and get its status
     const election = await this.prisma.election.findUnique({
       where: { id: electionId },
-      select: { status: true },
     });
 
-    if (!election) {
-      throw new NotFoundException('Election not found');
-    }
+    if (!election) throw new NotFoundException('Election not found');
 
-    // Only allow viewing audit logs after voting is closed
-    if (election.status !== 'VOTING_CLOSED' && election.status !== 'TALLIED') {
-      throw new BadRequestException(
-        'Audit logs not available yet - election must be closed by admin',
-      );
+    const now = new Date();
+    if (!election.endTime || now < new Date(election.endTime)) {
+      throw new BadRequestException('Audit logs not available yet');
     }
 
     return this.prisma.vote.findMany({
@@ -268,10 +211,6 @@ export class VotesService {
       where: { electionId_nullifierHash: { electionId, nullifierHash } },
       select: { id: true, nullifierHash: true, createdAt: true },
     });
-
-    return {
-      exists: !!vote,
-      vote,
-    };
+    return { exists: !!vote, vote };
   }
 }

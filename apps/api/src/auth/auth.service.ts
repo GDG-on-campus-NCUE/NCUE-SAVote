@@ -11,6 +11,7 @@ import {
   UserRole,
 } from '@savote/shared-types';
 import { UserinfoResponse } from 'openid-client';
+import { normalizeSub } from '../utils/auth-utils';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -86,8 +87,11 @@ export class AuthService {
     ipAddress: string,
     userAgent: string,
   ): Promise<LoginResponse> {
-    const synologySub = userinfo.sub;
-    if (!synologySub) throw new UnauthorizedException('Synology Sub not found');
+    const rawSub = userinfo.sub;
+    if (!rawSub) throw new UnauthorizedException('Synology Sub not found');
+    
+    // Normalize sub (e.g. "NCUESA\S123" -> "S123")
+    const synologySub = normalizeSub(rawSub);
 
     // 1. Check local permission table
     const permission = await this.prisma.adminPermission.findUnique({
@@ -95,7 +99,7 @@ export class AuthService {
     });
 
     if (!permission) {
-      this.logger.warn(`Unauthorized admin login attempt for sub: ${synologySub}`);
+      this.logger.warn(`Unauthorized admin login attempt for sub: ${synologySub} (raw: ${rawSub})`);
       throw new UnauthorizedException('You do not have administrative access to this system.');
     }
 

@@ -1,19 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { AnimatedBackground } from "../../../components/AnimatedBackground";
-import { GlowOrbs } from "../../../components/GlowOrbs";
-import { Card } from "../../../components/m3/Card";
-import { Button } from "../../../components/m3/Button";
-import { Dialog } from "../../../components/m3/Dialog";
 import { ThemeToggle } from "../../../components/m3/ThemeToggle";
-import { LockKeyhole, GraduationCap, ArrowRight, FileText } from "lucide-react";
-import { useThemeStore } from "../../../stores/themeStore";
+import { LockKeyhole, GraduationCap, ArrowRight, FileText, ShieldCheck, ChevronRight } from "lucide-react";
 import { UserGuideContent } from "../../info/components/UserGuideContent";
+import { Dialog } from "../../../components/m3/Dialog";
+import { Button } from "../../../components/m3/Button";
 
 export const LoginPage = () => {
   const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-    
-  const { computedMode } = useThemeStore();
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const handleAdminLogin = () => {
@@ -29,103 +23,150 @@ export const LoginPage = () => {
   };
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    // Ensure smooth entry
+    document.body.classList.add('overflow-hidden');
     return () => {
-      document.body.style.overflow = '';
+      document.body.classList.remove('overflow-hidden');
     };
   }, []);
 
   return (
-    <div className="relative flex justify-center items-center min-h-screen bg-[var(--color-background)] overflow-hidden transition-colors duration-300">
-        {computedMode === 'dark' && (
-            <div className="absolute inset-0 pointer-events-none">
-                <AnimatedBackground />
-                <GlowOrbs />
-                <div className="grid-background absolute inset-0 opacity-20" />
+    <div className="relative flex flex-col md:flex-row min-h-[100dvh] bg-[var(--color-surface)] transition-colors duration-500 font-sans select-none selection:bg-transparent">
+        
+        {/* Decorative Side Panel (Desktop Only) */}
+        <div className="hidden md:flex md:w-1/2 lg:w-[55%] bg-[var(--color-surface-container-low)] dark:bg-[var(--color-surface-container-lowest)] relative items-center justify-center overflow-hidden border-r border-[var(--color-outline-variant)]/20">
+            <div className="absolute inset-0 bg-[var(--color-primary)]/[0.015]" />
+            
+            <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]" 
+                 style={{ backgroundImage: `radial-gradient(var(--color-primary) 1px, transparent 1px)`, 
+                          backgroundSize: '40px 40px' }} />
+            
+            <div className="relative z-10 flex flex-col items-center text-center px-12 animate-fade-in">
+                <div className="mb-10 p-8 rounded-[48px] bg-[var(--color-surface)] elevation-1 hover:elevation-2 transition-standard">
+                    <img 
+                        src="/sa_logo.webp"
+                        alt="NCUE SA Logo"
+                        className="w-32 h-32 lg:w-44 lg:h-44 object-contain"
+                    />
+                </div>
+                <h1 className="type-display-medium text-[var(--color-on-surface)] mb-3 font-bold tracking-tight">
+                    國立彰化師範大學學生會
+                </h1>
+                <p className="type-headline-small text-[var(--color-primary)] font-medium tracking-[0.25em] mb-10 opacity-80">
+                    線上投票系統
+                </p>
+                <div className="w-24 h-1 bg-[var(--color-primary-container)] rounded-full opacity-40" />
             </div>
-        )}
 
-        <div className="absolute top-4 right-4 z-20 flex gap-2">
-            <div title="切換主題">
-                <ThemeToggle />
-            </div>
+            <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full bg-[var(--color-primary-container)] opacity-15 blur-[120px]" />
+        </div>
+
+        {/* Top Controls */}
+        <div className="absolute top-4 right-4 md:top-8 md:right-8 z-50">
+            <ThemeToggle />
         </div>
         
-        <div className="relative z-10 w-[90%] max-w-[360px] animate-fade-in space-y-4">
-          <Card variant="elevated" className="p-6 md:p-8 relative overflow-hidden text-center space-y-4 md:space-y-6 backdrop-blur-sm bg-[var(--color-surface)]/90 shadow-2xl border border-[var(--color-outline-variant)]">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative bg-[var(--color-surface)]">
             
-            <div className="space-y-4">
-              <div className="relative inline-block group">
-                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
-                 <img 
-                  src="/sa_logo.png"
-                  alt="Logo"
-                  className="relative w-20 h-20 md:w-24 md:h-24 mx-auto rounded-2xl shadow-lg transform transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-              
-              <div>
-                  <h2 className="text-xl md:text-2xl font-bold text-[var(--color-on-surface)] leading-snug">
-                    國立彰化師範大學學生會<br/>
-                    <span className="text-2xl md:text-3xl text-[var(--color-primary)]">投票系統</span>
-                  </h2>
-                  <p className="text-[var(--color-on-surface-variant)] mt-2 text-sm">
-                    請使用學校帳號登入
-                  </p>
-              </div>
-            </div>
-            
-            <div className="space-y-3 pt-2">
-              <Button 
-                onClick={handleSSOClick} 
-                className="w-full h-12 text-lg font-medium shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
-                icon={<GraduationCap className="w-5 h-5" />}
-              >
-                使用 NCUESA SSO 登入
-              </Button>
-
-               <Link to="/info/bulletin" className="block w-full">
-                  <Button
-                    variant="tonal"
-                    className="w-full h-11"
-                    icon={<FileText className="w-5 h-5" />}
-                  >
-                    選舉公報
-                  </Button>
-               </Link>
-              
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[var(--color-outline-variant)]"></div>
+            {/* Mobile Header */}
+            <div className="md:hidden mb-12 flex flex-col items-center text-center animate-fade-in">
+                <div className="mb-6 p-4 rounded-[32px] bg-[var(--color-surface-container-high)] elevation-1">
+                    <img 
+                        src="/sa_logo.webp"
+                        alt="Logo"
+                        className="w-20 h-20 object-contain"
+                    />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-[var(--color-surface)] px-3 text-[var(--color-on-surface-variant)] font-medium tracking-wider">或</span>
-                </div>
-              </div>
-
-              <Button
-                variant="outlined"
-                onClick={handleAdminLogin}
-                className="w-full h-10 border-[var(--color-outline)] hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/5"
-                icon={<LockKeyhole className="w-4 h-4" />}
-              >
-                管理員登入
-              </Button>
-            </div>
-          </Card>
-          
-          <div className="mt-8 text-center space-y-2 animate-fade-in opacity-80 pb-6">
-            <p className="text-[var(--color-on-surface-variant)] text-sm font-semibold">
-              Developed by Tai Ming Chen
-            </p>
-            <div className="flex flex-col gap-0.5">
-                <p className="text-[var(--color-on-surface-variant)] text-xs">
-                授權內容為 PolyForm Noncommercial License 不可商用
+                <h2 className="type-headline-small text-[var(--color-on-surface)] font-bold">
+                    彰師大學生會
+                </h2>
+                <p className="type-title-medium text-[var(--color-primary)] tracking-[0.2em] font-medium mt-1">
+                    投票系統
                 </p>
             </div>
-          </div>
-        </div>
+
+            {/* Login Card */}
+            <div className="w-full max-w-[420px] animate-slide-up">
+                <div className="bg-[var(--color-surface-container-low)] md:bg-[var(--color-surface)] border border-[var(--color-outline-variant)]/50 rounded-[40px] p-8 md:p-12 elevation-1 hover:elevation-2 transition-all duration-500">
+                    
+                    <div className="mb-10 text-center md:text-left">
+                        <h3 className="text-3xl font-bold text-[var(--color-on-surface)] mb-2 tracking-tight">
+                            歡迎回來
+                        </h3>
+                        <p className="text-base text-[var(--color-on-surface-variant)] font-normal opacity-70 leading-relaxed">
+                            請使用彰化師大 SSO 帳號<br className="hidden md:block"/>登入以進行投票
+                        </p>
+                    </div>
+
+                    <div className="space-y-5">
+                        {/* Primary Action Button */}
+                        <button 
+                            onClick={handleSSOClick}
+                            className="w-full flex items-center justify-between pl-8 pr-3 h-18 bg-[var(--color-primary)] text-[var(--color-on-primary)] rounded-[24px] transition-standard hover:opacity-95 active:scale-[0.98] group relative overflow-hidden shadow-lg shadow-[var(--color-primary)]/10"
+                        >
+                            <span className="text-lg font-medium flex items-center gap-4">
+                                <GraduationCap className="w-7 h-7" />
+                                彰師 SSO 登入
+                            </span>
+                            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                                <ChevronRight className="w-7 h-7" />
+                            </div>
+                        </button>
+
+                        {/* Secondary Action */}
+                        <Link to="/info/bulletin" className="block w-full">
+                            <div className="flex items-center justify-center gap-3 h-16 w-full rounded-[24px] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] text-base font-medium hover:bg-[var(--color-primary)]/[0.04] hover:border-[var(--color-primary)]/30 transition-standard active:bg-[var(--color-primary)]/[0.08]">
+                                <FileText className="w-5 h-5 opacity-60" />
+                                查看選舉公報
+                            </div>
+                        </Link>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="relative flex items-center my-12">
+                        <div className="grow h-[1px] bg-[var(--color-outline-variant)]/30" />
+                        <span className="px-5 text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-[0.2em] opacity-40">
+                            Admin Access
+                        </span>
+                        <div className="grow h-[1px] bg-[var(--color-outline-variant)]/30" />
+                    </div>
+
+                    {/* Admin Access */}
+                    <button
+                        onClick={handleAdminLogin}
+                        className="w-full flex items-center justify-center gap-2 h-10 rounded-full text-sm font-medium text-[var(--color-on-surface-variant)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/[0.04] transition-standard opacity-60 hover:opacity-100"
+                    >
+                        <LockKeyhole className="w-3.5 h-3.5" />
+                        系統管理員登入
+                    </button>
+                </div>
+            </div>
+
+            {/* Enhanced Footer */}
+            <footer className="mt-16 text-center space-y-5">
+                <div className="flex items-center justify-center gap-3 py-1.5 px-5 rounded-full bg-[var(--color-surface-container-high)] border border-[var(--color-outline-variant)]/20 text-[var(--color-on-surface)] elevation-1">
+                    <ShieldCheck className="w-4 h-4 text-[var(--color-primary)] opacity-80" />
+                    <span className="text-xs font-medium tracking-wide opacity-80">Decentralized Voting System</span>
+                </div>
+                
+                <div className="space-y-1.5">
+                    <p className="text-sm font-medium text-[var(--color-on-surface-variant)] opacity-70">
+                        &copy; 2026 Developed by Tai Ming Chen
+                    </p>
+                    <p className="text-[11px] font-normal text-[var(--color-outline)] max-w-[280px] mx-auto leading-relaxed opacity-60">
+                        Licensed under PolyForm Noncommercial<br/>
+                        (Non-Commercial Use Only)
+                    </p>
+                </div>
+            </footer>
+        </main>
+
+        <style dangerouslySetInnerHTML={{ __html: `
+            .animate-fade-in { animation: fade-in 1s cubic-bezier(0.2, 0, 0, 1) forwards; }
+            .animate-slide-up { animation: slide-up 1.2s cubic-bezier(0.2, 0, 0, 1) forwards; }
+            .h-18 { height: 4.5rem; }
+        `}} />
 
         <Dialog 
           open={isGuideOpen} 
@@ -134,16 +175,16 @@ export const LoginPage = () => {
           className="max-w-2xl"
           actions={
             <>
-               <Button variant="text" onClick={() => setIsGuideOpen(false)}>
+               <Button variant="text" onClick={() => setIsGuideOpen(false)} className="font-medium">
                   取消
                </Button>
-               <Button onClick={handleSSOConfirm} icon={<ArrowRight className="w-4 h-4" />}>
+               <Button onClick={handleSSOConfirm} icon={<ArrowRight className="w-4 h-4" />} className="font-medium">
                   同意並繼續
                </Button>
             </>
           }
         >
-          <div className="py-2 max-h-[60vh] overflow-y-auto px-1">
+          <div className="py-2 max-h-[60vh] overflow-y-auto px-1 font-normal">
              <UserGuideContent />
           </div>
         </Dialog>

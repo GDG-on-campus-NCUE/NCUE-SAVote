@@ -5,12 +5,11 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { Button } from '../../../components/m3/Button';
 import { Dialog } from '../../../components/m3/Dialog';
 import { TextField } from '../../../components/m3/TextField';
-import { Card } from '../../../components/m3/Card';
 import { AdminHeader } from '../components/AdminHeader';
 import { api } from '../../auth/services/auth.api';
 import { API_ENDPOINTS } from '../../../lib/constants';
-import { ElectionType, type Election, ElectionStatus, UserRole } from '@savote/shared-types';
-import { Plus, CalendarPlus, Link as LinkIcon, Users, Trash2, Edit2, Search } from 'lucide-react';
+import { ElectionType, type Election, UserRole } from '@savote/shared-types';
+import { Plus, CalendarPlus, Link as LinkIcon, Users, Trash2, Edit2, Search, Calendar, Clock, ArrowRight } from 'lucide-react';
 
 interface ExtendedElection extends Election {
     description?: string;
@@ -42,50 +41,28 @@ export function ElectionManagementPage() {
     },
   });
 
-  // Create Mutation
+  // Mutations
   const createMutation = useMutation({
     mutationFn: (data: any) => api.post(API_ENDPOINTS.ELECTIONS.CREATE, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] });
-      setIsCreateOpen(false);
-      resetForm();
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] }); setIsCreateOpen(false); resetForm(); },
   });
 
-  // Update Mutation
   const updateMutation = useMutation({
     mutationFn: (data: { id: string; payload: any }) => api.patch(`${API_ENDPOINTS.ELECTIONS.CREATE}/${data.id}`, data.payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] });
-      setIsCreateOpen(false);
-      resetForm();
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] }); setIsCreateOpen(false); resetForm(); },
   });
 
-  // Delete Mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`${API_ENDPOINTS.ELECTIONS.CREATE}/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] });
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] }); },
   });
 
   const resetForm = () => {
     setEditingElection(null);
-    setFormData({
-      name: '',
-      description: '',
-      type: ElectionType.PRESIDENTIAL,
-      startTime: '',
-      endTime: '',
-      bulletinUrl: '',
-    });
+    setFormData({ name: '', description: '', type: ElectionType.PRESIDENTIAL, startTime: '', endTime: '', bulletinUrl: '' });
   };
 
-  const handleOpenCreate = () => {
-    resetForm();
-    setIsCreateOpen(true);
-  };
+  const handleOpenCreate = () => { resetForm(); setIsCreateOpen(true); };
 
   const handleOpenEdit = (election: ExtendedElection) => {
     setEditingElection(election);
@@ -102,169 +79,192 @@ export function ElectionManagementPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = {
+    const payload: any = {
       name: formData.name,
       description: formData.description,
       type: formData.type,
-      config: {
-          bulletinUrl: formData.bulletinUrl,
-      },
-      startTime: formData.startTime ? new Date(formData.startTime).toISOString() : null,
-      endTime: formData.endTime ? new Date(formData.endTime).toISOString() : null,
+      config: { bulletinUrl: formData.bulletinUrl },
     };
+    
+    if (formData.startTime) payload.startTime = new Date(formData.startTime).toISOString();
+    if (formData.endTime) payload.endTime = new Date(formData.endTime).toISOString();
 
-    if (editingElection) {
-      updateMutation.mutate({ id: editingElection.id, payload });
-    } else {
-      createMutation.mutate(payload);
+    if (editingElection) updateMutation.mutate({ id: editingElection.id, payload });
+    else createMutation.mutate(payload);
+  };
+
+  const getStatusDisplay = (election: Election) => {
+    const now = new Date();
+    const start = election.startTime ? new Date(election.startTime) : null;
+    const end = election.endTime ? new Date(election.endTime) : null;
+
+    if (!start || !end) {
+        return { label: '設定未完成', color: 'bg-gray-100 text-gray-500 border-gray-200', dot: 'bg-gray-400' };
     }
+
+    if (now < start) {
+        return { label: '即將開始', color: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800', dot: 'bg-blue-500' };
+    }
+    if (now >= start && now <= end) {
+        return { label: '投票進行中', color: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800', dot: 'bg-green-500 animate-pulse' };
+    }
+    if (now > end) {
+        return { label: '已結束(待計票)', color: 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800/40 dark:text-gray-400 dark:border-gray-700', dot: 'bg-gray-400' };
+    }
+
+    return { label: '狀態未知', color: 'bg-gray-100 text-gray-500 border-gray-200', dot: 'bg-gray-400' };
   };
 
   if (user && !isAdmin) return <Navigate to="/" replace />;
   if (!user) return null;
 
-  const filteredElections = elections.filter(e => 
-      e.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredElections = (elections as ExtendedElection[]).filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 space-y-6">
+    <div className="space-y-8 pb-24 animate-fade-in">
        <AdminHeader 
          title="選舉管理"
-         subtitle="建立與管理各項選舉案件"
+         subtitle="在此建立與修改學生會各項選舉活動，狀態將隨時間自動判定"
          actions={
             <Button 
                 variant="filled"
                 icon={<Plus className="w-5 h-5" />} 
                 onClick={handleOpenCreate}
+                className="h-12 px-6 rounded-2xl shadow-lg shadow-[var(--color-primary)]/20"
             >
                 建立選舉
             </Button>
          }
        />
         
-        <div className="animate-fade-in-up space-y-4">
-            {/* Search Bar */}
-            <div className="flex items-center gap-4 bg-[var(--color-surface)] p-4 rounded-2xl shadow-sm border border-[var(--color-outline-variant)]/50">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-outline)]" />
-                    <input 
-                        type="text" 
-                        placeholder="搜尋選舉..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-transparent border-none focus:ring-0 text-[var(--color-on-surface)] placeholder-[var(--color-outline)]"
-                    />
+        <div className="space-y-6">
+            {/* Search Bar - M3 Search Style */}
+            <div className="relative group max-w-2xl">
+                <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+                    <Search className="w-5 h-5 text-[var(--color-outline)] group-focus-within:text-[var(--color-primary)] transition-colors" />
                 </div>
+                <input 
+                    type="text" 
+                    placeholder="搜尋選舉名稱..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-14 pr-6 h-14 bg-[var(--color-surface-container-high)] border border-transparent focus:border-[var(--color-primary)]/30 focus:bg-[var(--color-surface)] rounded-[28px] text-[var(--color-on-surface)] transition-all duration-300 elevation-1 focus:elevation-2 outline-none"
+                />
             </div>
 
              {isLoading ? (
-                 <div className="space-y-4">
-                     {[1,2,3].map(i => <div key={i} className="h-20 bg-[var(--color-surface-variant)]/30 rounded-xl animate-pulse" />)}
+                 <div className="grid gap-4">
+                     {[1,2,3].map(i => <div key={i} className="h-24 bg-[var(--color-surface-container)] rounded-[24px] animate-pulse" />)}
                  </div>
              ) : elections.length === 0 ? (
-                 <div className="flex flex-col items-center justify-center py-20 bg-[var(--color-surface-container)] rounded-2xl border border-[var(--color-outline-variant)] border-dashed">
-                     <CalendarPlus className="w-16 h-16 text-[var(--color-outline)] mb-4" />
-                     <p className="text-[var(--color-on-surface-variant)] text-lg">找不到選舉項目。</p>
-                     <Button variant="text" onClick={handleOpenCreate} className="mt-2">
-                        建立選舉
+                 <div className="flex flex-col items-center justify-center py-24 bg-[var(--color-surface-container-low)] rounded-[40px] border-2 border-dashed border-[var(--color-outline-variant)]">
+                     <div className="p-6 rounded-full bg-[var(--color-surface-container-high)] mb-6">
+                        <CalendarPlus className="w-12 h-12 text-[var(--color-outline)] opacity-40" />
+                     </div>
+                     <p className="text-xl font-bold text-[var(--color-on-surface-variant)] opacity-60">尚無任何選舉項目</p>
+                     <Button variant="text" onClick={handleOpenCreate} className="mt-4 font-bold">
+                        點擊此處建立第一筆選舉
                      </Button>
                  </div>
              ) : (
-                <Card className="p-0 overflow-hidden border-0 shadow-md">
+                <div className="bg-[var(--color-surface-container-low)] rounded-[32px] border border-[var(--color-outline-variant)]/30 overflow-hidden elevation-1 transition-standard hover:elevation-2">
                    <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-[var(--color-surface-container)] border-b border-[var(--color-outline-variant)]">
-                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm w-16 text-center">#</th>
-                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm">選舉名稱</th>
-                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm">狀態</th>
-                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm hidden lg:table-cell">起訖時間</th>
-                                    <th className="p-4 py-5 font-semibold text-[var(--color-on-surface-variant)] text-sm text-right">操作</th>
+                                <tr className="bg-[var(--color-surface-container-high)]/50 border-b border-[var(--color-outline-variant)]/30">
+                                    <th className="px-8 py-5 type-label-large text-[var(--color-on-surface-variant)] opacity-70">選舉資訊</th>
+                                    <th className="px-6 py-5 type-label-large text-[var(--color-on-surface-variant)] opacity-70">即時狀態</th>
+                                    <th className="px-6 py-5 type-label-large text-[var(--color-on-surface-variant)] opacity-70 hidden lg:table-cell">時間排程</th>
+                                    <th className="px-8 py-5 type-label-large text-[var(--color-on-surface-variant)] opacity-70 text-right">管理操作</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-[var(--color-outline-variant)]/50">
-                                {filteredElections.map((election, index) => (
-                                    <tr key={election.id} className="group hover:bg-[var(--color-surface-container-high)] transition-colors">
-                                        <td className="p-4 text-center">
-                                            <div className="w-8 h-8 rounded-full bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] flex items-center justify-center text-xs font-bold mx-auto">
-                                                {index + 1}
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div>
-                                                <div className="font-bold text-[var(--color-on-surface)] text-base">{election.name}</div>
-                                                <div className="text-xs text-[var(--color-on-surface-variant)] flex items-center gap-1 mt-0.5">
-                                                     <span className="opacity-80 line-clamp-1 max-w-[200px]">{election.description || '尚無描述'}</span>
-                                                     {election.type && (
-                                                        <span className="px-1.5 py-0.5 rounded-full bg-[var(--color-secondary-container)] text-[var(--color-on-secondary-container)] text-[10px]">
-                                                            {election.type}
-                                                        </span>
-                                                     )}
+                            <tbody className="divide-y divide-[var(--color-outline-variant)]/20">
+                                {filteredElections.map((election: ExtendedElection) => {
+                                    const status = getStatusDisplay(election);
+                                    return (
+                                        <tr key={election.id} className="group hover:bg-[var(--color-surface)] transition-all duration-300">
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-2xl bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] flex items-center justify-center font-bold text-lg elevation-1 group-hover:scale-110 transition-transform">
+                                                        {election.name.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-[var(--color-on-surface)] text-lg mb-1">{election.name}</div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="px-2 py-0.5 rounded-full bg-[var(--color-secondary-container)] text-[var(--color-on-secondary-container)] text-[10px] font-bold uppercase tracking-wider">
+                                                                {election.type}
+                                                            </span>
+                                                            {election.description && (
+                                                                <span className="text-xs text-[var(--color-on-surface-variant)] opacity-60 line-clamp-1 max-w-[150px]">
+                                                                    {election.description}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                                                election.status === ElectionStatus.VOTING_OPEN ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 
-                                                election.status === ElectionStatus.VOTING_CLOSED ? 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                            }`}>
-                                                <span className={`w-2 h-2 rounded-full mr-1.5 ${
-                                                     election.status === ElectionStatus.VOTING_OPEN ? 'bg-green-500' : 
-                                                     election.status === ElectionStatus.VOTING_CLOSED ? 'bg-gray-500' : 'bg-blue-500'
-                                                }`} />
-                                                {election.status === ElectionStatus.VOTING_OPEN ? '投票中' : election.status === ElectionStatus.VOTING_CLOSED ? '已結束' : election.status}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 hidden lg:table-cell">
-                                            <div className="text-xs text-[var(--color-on-surface-variant)] space-y-1">
-                                                <div className="flex items-center gap-2">
-                                                     <span className="w-12 opacity-60">開始:</span>
-                                                     <span className="font-mono">{election.startTime ? new Date(election.startTime).toLocaleString() : '-'}</span>
+                                            </td>
+                                            <td className="px-6 py-6">
+                                                <div className={cn(
+                                                    "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-standard border",
+                                                    status.color
+                                                )}>
+                                                    <div className={cn("w-2 h-2 rounded-full", status.dot)} />
+                                                    {status.label}
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                     <span className="w-12 opacity-60">結束:</span>
-                                                     <span className="font-mono">{election.endTime ? new Date(election.endTime).toLocaleString() : '-'}</span>
+                                            </td>
+                                            <td className="px-6 py-6 hidden lg:table-cell">
+                                                <div className="flex flex-col gap-1.5">
+                                                    <div className="flex items-center gap-2 text-xs font-medium text-[var(--color-on-surface-variant)]">
+                                                        <Calendar className="w-3.5 h-3.5 opacity-50" />
+                                                        <span>{election.startTime ? new Date(election.startTime).toLocaleDateString() : '-'}</span>
+                                                        <Clock className="w-3.5 h-3.5 ml-1 opacity-50" />
+                                                        <span>{election.startTime ? new Date(election.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs font-medium text-[var(--color-primary)]">
+                                                        <ArrowRight className="w-3.5 h-3.5 opacity-50" />
+                                                        <span>{election.endTime ? new Date(election.endTime).toLocaleDateString() : '-'}</span>
+                                                        <Clock className="w-3.5 h-3.5 ml-1 opacity-50" />
+                                                        <span>{election.endTime ? new Date(election.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 text-right">
-                                            <div className="flex justify-end items-center gap-1">
-                                                <Link to={`/admin/elections/${election.id}/candidates`}>
-                                                    <Button variant="text" size="sm" icon={<Users className="w-4 h-4" />}>
-                                                        <span className="hidden xl:inline ml-1">候選人管理</span>
-                                                    </Button>
-                                                </Link>
-                                                <Button 
-                                                    variant="text" 
-                                                    size="sm"
-                                                    className="w-8 h-8 p-0"
-                                                    onClick={() => handleOpenEdit(election)}
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </Button>
-                                                <Button 
-                                                    variant="text" 
-                                                    color="error" 
-                                                    size="sm"
-                                                    className="w-8 h-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => {
-                                                        if(window.confirm('確定要刪除此選舉嗎？此操作無法復原。')) {
-                                                            deleteMutation.mutate(election.id);
-                                                        }
-                                                    }}
-                                                    loading={deleteMutation.isPending && deleteMutation.variables === election.id}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                            </td>
+                                            <td className="px-8 py-6 text-right">
+                                                <div className="flex justify-end items-center gap-2">
+                                                    <Link to={`/admin/elections/${election.id}/candidates`}>
+                                                        <Button variant="tonal" size="sm" className="rounded-xl px-4 font-bold" icon={<Users className="w-4 h-4" />}>
+                                                            管理候選人
+                                                        </Button>
+                                                    </Link>
+                                                    
+                                                    {/* Actions restricted after start */}
+                                                    {(!election.startTime || new Date() < new Date(election.startTime)) && (
+                                                        <>
+                                                            <div className="h-8 w-[1px] bg-[var(--color-outline-variant)]/30 mx-1" />
+                                                            <button 
+                                                                onClick={() => handleOpenEdit(election)}
+                                                                className="w-10 h-10 rounded-xl hover:bg-[var(--color-primary-container)] hover:text-[var(--color-on-primary-container)] text-[var(--color-on-surface-variant)] transition-all flex items-center justify-center"
+                                                                title="編輯選舉"
+                                                            >
+                                                                <Edit2 className="w-4 h-4" />
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => { if(window.confirm('確定要刪除此選舉嗎？')) deleteMutation.mutate(election.id); }}
+                                                                className="w-10 h-10 rounded-xl hover:bg-[var(--color-error-container)] hover:text-[var(--color-on-error-container)] text-[var(--color-error)] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
+                                                                title="刪除選舉"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                    </div>
-                </Card>
+                </div>
              )}
         </div>
 
@@ -273,11 +273,10 @@ export function ElectionManagementPage() {
             open={isCreateOpen} 
             onClose={() => setIsCreateOpen(false)}
             title={editingElection ? '編輯選舉' : '建立選舉'}
-            icon={<CalendarPlus className="w-6 h-6" />}
             className="w-full max-w-2xl"
             actions={
                 <>
-                    <Button variant="text" onClick={() => setIsCreateOpen(false)}>
+                    <Button variant="text" onClick={() => setIsCreateOpen(false)} className="font-bold">
                         取消
                     </Button>
                     <Button 
@@ -285,13 +284,14 @@ export function ElectionManagementPage() {
                         disabled={createMutation.isPending || updateMutation.isPending}
                         loading={createMutation.isPending || updateMutation.isPending}
                         variant="filled"
+                        className="px-8 rounded-xl font-bold"
                     >
-                        儲存
+                        確認儲存
                     </Button>
                 </>
             }
         >
-            <form onSubmit={handleSubmit} className="py-4 space-y-6">
+            <form onSubmit={handleSubmit} className="py-4 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <TextField 
                         label="選舉名稱"
@@ -302,49 +302,56 @@ export function ElectionManagementPage() {
                     />
                     
                     <div className="flex flex-col gap-1 md:col-span-2">
-                        <label className="text-sm font-medium text-[var(--color-on-surface-variant)] px-1 mb-1">
+                        <label className="text-sm font-bold text-[var(--color-on-surface-variant)] px-1 mb-2">
                             選舉種類
                         </label>
-                        <div className="relative">
-                            <select 
-                                value={formData.type}
-                                onChange={e => setFormData({...formData, type: e.target.value as ElectionType})}
-                                className="w-full appearance-none rounded-lg bg-[var(--color-surface-variant)] border-0 border-b-2 border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-3 focus:border-[var(--color-primary)] focus:outline-none transition-colors cursor-pointer hover:bg-[var(--color-surface-variant)]/80"
-                            >
-                                <option value={ElectionType.PRESIDENTIAL}>正副會長</option>
-                                <option value={ElectionType.DISTRICT_COUNCILOR}>選區學生議員</option>
-                                <option value={ElectionType.AT_LARGE_COUNCILOR}>不分區學生議員</option>
-                            </select>
-                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[var(--color-on-surface-variant)]">
-                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                            </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {[
+                                { id: ElectionType.PRESIDENTIAL, label: '正副會長' },
+                                { id: ElectionType.DISTRICT_COUNCILOR, label: '選區議員' },
+                                { id: ElectionType.AT_LARGE_COUNCILOR, label: '不分區議員' }
+                            ].map((type) => (
+                                <button
+                                    key={type.id}
+                                    type="button"
+                                    onClick={() => setFormData({...formData, type: type.id as ElectionType})}
+                                    className={cn(
+                                        "px-4 py-3 rounded-2xl border-2 text-sm font-bold transition-all",
+                                        formData.type === type.id 
+                                            ? "bg-[var(--color-primary-container)] border-[var(--color-primary)] text-[var(--color-on-primary-container)]" 
+                                            : "bg-[var(--color-surface)] border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] hover:border-[var(--color-primary)]/50"
+                                    )}
+                                >
+                                    {type.label}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
                     <TextField 
-                        label="開始時間"
+                        label="開始投票時間"
                         type="datetime-local"
                         value={formData.startTime}
                         onChange={e => setFormData({...formData, startTime: e.target.value})}
                     />
                     <TextField 
-                        label="結束時間"
+                        label="結束投票時間"
                         type="datetime-local"
                         value={formData.endTime}
                         onChange={e => setFormData({...formData, endTime: e.target.value})}
                     />
 
                     <TextField 
-                        label="選舉公報連結 (Google Drive)"
+                        label="選舉公報檔案連結"
                         value={formData.bulletinUrl}
                         onChange={e => setFormData({...formData, bulletinUrl: e.target.value})}
-                        placeholder="https://drive.google.com/..."
-                        endAdornment={<LinkIcon className="w-4 h-4" />}
+                        placeholder="請輸入 Google Drive 共享連結"
+                        endAdornment={<LinkIcon className="w-4 h-4 opacity-50" />}
                         className="md:col-span-2"
                     />
 
                     <TextField 
-                        label="選舉描述"
+                        label="選舉詳細描述 (選填)"
                         value={formData.description}
                         onChange={e => setFormData({...formData, description: e.target.value})}
                         multiline
@@ -356,4 +363,8 @@ export function ElectionManagementPage() {
         </Dialog>
     </div>
   );
+}
+
+function cn(...classes: any[]) {
+    return classes.filter(Boolean).join(' ');
 }

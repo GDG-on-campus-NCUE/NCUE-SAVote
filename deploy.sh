@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# SAVote 自動化初始化與部署腳本
+# SAVote 部署腳本
 # ==============================================================================
 
 set -euo pipefail
@@ -75,15 +75,13 @@ fi
 pnpm --filter api gen-keys
 
 # --- 3. 建置 ZK 電路 ---
-log "建置 ZK 電路 (這可能需要一點時間)..."
+log "建置 ZK 電路..."
 pnpm install
 pnpm --filter circuits build
 cp "$REPO_ROOT/packages/circuits/build/verification_key.json" "$REPO_ROOT/packages/crypto-lib/src/verification_key.json" || true
 
 # --- 4. 啟動服務 ---
-log "啟動 Docker 服務 (自動執行遷移與初始化)..."
+log "啟動 Docker 服務 - 自動執行遷移與初始化..."
 docker compose up -d --build
 
-log "部署完成！"
-log "投票入口: ${CORS_ORIGIN:-http://localhost:8080}"
-log "管理後台: ${CORS_ORIGIN:-http://localhost:8080}/admin"
+log "部署完成，前端網址: ${CORS_ORIGIN:-http://localhost:8080}"
