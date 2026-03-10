@@ -14,10 +14,10 @@ export const ToastContainer: React.FC = () => {
   };
 
   const bgColors: Record<ToastType, string> = {
-    success: 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800',
-    error: 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800',
-    info: 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800',
-    warning: 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800',
+    success: 'bg-white/70 dark:bg-green-900/40 border-green-500/50 shadow-green-500/20',
+    error: 'bg-white/70 dark:bg-red-900/40 border-red-500/50 shadow-red-500/20',
+    info: 'bg-white/70 dark:bg-blue-900/40 border-blue-500/50 shadow-blue-500/20',
+    warning: 'bg-white/70 dark:bg-amber-900/40 border-amber-500/50 shadow-amber-500/20',
   };
 
   return (
@@ -26,19 +26,19 @@ export const ToastContainer: React.FC = () => {
         <div
           key={toast.id}
           className={cn(
-            "pointer-events-auto flex items-center gap-4 p-4 rounded-2xl border shadow-lg animate-slide-in-right",
+            "pointer-events-auto flex items-center gap-4 p-4 rounded-2xl border shadow-xl animate-slide-in-right backdrop-blur-xl backdrop-saturate-150",
             bgColors[toast.type]
           )}
         >
-          <div className="shrink-0">{icons[toast.type]}</div>
-          <p className="flex-1 text-sm font-bold text-[var(--color-on-surface)] leading-tight">
+          <div className="shrink-0 p-2 rounded-xl bg-white/50 dark:bg-black/20 shadow-sm">{icons[toast.type]}</div>
+          <p className="flex-1 text-sm font-bold text-gray-900 dark:text-white leading-tight">
             {toast.message}
           </p>
           <button
             onClick={() => removeToast(toast.id)}
-            className="shrink-0 p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors"
+            className="shrink-0 p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-colors"
           >
-            <X className="w-4 h-4 opacity-40" />
+            <X className="w-4 h-4 opacity-60" />
           </button>
         </div>
       ))}

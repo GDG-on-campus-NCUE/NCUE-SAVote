@@ -45,62 +45,32 @@ function App() {
               <Route path="/info/bulletin" element={<ElectionBulletinPage />} />
               <Route path="/verify/:electionId" element={<VerificationCenter />} />
 
-              {/* Protected Voter Routes */}
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <MainLayout><HomePage /></MainLayout>
-                </ProtectedRoute>
-              } />
+              {/* Protected Voter Routes with Persistent Layout */}
+              <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/vote/:electionId" element={<VotingBooth />} />
+                <Route path="/vote/success" element={<VoteSuccess />} />
+                <Route path="/vote/keys" element={<KeySetupPage />} />
+              </Route>
+
+              {/* Protected Admin Routes with Persistent Layout */}
+              <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}><MainLayout /></ProtectedRoute>}>
+                <Route path="/admin" element={<AdminDashboardPage />} />
+                <Route path="/admin/elections" element={<ElectionManagementPage />} />
+                <Route path="/admin/elections/:electionId/candidates" element={<CandidateManagementPage />} />
+                <Route path="/admin/voters" element={<VoterManagementPage />} />
+                <Route path="/admin/monitoring" element={<AdminMonitoringPage />} />
+              </Route>
+
+              {/* Super Admin Only with Persistent Layout */}
+              <Route element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}><MainLayout /></ProtectedRoute>}>
+                <Route path="/admin/accounts" element={<AdminAccountManagementPage />} />
+              </Route>
+
+              {/* Standalone Protected Routes */}
               <Route path="/auth/setup" element={
                 <ProtectedRoute>
                    <SetupPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/vote/:electionId" element={
-                <ProtectedRoute>
-                  <MainLayout><VotingBooth /></MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/vote/success" element={
-                <ProtectedRoute>
-                  <MainLayout><VoteSuccess /></MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/vote/keys" element={
-                <ProtectedRoute>
-                  <MainLayout><KeySetupPage /></MainLayout>
-                </ProtectedRoute>
-              } />
-
-              {/* Admin Routes */}
-              <Route path="/admin" element={
-                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                  <MainLayout><AdminDashboardPage /></MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/elections" element={
-                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                  <MainLayout><ElectionManagementPage /></MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/elections/:electionId/candidates" element={
-                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                  <MainLayout><CandidateManagementPage /></MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/voters" element={
-                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                  <MainLayout><VoterManagementPage /></MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/monitoring" element={
-                <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}>
-                  <MainLayout><AdminMonitoringPage /></MainLayout>
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/accounts" element={
-                <ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}>
-                  <MainLayout><AdminAccountManagementPage /></MainLayout>
                 </ProtectedRoute>
               } />
 

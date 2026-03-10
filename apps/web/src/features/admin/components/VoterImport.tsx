@@ -16,7 +16,8 @@ import {
   Users, 
   Search, 
   Fingerprint,
-  Database
+  Database,
+  Lock as LockIcon
 } from 'lucide-react';
 
 interface StatusState {
@@ -154,28 +155,35 @@ export function VoterImport() {
 
                     <div 
                         className={cn(
-                            "border-2 border-dashed rounded-3xl p-8 text-center transition-all cursor-pointer relative overflow-hidden group",
+                            "border-2 border-dashed rounded-3xl p-8 text-center transition-all relative overflow-hidden group",
                             isElectionLocked 
-                                ? 'bg-black/[0.03] dark:bg-white/[0.03] border-[var(--color-outline-variant)] cursor-not-allowed opacity-60' 
+                                ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 cursor-not-allowed' 
                                 : selectedFile 
-                                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-container)]/10 shadow-inner' 
-                                    : 'border-[var(--color-outline-variant)] hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-container-highest)]'
+                                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-container)]/10 shadow-inner cursor-pointer' 
+                                    : 'border-[var(--color-outline-variant)] hover:border-[var(--color-primary)] hover:bg-[var(--color-surface-container-highest)] cursor-pointer'
                         )}
                         onClick={() => !isElectionLocked && fileInputRef.current?.click()}
                     >
                         <div className={cn(
-                            "mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-all duration-500",
-                            isElectionLocked ? 'bg-gray-200 text-gray-400' : selectedFile ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] scale-110 elevation-2' : 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] group-hover:rotate-6'
+                            "mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-all duration-500 shadow-sm",
+                            isElectionLocked 
+                                ? 'bg-amber-500 text-white animate-pulse' 
+                                : selectedFile 
+                                    ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)] scale-110 elevation-2' 
+                                    : 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] group-hover:rotate-6'
                         )}>
-                            {selectedFile ? <FileText className="w-8 h-8" /> : <Upload className="w-8 h-8" />}
+                            {isElectionLocked ? <LockIcon className="w-8 h-8" /> : selectedFile ? <FileText className="w-8 h-8" /> : <Upload className="w-8 h-8" />}
                         </div>
                         
-                        <p className="font-bold text-lg text-[var(--color-on-surface)]">
-                            {isElectionLocked ? '選舉已開始，名單已凍結' : selectedFile ? selectedFile.name : '點擊或拖曳 CSV 檔案'}
+                        <p className={cn(
+                            "font-bold text-lg",
+                            isElectionLocked ? "text-amber-900 dark:text-amber-100" : "text-[var(--color-on-surface)]"
+                        )}>
+                            {isElectionLocked ? '名單已凍結' : selectedFile ? selectedFile.name : '點擊或拖曳 CSV 檔案'}
                         </p>
                         
-                        <p className="mt-2 text-xs text-[var(--color-on-surface-variant)] font-medium opacity-70">
-                            {isElectionLocked ? '目前不開放新增或修改符合資格的選舉人' : '必須包含 studentId 與 class 欄位'}
+                        <p className="mt-2 text-xs font-medium opacity-70">
+                            {isElectionLocked ? '此選舉已進入正式階段，無法再匯入或修改名冊' : '必須包含 studentId 與 class 欄位'}
                         </p>
                         
                         <input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={handleFileChange} className="hidden" disabled={isElectionLocked} />

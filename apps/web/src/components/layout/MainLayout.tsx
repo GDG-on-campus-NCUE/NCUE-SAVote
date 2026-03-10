@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, Outlet } from 'react-router-dom';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { Navigation, NavItem } from '../m3/Navigation';
 import { ThemeToggle } from '../m3/ThemeToggle';
@@ -10,7 +10,7 @@ import { UserRole } from '@savote/shared-types';
 import { useToastStore } from '../../stores/toastStore';
 
 interface MainLayoutProps {
-    children: React.ReactNode;
+    children?: React.ReactNode;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
@@ -24,11 +24,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const handleLogout = useCallback(async () => {
         try {
             await logout();
-            // Important: Use setTimeout to ensure state cleanup happens before navigation
-            // to avoid React Error #300 / hook mismatch during unmount
-            setTimeout(() => {
+            // Use requestAnimationFrame or a very short timeout to ensure unmounting cycle is clear
+            requestAnimationFrame(() => {
                 navigate('/auth/login', { replace: true });
-            }, 0);
+            });
         } catch (error) {
             addToast('登出時發生錯誤', 'error');
         }
@@ -99,19 +98,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
     const TopBar = () => (
         <header className="fixed top-0 left-0 right-0 h-20 bg-[var(--color-surface)]/80 backdrop-blur-xl z-40 border-b border-[var(--color-outline-variant)]/20 px-4 md:px-8 flex items-center justify-between transition-colors duration-500 md:pl-[104px]">
-             <div className="flex items-center gap-4 animate-fade-in">
-                <div className="p-2 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-outline-variant)]/20 elevation-1">
-                    <img src="/sa_logo.webp" alt="Logo" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
-                </div>
+             <Link to={isAdmin ? "/admin" : "/"} className="flex items-center gap-4 animate-fade-in hover:opacity-80 transition-opacity">
+                <img src="/sa_logo.webp" alt="Logo" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
                 <div className="flex flex-col">
-                    <h1 className="text-base md:text-lg font-black text-[var(--color-on-surface)] leading-tight tracking-tight">
-                        {isAdmin ? "國立彰化師範大學 投票系統" : "國立彰化師範大學 學生會"}
+                    <h1 className="text-base md:text-lg font-bold text-[var(--color-on-surface)] leading-tight tracking-tight">
+                        國立彰化師範大學學生會
                     </h1>
-                    <span className="text-[10px] md:text-[11px] text-[var(--color-primary)] font-bold tracking-[0.1em] uppercase opacity-90">
+                    <span className="text-[10px] md:text-[11px] text-[var(--color-primary)] font-semibold tracking-[0.1em] uppercase opacity-90">
                         NCUE Student Association
                     </span>
                 </div>
-             </div>
+             </Link>
 
              <div className="flex items-center gap-3">
                  {user && (
@@ -140,7 +137,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     );
 
     return (
-        <div className="min-h-screen bg-[var(--color-surface)] text-[var(--color-on-surface)] transition-colors duration-500 select-none">
+        <div className="min-h-screen bg-[var(--color-surface)] text-[var(--color-on-surface)] transition-colors duration-500 select-none overflow-x-hidden w-full">
             <Navigation 
                 items={actualNavItems} 
                 orientation="vertical" 
@@ -153,8 +150,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             />
             <TopBar />
 
-            <main className="pt-24 pb-28 md:pl-[80px] md:pb-12 px-4 md:px-12 max-w-7xl mx-auto min-h-screen relative z-10 animate-fade-in">
-                {children}
+            <main className="pt-24 pb-28 md:pl-[80px] md:pb-12 px-4 md:px-12 max-w-7xl mx-auto min-h-screen relative z-10 animate-fade-in overflow-x-hidden w-full">
+                {children || <Outlet />}
             </main>
 
             <Navigation items={actualNavItems} orientation="horizontal" onItemClick={(to) => {

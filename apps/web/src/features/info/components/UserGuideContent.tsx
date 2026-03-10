@@ -23,10 +23,13 @@ export function UserGuideContent() {
   ];
 
   return (
-    <div className="py-2 px-1 md:px-2 max-w-4xl mx-auto scrollbar-hide">
+    <div className="py-2 px-1 md:px-2 max-w-4xl mx-auto scrollbar-hide select-none">
       <style dangerouslySetInnerHTML={{ __html: `
         .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .scrollbar-hide { 
+          -ms-overflow-style: none; 
+          scrollbar-width: none; 
+        }
       `}} />
       
       <div className="relative">

@@ -45,7 +45,7 @@ export const LoginPage = () => {
                     國立彰化師範大學學生會
                 </h1>
                 <p className="type-headline-small text-[var(--color-primary)] font-medium tracking-[0.25em] mb-10 opacity-80">
-                    線上投票系統
+                    去中心化投票系統
                 </p>
                 <div className="w-24 h-1 bg-[var(--color-primary-container)] rounded-full opacity-40" />
             </div>
@@ -71,10 +71,10 @@ export const LoginPage = () => {
                     />
                 </div>
                 <h2 className="type-headline-small text-[var(--color-on-surface)] font-bold">
-                    彰師大學生會
+                    國立彰化師範大學學生會
                 </h2>
                 <p className="type-title-medium text-[var(--color-primary)] tracking-[0.2em] font-medium mt-1">
-                    投票系統
+                    去中心化投票系統
                 </p>
             </div>
 
@@ -139,7 +139,7 @@ export const LoginPage = () => {
             <footer className="mt-12 md:mt-16 text-center space-y-5 pb-8 md:pb-0">
                 <div className="flex items-center justify-center gap-3 py-1.5 px-5 rounded-full bg-[var(--color-surface-container-high)] border border-[var(--color-outline-variant)]/20 text-[var(--color-on-surface)] elevation-1 mx-auto w-fit">
                     <ShieldCheck className="w-4 h-4 text-[var(--color-primary)] opacity-80" />
-                    <span className="text-xs font-medium tracking-wide opacity-80">Secure Voting Environment</span>
+                    <span className="text-xs font-medium tracking-wide opacity-80">Decentralized Voting System</span>
                 </div>
                 
                 <div className="space-y-1.5">
@@ -148,7 +148,7 @@ export const LoginPage = () => {
                     </p>
                     <p className="text-[11px] font-normal text-[var(--color-outline)] max-w-[280px] mx-auto leading-relaxed opacity-60">
                         Licensed under PolyForm Noncommercial<br/>
-                        (Non-Commercial Use Only)
+                        Non-Commercial Use Only
                     </p>
                 </div>
             </footer>
@@ -176,7 +176,7 @@ export const LoginPage = () => {
             </>
           }
         >
-          <div className="py-2 max-h-[60vh] overflow-y-auto px-1 font-normal">
+          <div className="py-2 max-h-[60vh] overflow-y-auto px-1 font-normal scrollbar-hide">
              <UserGuideContent />
           </div>
         </Dialog>

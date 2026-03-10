@@ -75,7 +75,7 @@ export function AdminMonitoringPage() {
 
       <div className="grid gap-8">
         {/* Selection Card */}
-        <Card className="p-8 rounded-[32px] border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-low)] elevation-1">
+        <Card className="p-8 rounded-2xl border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-low)] elevation-1">
             <div className="flex flex-col md:flex-row md:items-end gap-6">
                 <div className="flex-1 space-y-3">
                     <label className="flex items-center gap-2 text-sm font-bold text-[var(--color-on-surface-variant)] px-1">
@@ -84,7 +84,7 @@ export function AdminMonitoringPage() {
                     </label>
                     <div className="relative group">
                         <select
-                            className="w-full appearance-none rounded-2xl bg-[var(--color-surface-container-high)] border-2 border-transparent focus:border-[var(--color-primary)]/30 text-[var(--color-on-surface)] px-6 py-4 focus:outline-none transition-all cursor-pointer hover:bg-[var(--color-surface-container-highest)] font-bold text-lg elevation-1"
+                            className="w-full appearance-none rounded-xl bg-[var(--color-surface-container-high)] border-2 border-transparent focus:border-[var(--color-primary)]/30 text-[var(--color-on-surface)] px-6 py-4 focus:outline-none transition-all cursor-pointer hover:bg-[var(--color-surface-container-highest)] font-bold text-lg elevation-1"
                             value={selectedElectionId}
                             onChange={(e) => setSelectedElectionId(e.target.value)}
                         >
@@ -106,7 +106,7 @@ export function AdminMonitoringPage() {
                     disabled={!selectedElectionId || isFetching}
                     loading={isFetching}
                     variant="tonal"
-                    className="h-16 px-8 rounded-2xl font-bold elevation-1 hover:elevation-2"
+                    className="h-16 px-8 rounded-xl font-bold elevation-1 hover:elevation-2"
                     icon={<RefreshCw className={cn("w-5 h-5", isFetching && "animate-spin")} />}
                 >
                     同步最新數據
@@ -120,7 +120,7 @@ export function AdminMonitoringPage() {
         </Card>
 
         {isLoading && selectedElectionId && (
-            <div className="flex flex-col items-center justify-center py-24 bg-[var(--color-surface-container-low)] rounded-[40px] animate-pulse">
+            <div className="flex flex-col items-center justify-center py-24 bg-[var(--color-surface-container-low)] rounded-3xl animate-pulse">
                 <Loader2 className="w-12 h-12 animate-spin text-[var(--color-primary)] mb-4" />
                 <p className="text-lg font-bold text-[var(--color-on-surface-variant)]">正在安全取得計票統計數據...</p>
             </div>
@@ -130,7 +130,7 @@ export function AdminMonitoringPage() {
             <div className="grid gap-8 md:grid-cols-12 animate-slide-up">
                 {/* Statistics Sidebar */}
                 <div className="md:col-span-4 space-y-6">
-                    <Card className="p-8 rounded-[32px] bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] border-none elevation-2">
+                    <Card className="p-8 rounded-2xl bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] border-none elevation-2">
                         <div className="flex items-center gap-3 mb-8">
                              <div className="p-2 bg-[var(--color-on-primary-container)]/10 rounded-xl">
                                 <BarChart3 className="w-6 h-6" />
@@ -172,7 +172,7 @@ export function AdminMonitoringPage() {
                     </Card>
 
                     {/* Result Card */}
-                    <Card className="p-8 rounded-[32px] bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)]/30 elevation-1">
+                    <Card className="p-8 rounded-2xl bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)]/30 elevation-1">
                         <div className="flex items-start gap-4 mb-4">
                              <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-2xl text-amber-600 dark:text-amber-400">
                                 <Trophy className="w-6 h-6" />
@@ -182,7 +182,7 @@ export function AdminMonitoringPage() {
                                  <p className="text-xs text-[var(--color-on-surface-variant)] opacity-70">官方判定結果</p>
                              </div>
                         </div>
-                        <p className="text-lg font-bold text-[var(--color-on-surface)] leading-relaxed bg-[var(--color-surface-container-high)] p-4 rounded-2xl border border-[var(--color-outline-variant)]/30">
+                        <p className="text-lg font-bold text-[var(--color-on-surface)] leading-relaxed bg-[var(--color-surface-container-high)] p-4 rounded-xl border border-[var(--color-outline-variant)]/30">
                             {summary.tally.result.note || '正在核對中...'}
                         </p>
                         {summary.tally.result.threshold && (
@@ -198,7 +198,7 @@ export function AdminMonitoringPage() {
 
                 {/* Candidate Breakdown */}
                 <div className="md:col-span-8">
-                    <Card className="p-8 rounded-[40px] border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface)] elevation-1">
+                    <Card className="p-8 rounded-2xl border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface)] elevation-1">
                         <div className="flex items-center justify-between mb-8">
                             <h2 className="text-2xl font-black text-[var(--color-on-surface)] flex items-center gap-3">
                                 <PieChart className="w-7 h-7 text-[var(--color-primary)]" />
@@ -230,14 +230,14 @@ export function AdminMonitoringPage() {
                                         <div
                                             key={candidate.id}
                                             className={cn(
-                                                "p-6 rounded-[28px] border transition-all duration-500 relative group overflow-hidden",
+                                                "p-6 rounded-2xl border transition-all duration-500 relative group overflow-hidden",
                                                 isWinner 
                                                     ? "bg-[var(--color-primary-container)]/10 border-[var(--color-primary)] elevation-2" 
                                                     : "bg-[var(--color-surface-container-low)] border-transparent hover:bg-[var(--color-surface-container-high)]"
                                             )}
                                         >
                                             {isWinner && (
-                                                <div className="absolute top-0 right-0 px-4 py-1 bg-[var(--color-primary)] text-[var(--color-on-primary)] font-black text-[10px] tracking-widest uppercase rounded-bl-xl elevation-2">
+                                                <div className="absolute top-0 right-0 px-4 py-1 bg-[var(--color-primary)] text-[var(--color-on-primary)] font-black text-[10px] tracking-widest uppercase rounded-bl-lg elevation-2">
                                                     Winner
                                                 </div>
                                             )}
@@ -245,7 +245,7 @@ export function AdminMonitoringPage() {
                                             <div className="flex justify-between items-start mb-4 relative z-10">
                                                 <div className="flex items-center gap-5">
                                                     <div className={cn(
-                                                        "w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black transition-all duration-500",
+                                                        "w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black transition-all duration-500",
                                                         isWinner 
                                                             ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] elevation-3 rotate-6" 
                                                             : "bg-[var(--color-surface-container-highest)] text-[var(--color-on-surface-variant)]"

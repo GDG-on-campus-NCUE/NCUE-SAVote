@@ -50,7 +50,7 @@ export const Dialog: React.FC<DialogProps> = ({
             {/* Dialog Container */}
             <div 
                 className={cn(
-                    "relative bg-[var(--color-surface)] text-[var(--color-on-surface)] rounded-[28px] max-w-md w-full p-6 elevation-3 transition-all duration-300",
+                    "relative bg-[var(--color-surface)] text-[var(--color-on-surface)] rounded-2xl max-w-md w-full p-6 elevation-3 transition-all duration-300",
                     open ? "scale-100 opacity-100" : "scale-90 opacity-0",
                     "flex flex-col gap-4",
                     className

@@ -13,34 +13,36 @@ export function AdminHeader({ title, subtitle, showBack = true, actions }: Admin
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 animate-fade-in">
-      <div className="flex items-start gap-5">
+    <div className="flex flex-col gap-4 md:flex-row md:items-end justify-between mb-8 animate-fade-in">
+      <div className="flex items-start gap-4 md:gap-5">
         {showBack && (
           <Button 
             variant="tonal" 
-            className="rounded-2xl w-12 h-12 p-0 shrink-0 elevation-1 hover:elevation-2 transition-standard" 
+            className="hidden md:flex rounded-xl w-12 h-12 p-0 shrink-0 elevation-1 hover:elevation-2 transition-standard" 
             onClick={() => navigate(-1)}
           >
             <ArrowLeft className="w-6 h-6" />
           </Button>
         )}
-        <div className="space-y-1">
+        <div className="space-y-0.5">
            <div className="flex items-center gap-3">
-             <h1 className="text-3xl md:text-4xl font-extrabold text-[var(--color-on-surface)] tracking-tight">
+             <h1 className="text-2xl md:text-3xl font-bold text-[var(--color-on-surface)] tracking-tight">
                 {title}
              </h1>
-             <div className="h-2 w-2 rounded-full bg-[var(--color-primary)] opacity-50 hidden md:block" />
+             <div className="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)] opacity-40 hidden md:block" />
            </div>
           {subtitle && (
-            <p className="text-sm md:text-base text-[var(--color-on-surface-variant)] font-medium opacity-80">
+            <p className="text-xs md:text-sm text-[var(--color-on-surface-variant)] font-medium opacity-70">
                 {subtitle}
             </p>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-3 self-start md:self-end bg-[var(--color-surface-container-low)] p-1.5 rounded-[20px] border border-[var(--color-outline-variant)]/30">
-         {actions}
-      </div>
+      {actions && (
+        <div className="flex items-center gap-2 self-start md:self-end">
+           {actions}
+        </div>
+      )}
     </div>
   );
 }

@@ -9,8 +9,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ElectionsService } from './elections.service';
+import { CandidatesService } from './candidates.service';
 import { CreateElectionDto } from './dto/create-election.dto';
 import { UpdateElectionDto } from './dto/update-election.dto';
+import { CreateCandidateDto } from './dto/create-candidate.dto';
+import { UpdateCandidateDto } from './dto/update-candidate.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { ImportEligibleVotersDto } from './dto/import-eligible-voters.dto';
@@ -20,6 +23,7 @@ import { VotesService } from '../votes/votes.service';
 export class ElectionsController {
   constructor(
     private readonly electionsService: ElectionsService,
+    private readonly candidatesService: CandidatesService,
     private readonly votesService: VotesService,
   ) {}
 
@@ -52,6 +56,33 @@ export class ElectionsController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   remove(@Param('id') id: string) {
     return this.electionsService.remove(id);
+  }
+
+  // --- Candidate Management ---
+  @Post(':id/candidates')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  createCandidate(
+    @Param('id') electionId: string,
+    @Body() dto: CreateCandidateDto,
+  ) {
+    return this.candidatesService.create(electionId, dto);
+  }
+
+  @Get(':id/candidates')
+  findAllCandidates(@Param('id') electionId: string) {
+    return this.candidatesService.findAll(electionId);
+  }
+
+  @Patch('candidates/:id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  updateCandidate(@Param('id') id: string, @Body() dto: UpdateCandidateDto) {
+    return this.candidatesService.update(id, dto);
+  }
+
+  @Delete('candidates/:id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  removeCandidate(@Param('id') id: string) {
+    return this.candidatesService.remove(id);
   }
 
   // --- Voting Results (Time-restricted in Service) ---

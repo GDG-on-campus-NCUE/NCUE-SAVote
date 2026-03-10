@@ -3,6 +3,7 @@ import { Navigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { Button } from '../../../components/m3/Button';
+import { Card } from '../../../components/m3/Card';
 import { Dialog } from '../../../components/m3/Dialog';
 import { TextField } from '../../../components/m3/TextField';
 import { AdminHeader } from '../components/AdminHeader';
@@ -15,6 +16,12 @@ import { useToastStore } from '../../../stores/toastStore';
 interface ExtendedElection extends Election {
     description?: string;
 }
+
+export const ELECTION_TYPE_LABELS: Record<string, string> = {
+  [ElectionType.PRESIDENTIAL]: '正副會長選舉',
+  [ElectionType.DISTRICT_COUNCILOR]: '選區議員選舉',
+  [ElectionType.AT_LARGE_COUNCILOR]: '不分區議員選舉',
+};
 
 export function ElectionManagementPage() {
   const { user } = useAuth();
@@ -175,7 +182,7 @@ export function ElectionManagementPage() {
                 variant="filled"
                 icon={<Plus className="w-5 h-5" />} 
                 onClick={handleOpenCreate}
-                className="h-12 px-6 rounded-2xl shadow-lg shadow-[var(--color-primary)]/20"
+                className="h-12 px-6 rounded-xl shadow-lg shadow-[var(--color-primary)]/20"
             >
                 建立選舉
             </Button>
@@ -183,8 +190,8 @@ export function ElectionManagementPage() {
        />
         
         <div className="space-y-6">
-            {/* Search Bar - M3 Search Style */}
-            <div className="relative group max-w-2xl">
+            {/* Search Bar & Action - M3 Search Style */}
+            <div className="relative group w-full">
                 <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
                     <Search className="w-5 h-5 text-[var(--color-outline)] group-focus-within:text-[var(--color-primary)] transition-colors" />
                 </div>
@@ -193,16 +200,16 @@ export function ElectionManagementPage() {
                     placeholder="搜尋選舉名稱..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-14 pr-6 h-14 bg-[var(--color-surface-container-high)] border border-transparent focus:border-[var(--color-primary)]/30 focus:bg-[var(--color-surface)] rounded-[28px] text-[var(--color-on-surface)] transition-all duration-300 elevation-1 focus:elevation-2 outline-none"
+                    className="w-full pl-14 pr-6 h-14 bg-[var(--color-surface-container-high)] border border-transparent focus:border-[var(--color-primary)]/30 focus:bg-[var(--color-surface)] rounded-2xl text-[var(--color-on-surface)] transition-all duration-300 elevation-1 focus:elevation-2 outline-none"
                 />
             </div>
 
              {isLoading ? (
                  <div className="grid gap-4">
-                     {[1,2,3].map(i => <div key={i} className="h-24 bg-[var(--color-surface-container)] rounded-[24px] animate-pulse" />)}
+                     {[1,2,3].map(i => <div key={i} className="h-24 bg-[var(--color-surface-container)] rounded-2xl animate-pulse" />)}
                  </div>
              ) : elections.length === 0 ? (
-                 <div className="flex flex-col items-center justify-center py-24 bg-[var(--color-surface-container-low)] rounded-[40px] border-2 border-dashed border-[var(--color-outline-variant)]">
+                 <div className="flex flex-col items-center justify-center py-24 bg-[var(--color-surface-container-low)] rounded-3xl border-2 border-dashed border-[var(--color-outline-variant)]">
                      <div className="p-6 rounded-full bg-[var(--color-surface-container-high)] mb-6">
                         <CalendarPlus className="w-12 h-12 text-[var(--color-outline)] opacity-40" />
                      </div>
@@ -212,104 +219,176 @@ export function ElectionManagementPage() {
                      </Button>
                  </div>
              ) : (
-                <div className="bg-[var(--color-surface-container-low)] rounded-[32px] border border-[var(--color-outline-variant)]/30 overflow-hidden elevation-1 transition-standard hover:elevation-2">
-                   <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-[var(--color-surface-container-high)]/50 border-b border-[var(--color-outline-variant)]/30">
-                                    <th className="px-8 py-5 type-label-large text-[var(--color-on-surface-variant)] opacity-70">選舉資訊</th>
-                                    <th className="px-6 py-5 type-label-large text-[var(--color-on-surface-variant)] opacity-70">即時狀態</th>
-                                    <th className="px-6 py-5 type-label-large text-[var(--color-on-surface-variant)] opacity-70 hidden lg:table-cell">時間排程</th>
-                                    <th className="px-8 py-5 type-label-large text-[var(--color-on-surface-variant)] opacity-70 text-right">管理操作</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[var(--color-outline-variant)]/20">
-                                {filteredElections.map((election: ExtendedElection) => {
-                                    const status = getStatusDisplay(election);
-                                    return (
-                                        <tr key={election.id} className="group hover:bg-[var(--color-surface)] transition-all duration-300">
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-2xl bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] flex items-center justify-center font-bold text-lg elevation-1 group-hover:scale-110 transition-transform">
-                                                        {election.name.charAt(0)}
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-bold text-[var(--color-on-surface)] text-lg mb-1">{election.name}</div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="px-2 py-0.5 rounded-full bg-[var(--color-secondary-container)] text-[var(--color-on-secondary-container)] text-[10px] font-bold uppercase tracking-wider">
-                                                                {election.type}
-                                                            </span>
-                                                            {election.description && (
-                                                                <span className="text-xs text-[var(--color-on-surface-variant)] opacity-60 line-clamp-1 max-w-[150px]">
-                                                                    {election.description}
-                                                                </span>
+                <>
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block bg-[var(--color-surface-container-low)] rounded-2xl border border-[var(--color-outline-variant)]/30 overflow-hidden elevation-1 transition-standard hover:elevation-2">
+                        <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-[var(--color-surface-container-high)]/50 border-b border-[var(--color-outline-variant)]/30">
+                                            <th className="px-8 py-5 type-label-large text-[var(--color-on-surface-variant)] opacity-70">選舉資訊</th>
+                                            <th className="px-6 py-5 type-label-large text-[var(--color-on-surface-variant)] opacity-70">即時狀態</th>
+                                            <th className="px-6 py-5 type-label-large text-[var(--color-on-surface-variant)] opacity-70 hidden lg:table-cell">時間排程</th>
+                                            <th className="px-8 py-5 type-label-large text-[var(--color-on-surface-variant)] opacity-70 text-right">管理操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[var(--color-outline-variant)]/20">
+                                        {filteredElections.map((election: ExtendedElection) => {
+                                            const status = getStatusDisplay(election);
+                                            return (
+                                                <tr key={election.id} className="group hover:bg-[var(--color-surface)] transition-all duration-300">
+                                                    <td className="px-8 py-6">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-12 h-12 rounded-xl bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] flex items-center justify-center font-bold text-lg elevation-1 group-hover:scale-110 transition-transform">
+                                                                {election.name.charAt(0)}
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-bold text-[var(--color-on-surface)] text-lg mb-1">{election.name}</div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="px-2 py-0.5 rounded-md bg-[var(--color-secondary-container)] text-[var(--color-on-secondary-container)] text-[10px] font-bold uppercase tracking-wider">
+                                                                        {ELECTION_TYPE_LABELS[election.type] || election.type}
+                                                                    </span>
+                                                                    {election.description && (
+                                                                        <span className="text-xs text-[var(--color-on-surface-variant)] opacity-60 line-clamp-1 max-w-[150px]">
+                                                                            {election.description}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-6">
+                                                        <div className={cn(
+                                                            "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-standard border",
+                                                            status.color
+                                                        )}>
+                                                            <div className={cn("w-2 h-2 rounded-full", status.dot)} />
+                                                            {status.label}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-6 hidden lg:table-cell">
+                                                        <div className="flex flex-col gap-1.5">
+                                                            <div className="flex items-center gap-2 text-xs font-medium text-[var(--color-on-surface-variant)]">
+                                                                <Calendar className="w-3.5 h-3.5 opacity-50" />
+                                                                <span>{election.startTime ? new Date(election.startTime).toLocaleDateString() : '-'}</span>
+                                                                <Clock className="w-3.5 h-3.5 ml-1 opacity-50" />
+                                                                <span>{election.startTime ? new Date(election.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-xs font-medium text-[var(--color-primary)]">
+                                                                <ArrowRight className="w-3.5 h-3.5 opacity-50" />
+                                                                <span>{election.endTime ? new Date(election.endTime).toLocaleDateString() : '-'}</span>
+                                                                <Clock className="w-3.5 h-3.5 ml-1 opacity-50" />
+                                                                <span>{election.endTime ? new Date(election.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-8 py-6 text-right">
+                                                        <div className="flex justify-end items-center gap-2">
+                                                            <Link to={`/admin/elections/${election.id}/candidates`}>
+                                                                <Button variant="tonal" size="sm" className="rounded-xl px-4 font-bold" icon={<Users className="w-4 h-4" />}>
+                                                                    管理候選人
+                                                                </Button>
+                                                            </Link>
+                                                            
+                                                            {/* Actions restricted after start */}
+                                                            {(!election.startTime || new Date() < new Date(election.startTime)) && (
+                                                                <>
+                                                                    <div className="h-8 w-[1px] bg-[var(--color-outline-variant)]/30 mx-1" />
+                                                                    <button 
+                                                                        onClick={() => handleOpenEdit(election)}
+                                                                        className="w-10 h-10 rounded-xl hover:bg-[var(--color-primary-container)] hover:text-[var(--color-on-primary-container)] text-[var(--color-on-surface-variant)] transition-all flex items-center justify-center"
+                                                                        title="編輯選舉"
+                                                                    >
+                                                                        <Edit2 className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => { if(window.confirm('確定要刪除此選舉嗎？')) deleteMutation.mutate(election.id); }}
+                                                                        className="w-10 h-10 rounded-xl hover:bg-[var(--color-error-container)] hover:text-[var(--color-on-error-container)] text-[var(--color-error)] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
+                                                                        title="刪除選舉"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </>
                                                             )}
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-6">
-                                                <div className={cn(
-                                                    "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-standard border",
-                                                    status.color
-                                                )}>
-                                                    <div className={cn("w-2 h-2 rounded-full", status.dot)} />
-                                                    {status.label}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-6 hidden lg:table-cell">
-                                                <div className="flex flex-col gap-1.5">
-                                                    <div className="flex items-center gap-2 text-xs font-medium text-[var(--color-on-surface-variant)]">
-                                                        <Calendar className="w-3.5 h-3.5 opacity-50" />
-                                                        <span>{election.startTime ? new Date(election.startTime).toLocaleDateString() : '-'}</span>
-                                                        <Clock className="w-3.5 h-3.5 ml-1 opacity-50" />
-                                                        <span>{election.startTime ? new Date(election.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-xs font-medium text-[var(--color-primary)]">
-                                                        <ArrowRight className="w-3.5 h-3.5 opacity-50" />
-                                                        <span>{election.endTime ? new Date(election.endTime).toLocaleDateString() : '-'}</span>
-                                                        <Clock className="w-3.5 h-3.5 ml-1 opacity-50" />
-                                                        <span>{election.endTime ? new Date(election.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-6 text-right">
-                                                <div className="flex justify-end items-center gap-2">
-                                                    <Link to={`/admin/elections/${election.id}/candidates`}>
-                                                        <Button variant="tonal" size="sm" className="rounded-xl px-4 font-bold" icon={<Users className="w-4 h-4" />}>
-                                                            管理候選人
-                                                        </Button>
-                                                    </Link>
-                                                    
-                                                    {/* Actions restricted after start */}
-                                                    {(!election.startTime || new Date() < new Date(election.startTime)) && (
-                                                        <>
-                                                            <div className="h-8 w-[1px] bg-[var(--color-outline-variant)]/30 mx-1" />
-                                                            <button 
-                                                                onClick={() => handleOpenEdit(election)}
-                                                                className="w-10 h-10 rounded-xl hover:bg-[var(--color-primary-container)] hover:text-[var(--color-on-primary-container)] text-[var(--color-on-surface-variant)] transition-all flex items-center justify-center"
-                                                                title="編輯選舉"
-                                                            >
-                                                                <Edit2 className="w-4 h-4" />
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => { if(window.confirm('確定要刪除此選舉嗎？')) deleteMutation.mutate(election.id); }}
-                                                                className="w-10 h-10 rounded-xl hover:bg-[var(--color-error-container)] hover:text-[var(--color-on-error-container)] text-[var(--color-error)] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
-                                                                title="刪除選舉"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                   </div>
-                </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                        </div>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="grid gap-4 md:hidden">
+                        {filteredElections.map((election: ExtendedElection) => {
+                            const status = getStatusDisplay(election);
+                            return (
+                                <Card key={election.id} className="p-6 rounded-2xl border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-low)] elevation-1">
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] flex items-center justify-center font-bold text-lg">
+                                                {election.name.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-[var(--color-on-surface)] text-lg line-clamp-1">{election.name}</h3>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary)] opacity-70">
+                                                    {ELECTION_TYPE_LABELS[election.type] || election.type}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className={cn(
+                                            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border",
+                                            status.color
+                                        )}>
+                                            <div className={cn("w-1.5 h-1.5 rounded-full", status.dot)} />
+                                            {status.label}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3 mb-6 bg-[var(--color-surface-container-high)]/50 p-4 rounded-xl">
+                                        <div className="flex items-center gap-3 text-xs font-medium text-[var(--color-on-surface-variant)]">
+                                            <Calendar className="w-3.5 h-3.5 opacity-50" />
+                                            <span>開始：{election.startTime ? new Date(election.startTime).toLocaleString() : '-'}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs font-medium text-[var(--color-primary)]">
+                                            <ArrowRight className="w-3.5 h-3.5 opacity-50" />
+                                            <span>結束：{election.endTime ? new Date(election.endTime).toLocaleString() : '-'}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-2 pt-2">
+                                        <Link to={`/admin/elections/${election.id}/candidates`} className="flex-1 min-w-[120px]">
+                                            <Button variant="tonal" size="sm" className="w-full rounded-xl font-bold" icon={<Users className="w-4 h-4" />}>
+                                                候選人
+                                            </Button>
+                                        </Link>
+                                        
+                                        {(!election.startTime || new Date() < new Date(election.startTime)) && (
+                                            <div className="flex gap-2 shrink-0">
+                                                <Button 
+                                                    variant="outlined" 
+                                                    size="sm" 
+                                                    onClick={() => handleOpenEdit(election)}
+                                                    className="w-10 h-10 p-0 rounded-xl"
+                                                    icon={<Edit2 className="w-4 h-4" />}
+                                                />
+                                                <Button 
+                                                    variant="outlined" 
+                                                    size="sm" 
+                                                    onClick={() => { if(window.confirm('確定要刪除此選舉嗎？')) deleteMutation.mutate(election.id); }}
+                                                    className="w-10 h-10 p-0 rounded-xl text-[var(--color-error)] border-[var(--color-error)]/30"
+                                                    icon={<Trash2 className="w-4 h-4" />}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </Card>
+                            );
+                        })}
+                    </div>
+                </>
              )}
         </div>
 
@@ -318,7 +397,7 @@ export function ElectionManagementPage() {
             open={isCreateOpen} 
             onClose={() => setIsCreateOpen(false)}
             title={editingElection ? '編輯選舉' : '建立選舉'}
-            className="w-full max-w-2xl"
+            className="w-full max-w-2xl select-none"
             actions={
                 <>
                     <Button variant="text" onClick={() => setIsCreateOpen(false)} className="font-bold">
@@ -353,9 +432,9 @@ export function ElectionManagementPage() {
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {[
-                                { id: ElectionType.PRESIDENTIAL, label: '正副會長' },
-                                { id: ElectionType.DISTRICT_COUNCILOR, label: '選區議員' },
-                                { id: ElectionType.AT_LARGE_COUNCILOR, label: '不分區議員' }
+                                { id: ElectionType.PRESIDENTIAL, label: '正副會長選舉' },
+                                { id: ElectionType.DISTRICT_COUNCILOR, label: '選區議員選舉' },
+                                { id: ElectionType.AT_LARGE_COUNCILOR, label: '不分區議員選舉' }
                             ].map((type) => (
                                 <button
                                     key={type.id}

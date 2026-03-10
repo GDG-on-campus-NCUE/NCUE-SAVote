@@ -2,11 +2,16 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api } from '../../auth/services/auth.api';
 import { API_ENDPOINTS } from '../../../lib/constants';
-import { type Election } from '@savote/shared-types';
-import { Card } from '../../../components/m3/Card';
+import { type Election, ElectionType } from '@savote/shared-types';
 import { Button } from '../../../components/m3/Button';
 import { FileText, ExternalLink, Search, Info, Calendar, ChevronRight, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+export const ELECTION_TYPE_LABELS: Record<string, string> = {
+  [ElectionType.PRESIDENTIAL]: '正副會長選舉',
+  [ElectionType.DISTRICT_COUNCILOR]: '選區議員選舉',
+  [ElectionType.AT_LARGE_COUNCILOR]: '不分區議員選舉',
+};
 
 export function ElectionBulletinPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,41 +32,57 @@ export function ElectionBulletinPage() {
   const bulletins = filteredElections.filter(e => (e.config as any)?.bulletinUrl);
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[var(--color-surface)] overflow-hidden animate-fade-in">
+    <div className="flex flex-col h-[100dvh] bg-[var(--color-surface)] overflow-hidden animate-fade-in select-none">
       
       {/* Fixed Header */}
-      <header className="shrink-0 border-b border-[var(--color-outline-variant)]/20 px-6 py-4 md:px-12 md:py-6 bg-[var(--color-surface)]/80 backdrop-blur-xl z-10">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-                <Link to="/auth/login">
-                    <Button variant="tonal" className="rounded-2xl w-10 h-10 p-0" icon={<ArrowLeft className="w-5 h-5" />} />
-                </Link>
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-black text-[var(--color-on-surface)] tracking-tight">選舉公報中心</h1>
-                    <p className="text-xs md:text-sm text-[var(--color-on-surface-variant)] font-medium opacity-70">
-                        查看國立彰化師範大學學生會各項選舉正式公報
-                    </p>
+      <header className="fixed top-0 left-0 right-0 bg-[var(--color-surface)]/95 backdrop-blur-xl z-40 border-b border-[var(--color-outline-variant)]/20 px-4 md:px-8 py-3 md:h-20 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors duration-500">
+        <div className="flex items-center justify-between w-full md:w-auto">
+            <Link to="/" className="flex items-center gap-3 md:gap-4 hover:opacity-80 transition-opacity">
+                <img src="/sa_logo.webp" alt="Logo" className="w-10 h-10 md:w-14 md:h-14 object-contain" />
+                <div className="flex flex-col">
+                    <h1 className="text-sm md:text-xl font-bold text-[var(--color-on-surface)] leading-tight tracking-tight">
+                        國立彰化師範大學學生會
+                    </h1>
+                    <span className="text-[9px] md:text-[11px] text-[var(--color-primary)] font-bold tracking-[0.1em] uppercase opacity-90">
+                        NCUE Student Association
+                    </span>
                 </div>
-            </div>
+            </Link>
 
-            {/* Compact Search */}
-            <div className="relative group w-full md:w-72">
+            <Link to="/" className="md:hidden">
+                <Button variant="tonal" size="sm" className="rounded-full px-4 font-bold" icon={<ArrowLeft className="w-4 h-4" />}>
+                    返回首頁
+                </Button>
+            </Link>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-6 w-full md:w-auto">
+            <h2 className="hidden lg:block text-lg font-bold text-[var(--color-primary)] tracking-wider whitespace-nowrap">選舉公報</h2>
+            
+            {/* Search Box - Now responsive */}
+            <div className="relative group w-full md:w-64 lg:w-80">
                 <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                     <Search className="w-4 h-4 text-[var(--color-outline)] group-focus-within:text-[var(--color-primary)] transition-colors" />
                 </div>
                 <input 
                     type="text" 
-                    placeholder="搜尋選舉案件..."
+                    placeholder="搜尋選舉公報..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 h-11 bg-[var(--color-surface-container-high)] border border-transparent focus:border-[var(--color-primary)]/30 focus:bg-[var(--color-surface)] rounded-full text-sm text-[var(--color-on-surface)] transition-all outline-none elevation-1"
+                    className="w-full pl-10 pr-4 h-10 md:h-12 bg-[var(--color-surface-container-high)] border border-transparent focus:border-[var(--color-primary)]/30 focus:bg-[var(--color-surface)] rounded-2xl text-sm text-[var(--color-on-surface)] transition-all outline-none elevation-1"
                 />
             </div>
+
+            <Link to="/" className="hidden md:block">
+                <Button variant="tonal" className="rounded-xl font-bold px-5" icon={<ArrowLeft className="w-4 h-4" />}>
+                    返回首頁
+                </Button>
+            </Link>
         </div>
       </header>
 
-      {/* Main Content Area - Scrollable on mobile, Grid on desktop */}
-      <main className="flex-1 overflow-hidden">
+      {/* Main Content Area - Adjust padding for responsive header */}
+      <main className="flex-1 overflow-hidden pt-[136px] md:pt-20">
         <div className="h-full max-w-7xl mx-auto px-4 md:px-12 py-6 md:py-8 flex flex-col md:flex-row gap-8">
             
             {/* List Side */}
@@ -78,7 +99,7 @@ export function ElectionBulletinPage() {
                     ) : bulletins.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
                             <FileText className="w-16 h-16 mb-4" />
-                            <p className="font-bold">目前尚無已發布的公報</p>
+                            <p className="font-bold">目前尚無已發布的選舉公報</p>
                         </div>
                     ) : (
                         bulletins.map((election) => (
@@ -110,7 +131,7 @@ export function ElectionBulletinPage() {
                                             {new Date(election.startTime!).toLocaleDateString()}
                                         </span>
                                         <span>•</span>
-                                        <span>{election.type}</span>
+                                        <span>{ELECTION_TYPE_LABELS[election.type] || election.type}</span>
                                     </div>
                                 </div>
                                 <ChevronRight className={`w-5 h-5 transition-transform duration-300 ${
@@ -126,7 +147,7 @@ export function ElectionBulletinPage() {
             <div className={`flex-[1.5] h-full flex flex-col gap-6 ${!selectedElection ? 'hidden lg:flex' : 'flex'}`}>
                 {selectedElection ? (
                     <div className="h-full flex flex-col animate-slide-up">
-                        <div className="flex items-center justify-between mb-4 lg:mb-6">
+                        <div className="flex items-center justify-between mb-4 lg:mb-6 px-2">
                             <div className="flex items-center gap-3">
                                 <Button 
                                     variant="text" 
@@ -143,26 +164,26 @@ export function ElectionBulletinPage() {
                                 target="_blank" 
                                 rel="noopener noreferrer"
                             >
-                                <Button variant="filled" size="sm" icon={<ExternalLink className="w-4 h-4" />} className="rounded-xl">
+                                <Button variant="tonal" size="sm" icon={<ExternalLink className="w-4 h-4" />} className="rounded-xl px-4">
                                     在新分頁開啟
                                 </Button>
                             </a>
                         </div>
 
-                        <Card className="flex-1 rounded-[40px] border border-[var(--color-outline-variant)]/30 overflow-hidden bg-black/5 elevation-1">
+                        <div className="flex-1 rounded-xl border border-[var(--color-outline-variant)] overflow-hidden bg-black/5 elevation-1">
                             <iframe 
                                 src={(selectedElection.config as any).bulletinUrl.replace('/view', '/preview')} 
                                 className="w-full h-full border-none"
                                 title="Bulletin Preview"
                             />
-                        </Card>
+                        </div>
                     </div>
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-[var(--color-surface-container-low)] rounded-[40px] border border-dashed border-[var(--color-outline-variant)] opacity-60">
                         <div className="p-8 rounded-full bg-[var(--color-surface-container-high)] mb-6">
                             <Info className="w-16 h-16 text-[var(--color-outline)]" />
                         </div>
-                        <h3 className="text-2xl font-bold text-[var(--color-on-surface)] mb-2">請選擇選舉案件</h3>
+                        <h3 className="text-2xl font-bold text-[var(--color-on-surface)] mb-2">請選擇選舉名稱</h3>
                         <p className="max-w-xs font-medium">點擊左側列表中的選舉，即可在此即時預覽其正式公報內容。</p>
                     </div>
                 )}
