@@ -81,7 +81,7 @@ export function VerificationCenter() {
   if (!election) {
     return (
       <div className="min-h-[60vh] flex flex-col justify-center items-center gap-8 px-6 text-center animate-fade-in">
-        <div className="p-8 rounded-full bg-[var(--color-error-container)] text-[var(--color-on-error-container)] shadow-inner">
+        <div className="p-8 rounded-xl bg-[var(--color-error-container)] text-[var(--color-on-error-container)] shadow-inner">
             <AlertTriangle className="w-16 h-16" />
         </div>
         <div className="max-w-md">
@@ -91,7 +91,7 @@ export function VerificationCenter() {
             </p>
         </div>
         <Link to="/">
-            <Button variant="filled" className="h-14 px-10 rounded-2xl font-bold" icon={<ArrowLeft className="w-5 h-5" />}>
+            <Button variant="filled" className="h-14 px-10 rounded-xl font-bold" icon={<ArrowLeft className="w-5 h-5" />}>
                 返回投票首頁
             </Button>
         </Link>
@@ -173,14 +173,14 @@ export function VerificationCenter() {
                     {canViewResults ? '稽核開放中' : '計票封存中'}
                 </span>
             </div>
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center elevation-1 ${canViewResults ? 'bg-green-500 text-white animate-pulse' : 'bg-[var(--color-surface-container-highest)] text-[var(--color-outline)]'}`}>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center elevation-1 ${canViewResults ? 'bg-green-500 text-white animate-pulse' : 'bg-[var(--color-surface-container-highest)] text-[var(--color-outline)]'}`}>
                 <ShieldCheck className="w-6 h-6" />
             </div>
         </div>
       </div>
 
       {/* Hero Section: Nullifier Checker */}
-      <Card className="relative overflow-hidden p-8 md:p-12 rounded-[40px] border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface)] elevation-2">
+      <Card className="relative overflow-hidden p-8 md:p-12 rounded-xl border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface)] elevation-2">
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--color-primary)]/5 blur-3xl rounded-full -mr-32 -mt-32 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-[var(--color-tertiary)]/5 blur-3xl rounded-full -ml-24 -mb-24 pointer-events-none" />
@@ -209,7 +209,7 @@ export function VerificationCenter() {
                     </div>
                     <Button 
                         onClick={handleCheckNullifier} 
-                        className="h-14 px-8 rounded-2xl font-bold shrink-0"
+                        className="h-14 px-8 rounded-xl font-bold shrink-0"
                         variant="filled"
                     >
                         查詢紀錄
@@ -219,13 +219,13 @@ export function VerificationCenter() {
 
             <div className="relative">
                 {nullifierResult ? (
-                    <div className={`p-8 rounded-[32px] border-2 animate-scale-in flex flex-col gap-6 ${
+                    <div className={`p-8 rounded-xl border-2 animate-scale-in flex flex-col gap-6 ${
                         nullifierResult.exists 
                             ? 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800' 
                             : 'bg-red-50 border-red-200 dark:bg-red-900/10 dark:border-red-800'
                     }`}>
                         <div className="flex items-center gap-4">
-                            <div className={`p-4 rounded-2xl ${nullifierResult.exists ? 'bg-green-500 text-white' : 'bg-red-500 text-white'} elevation-2`}>
+                            <div className={`p-4 rounded-xl ${nullifierResult.exists ? 'bg-green-500 text-white' : 'bg-red-500 text-white'} elevation-2`}>
                                 {nullifierResult.exists ? <CheckCircle2 className="w-8 h-8" /> : <AlertTriangle className="w-8 h-8" />}
                             </div>
                             <div>
@@ -245,7 +245,7 @@ export function VerificationCenter() {
                         </p>
                     </div>
                 ) : (
-                    <div className="p-12 border-2 border-dashed border-[var(--color-outline-variant)] rounded-[40px] flex flex-col items-center justify-center text-center opacity-30">
+                    <div className="p-12 border-2 border-dashed border-[var(--color-outline-variant)] rounded-xl flex flex-col items-center justify-center text-center opacity-30">
                         <Search className="w-16 h-16 mb-4" />
                         <p className="font-bold">等待輸入驗證碼</p>
                     </div>
@@ -255,7 +255,7 @@ export function VerificationCenter() {
       </Card>
 
       {!canViewResults && (
-        <Card className="p-16 flex flex-col items-center gap-8 rounded-[40px] border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-low)] text-center">
+        <Card className="p-16 flex flex-col items-center gap-8 rounded-xl border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-low)] text-center">
           <div className="relative">
             <History className="w-20 h-20 text-[var(--color-outline)] opacity-20" />
             <div className="absolute inset-0 flex items-center justify-center">
@@ -281,7 +281,7 @@ export function VerificationCenter() {
         <div className="grid gap-8 lg:grid-cols-12 animate-slide-up">
             {/* Tally Results Section */}
             <div className="lg:col-span-5 space-y-8">
-                <Card className="p-8 md:p-10 rounded-[32px] bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)]/30 elevation-1">
+                <Card className="p-8 md:p-10 rounded-xl bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)]/30 elevation-1">
                     <div className="flex items-center justify-between mb-10">
                         <h2 className="text-2xl font-bold text-[var(--color-on-surface)] flex items-center gap-3">
                             <Database className="w-6 h-6 text-[var(--color-primary)]" />
@@ -321,7 +321,7 @@ export function VerificationCenter() {
                 </Card>
 
                 {/* Secure Tech Banner */}
-                <div className="p-8 rounded-[32px] bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-container)] text-white shadow-xl shadow-[var(--color-primary)]/10 flex flex-col gap-4 relative overflow-hidden group">
+                <div className="p-8 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-container)] text-white shadow-xl shadow-[var(--color-primary)]/10 flex flex-col gap-4 relative overflow-hidden group">
                     <Cpu className="absolute -bottom-4 -right-4 w-24 h-24 opacity-10 group-hover:scale-110 transition-transform duration-700" />
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-white/20 backdrop-blur-md">
@@ -337,7 +337,7 @@ export function VerificationCenter() {
 
             {/* Audit Logs Section */}
             <div className="lg:col-span-7">
-                <Card className="p-8 md:p-10 rounded-[40px] border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface)] elevation-1 flex flex-col h-full min-h-[700px]">
+                <Card className="p-8 md:p-10 rounded-xl border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface)] elevation-1 flex flex-col h-full min-h-[700px]">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
                         <div>
                             <h2 className="text-2xl font-bold text-[var(--color-on-surface)] flex items-center gap-3">
@@ -362,7 +362,7 @@ export function VerificationCenter() {
                     </div>
 
                     {selectedLog && (
-                        <div className="mb-8 p-6 rounded-[28px] bg-[var(--color-surface-container-high)] border border-[var(--color-outline-variant)]/20 animate-slide-up shadow-sm">
+                        <div className="mb-8 p-6 rounded-xl bg-[var(--color-surface-container-high)] border border-[var(--color-outline-variant)]/20 animate-slide-up shadow-sm">
                             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2.5 rounded-xl bg-[var(--color-primary)] text-white elevation-1">
@@ -409,7 +409,7 @@ export function VerificationCenter() {
                             {logs?.map((log, index) => (
                                 <div
                                     key={log.id}
-                                    className={`p-6 rounded-[24px] transition-all duration-300 border flex flex-col gap-4 group cursor-pointer ${
+                                    className={`p-6 rounded-xl transition-all duration-300 border flex flex-col gap-4 group cursor-pointer ${
                                         selectedLog?.id === log.id
                                             ? 'border-[var(--color-primary)] bg-[var(--color-primary-container)]/10 elevation-1'
                                             : 'border-[var(--color-outline-variant)]/20 bg-[var(--color-surface-container-low)] hover:border-[var(--color-primary)]/30 hover:elevation-1'

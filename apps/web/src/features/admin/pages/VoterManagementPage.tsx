@@ -22,9 +22,7 @@ export function VoterManagementPage() {
           subtitle="匯入與管理符合資格的選舉人名冊，設定投票權限。"
       />
 
-      <div className="bg-[var(--color-surface-container-low)] rounded-2xl p-6 md:p-10 border border-[var(--color-outline-variant)]/30 elevation-1 animate-slide-up w-full">
-        <VoterImport />
-      </div>
+      <VoterImport />
     </div>
   );
 }

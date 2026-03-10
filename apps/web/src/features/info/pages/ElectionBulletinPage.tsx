@@ -4,7 +4,7 @@ import { api } from '../../auth/services/auth.api';
 import { API_ENDPOINTS } from '../../../lib/constants';
 import { type Election, ElectionType } from '@savote/shared-types';
 import { Button } from '../../../components/m3/Button';
-import { FileText, ExternalLink, Search, Info, Calendar, ChevronRight, ArrowLeft } from 'lucide-react';
+import { FileText, ExternalLink, Info, Calendar, ChevronRight, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const ELECTION_TYPE_LABELS: Record<string, string> = {
@@ -14,7 +14,6 @@ export const ELECTION_TYPE_LABELS: Record<string, string> = {
 };
 
 export function ElectionBulletinPage() {
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedElection, setSelectedElection] = useState<Election | null>(null);
 
   const { data: elections = [], isLoading } = useQuery({
@@ -25,11 +24,7 @@ export function ElectionBulletinPage() {
     },
   });
 
-  const filteredElections = elections.filter(e => 
-    e.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const bulletins = filteredElections.filter(e => (e.config as any)?.bulletinUrl);
+  const bulletins = elections.filter(e => (e.config as any)?.bulletinUrl);
 
   return (
     <div className="flex flex-col h-[100dvh] bg-[var(--color-surface)] overflow-hidden animate-fade-in select-none">
@@ -37,7 +32,7 @@ export function ElectionBulletinPage() {
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 bg-[var(--color-surface)]/95 backdrop-blur-xl z-40 border-b border-[var(--color-outline-variant)]/20 px-4 md:px-8 py-3 md:h-20 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors duration-500">
         <div className="flex items-center justify-between w-full md:w-auto">
-            <Link to="/" className="flex items-center gap-3 md:gap-4 hover:opacity-80 transition-opacity">
+            <Link to="/login" className="flex items-center gap-3 md:gap-4 hover:opacity-80 transition-opacity">
                 <img src="/sa_logo.webp" alt="Logo" className="w-10 h-10 md:w-14 md:h-14 object-contain" />
                 <div className="flex flex-col">
                     <h1 className="text-sm md:text-xl font-bold text-[var(--color-on-surface)] leading-tight tracking-tight">
@@ -49,7 +44,7 @@ export function ElectionBulletinPage() {
                 </div>
             </Link>
 
-            <Link to="/" className="md:hidden">
+            <Link to="/login" className="md:hidden">
                 <Button variant="tonal" size="sm" className="rounded-full px-4 font-bold" icon={<ArrowLeft className="w-4 h-4" />}>
                     返回首頁
                 </Button>
@@ -59,21 +54,7 @@ export function ElectionBulletinPage() {
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-6 w-full md:w-auto">
             <h2 className="hidden lg:block text-lg font-bold text-[var(--color-primary)] tracking-wider whitespace-nowrap">選舉公報</h2>
             
-            {/* Search Box - Now responsive */}
-            <div className="relative group w-full md:w-64 lg:w-80">
-                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                    <Search className="w-4 h-4 text-[var(--color-outline)] group-focus-within:text-[var(--color-primary)] transition-colors" />
-                </div>
-                <input 
-                    type="text" 
-                    placeholder="搜尋選舉公報..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 h-10 md:h-12 bg-[var(--color-surface-container-high)] border border-transparent focus:border-[var(--color-primary)]/30 focus:bg-[var(--color-surface)] rounded-2xl text-sm text-[var(--color-on-surface)] transition-all outline-none elevation-1"
-                />
-            </div>
-
-            <Link to="/" className="hidden md:block">
+            <Link to="/login" className="hidden md:block">
                 <Button variant="tonal" className="rounded-xl font-bold px-5" icon={<ArrowLeft className="w-4 h-4" />}>
                     返回首頁
                 </Button>
@@ -95,7 +76,7 @@ export function ElectionBulletinPage() {
 
                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
                     {isLoading ? (
-                        [1,2,3].map(i => <div key={i} className="h-24 bg-[var(--color-surface-container-low)] rounded-[28px] animate-pulse" />)
+                        [1,2,3].map(i => <div key={i} className="h-24 bg-[var(--color-surface-container-low)] rounded-xl animate-pulse" />)
                     ) : bulletins.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
                             <FileText className="w-16 h-16 mb-4" />
@@ -106,13 +87,13 @@ export function ElectionBulletinPage() {
                             <div 
                                 key={election.id}
                                 onClick={() => setSelectedElection(election)}
-                                className={`p-6 rounded-[32px] border cursor-pointer transition-all duration-300 flex items-center gap-5 group ${
+                                className={`p-6 rounded-xl border cursor-pointer transition-all duration-300 flex items-center gap-5 group ${
                                     selectedElection?.id === election.id 
                                         ? 'bg-[var(--color-primary-container)] border-[var(--color-primary)] elevation-1' 
                                         : 'bg-[var(--color-surface-container-low)] border-transparent hover:bg-[var(--color-surface-container-high)]'
                                 }`}
                             >
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all ${
+                                <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                                     selectedElection?.id === election.id 
                                         ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]' 
                                         : 'bg-[var(--color-surface-container-highest)] text-[var(--color-on-surface-variant)] group-hover:scale-105'
@@ -179,7 +160,7 @@ export function ElectionBulletinPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-[var(--color-surface-container-low)] rounded-[40px] border border-dashed border-[var(--color-outline-variant)] opacity-60">
+                    <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-[var(--color-surface-container-low)] rounded-xl border border-dashed border-[var(--color-outline-variant)] opacity-60">
                         <div className="p-8 rounded-full bg-[var(--color-surface-container-high)] mb-6">
                             <Info className="w-16 h-16 text-[var(--color-outline)]" />
                         </div>

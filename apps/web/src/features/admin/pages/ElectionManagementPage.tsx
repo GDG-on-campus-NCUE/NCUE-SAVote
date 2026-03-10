@@ -200,16 +200,16 @@ export function ElectionManagementPage() {
                     placeholder="搜尋選舉名稱..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-14 pr-6 h-14 bg-[var(--color-surface-container-high)] border border-transparent focus:border-[var(--color-primary)]/30 focus:bg-[var(--color-surface)] rounded-2xl text-[var(--color-on-surface)] transition-all duration-300 elevation-1 focus:elevation-2 outline-none"
+                    className="w-full pl-14 pr-6 h-14 bg-[var(--color-surface-container-high)] border border-transparent focus:border-[var(--color-primary)]/30 focus:bg-[var(--color-surface)] rounded-xl text-[var(--color-on-surface)] transition-all duration-300 elevation-1 focus:elevation-2 outline-none"
                 />
             </div>
 
              {isLoading ? (
                  <div className="grid gap-4">
-                     {[1,2,3].map(i => <div key={i} className="h-24 bg-[var(--color-surface-container)] rounded-2xl animate-pulse" />)}
+                     {[1,2,3].map(i => <div key={i} className="h-24 bg-[var(--color-surface-container)] rounded-xl animate-pulse" />)}
                  </div>
              ) : elections.length === 0 ? (
-                 <div className="flex flex-col items-center justify-center py-24 bg-[var(--color-surface-container-low)] rounded-3xl border-2 border-dashed border-[var(--color-outline-variant)]">
+                 <div className="flex flex-col items-center justify-center py-24 bg-[var(--color-surface-container-low)] rounded-xl border-2 border-dashed border-[var(--color-outline-variant)]">
                      <div className="p-6 rounded-full bg-[var(--color-surface-container-high)] mb-6">
                         <CalendarPlus className="w-12 h-12 text-[var(--color-outline)] opacity-40" />
                      </div>
@@ -221,7 +221,7 @@ export function ElectionManagementPage() {
              ) : (
                 <>
                     {/* Desktop Table View */}
-                    <div className="hidden md:block bg-[var(--color-surface-container-low)] rounded-2xl border border-[var(--color-outline-variant)]/30 overflow-hidden elevation-1 transition-standard hover:elevation-2">
+                    <div className="hidden md:block bg-[var(--color-surface-container-low)] rounded-xl border border-[var(--color-outline-variant)]/30 overflow-hidden elevation-1 transition-standard hover:elevation-2">
                         <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse">
                                     <thead>
@@ -325,25 +325,27 @@ export function ElectionManagementPage() {
                         {filteredElections.map((election: ExtendedElection) => {
                             const status = getStatusDisplay(election);
                             return (
-                                <Card key={election.id} className="p-6 rounded-2xl border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-low)] elevation-1">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] flex items-center justify-center font-bold text-lg">
-                                                {election.name.charAt(0)}
+                                <Card key={election.id} className="p-6 rounded-xl border border-[var(--color-outline-variant)]/30 bg-[var(--color-surface-container-low)] elevation-1 overflow-hidden">
+                                    <div className="flex flex-col gap-4 mb-4">
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] flex items-center justify-center font-bold text-lg shrink-0">
+                                                    {election.name.charAt(0)}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <h3 className="font-bold text-[var(--color-on-surface)] text-lg truncate leading-tight">{election.name}</h3>
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary)] opacity-70">
+                                                        {ELECTION_TYPE_LABELS[election.type] || election.type}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h3 className="font-bold text-[var(--color-on-surface)] text-lg line-clamp-1">{election.name}</h3>
-                                                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary)] opacity-70">
-                                                    {ELECTION_TYPE_LABELS[election.type] || election.type}
-                                                </span>
+                                            <div className={cn(
+                                                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border shrink-0",
+                                                status.color
+                                            )}>
+                                                <div className={cn("w-1.5 h-1.5 rounded-full", status.dot)} />
+                                                {status.label}
                                             </div>
-                                        </div>
-                                        <div className={cn(
-                                            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border",
-                                            status.color
-                                        )}>
-                                            <div className={cn("w-1.5 h-1.5 rounded-full", status.dot)} />
-                                            {status.label}
                                         </div>
                                     </div>
 
@@ -441,7 +443,7 @@ export function ElectionManagementPage() {
                                     type="button"
                                     onClick={() => setFormData({...formData, type: type.id as ElectionType})}
                                     className={cn(
-                                        "px-4 py-3 rounded-2xl border-2 text-sm font-bold transition-all",
+                                        "px-4 py-3 rounded-xl border-2 text-sm font-bold transition-all",
                                         formData.type === type.id 
                                             ? "bg-[var(--color-primary-container)] border-[var(--color-primary)] text-[var(--color-on-primary-container)]" 
                                             : "bg-[var(--color-surface)] border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] hover:border-[var(--color-primary)]/50"

@@ -90,7 +90,7 @@ export function AdminAccountManagementPage() {
         
         {/* Create Admin Form */}
         <div className="lg:col-span-4 order-2 lg:order-1 lg:sticky lg:top-24">
-            <Card className="p-6 md:p-8 rounded-2xl bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)]/30 elevation-1">
+            <Card className="p-6 md:p-8 rounded-xl bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)]/30 elevation-1">
                 <div className="flex items-center gap-4 mb-6 md:mb-8">
                     <div className="p-3 bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] rounded-xl elevation-1">
                         <UserPlus className="w-5 h-5 md:w-6 md:h-6" />
@@ -121,7 +121,7 @@ export function AdminAccountManagementPage() {
                     <div className="space-y-2">
                         <label className="text-sm font-bold text-[var(--color-on-surface-variant)] px-1">權限級別</label>
                         <select 
-                            className="w-full h-12 md:h-14 px-5 md:px-6 rounded-xl bg-[var(--color-surface-container-high)] border-none text-[var(--color-on-surface)] font-bold transition-all outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 cursor-pointer appearance-none elevation-1"
+                            className="w-full h-12 md:h-14 px-5 md:px-6 rounded-xl bg-[var(--color-surface-container-high)] border-none text-[var(--color-on-surface)] font-medium transition-all outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 cursor-pointer appearance-none elevation-1"
                             value={newAdmin.role}
                             onChange={(e) => setNewAdmin({ ...newAdmin, role: e.target.value as UserRole })}
                         >
@@ -159,7 +159,7 @@ export function AdminAccountManagementPage() {
                 <input 
                     type="text" 
                     placeholder="搜尋管理員姓名或 UID..."
-                    className="w-full h-14 md:h-16 pl-14 md:pl-16 pr-6 bg-[var(--color-surface-container-low)] rounded-2xl md:rounded-[32px] border border-transparent focus:border-[var(--color-primary)]/30 focus:bg-[var(--color-surface)] text-[var(--color-on-surface)] transition-all outline-none elevation-1 focus:elevation-2"
+                    className="w-full h-14 md:h-16 pl-14 md:pl-16 pr-6 bg-[var(--color-surface-container-low)] rounded-xl border border-transparent focus:border-[var(--color-primary)]/30 focus:bg-[var(--color-surface)] text-[var(--color-on-surface)] transition-all outline-none elevation-1 focus:elevation-2"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -168,10 +168,10 @@ export function AdminAccountManagementPage() {
             {/* List Container */}
             {isLoading ? (
                 <div className="grid gap-4">
-                    {[1,2,3].map(i => <div key={i} className="h-20 md:h-24 bg-[var(--color-surface-container)] rounded-xl md:rounded-[24px] animate-pulse" />)}
+                    {[1,2,3].map(i => <div key={i} className="h-20 md:h-24 bg-[var(--color-surface-container)] rounded-xl animate-pulse" />)}
                 </div>
             ) : filteredAdmins.length === 0 ? (
-                <div className="bg-[var(--color-surface-container-low)] rounded-3xl border-2 border-dashed border-[var(--color-outline-variant)] py-16 md:py-24 text-center">
+                <div className="bg-[var(--color-surface-container-low)] rounded-xl border-2 border-dashed border-[var(--color-outline-variant)] py-16 md:py-24 text-center">
                     <div className="p-5 md:p-6 rounded-full bg-[var(--color-surface-container-high)] w-fit mx-auto mb-4 md:mb-6">
                         <User className="w-10 h-10 md:w-12 md:h-12 text-[var(--color-outline)] opacity-20" />
                     </div>
@@ -180,7 +180,7 @@ export function AdminAccountManagementPage() {
             ) : (
                 <>
                     {/* Desktop Table View */}
-                    <div className="hidden md:block bg-[var(--color-surface-container-low)] rounded-2xl border border-[var(--color-outline-variant)]/30 overflow-hidden elevation-1">
+                    <div className="hidden md:block bg-[var(--color-surface-container-low)] rounded-xl border border-[var(--color-outline-variant)]/30 overflow-hidden elevation-1">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
@@ -205,7 +205,7 @@ export function AdminAccountManagementPage() {
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-4">
                                                     <div className={cn(
-                                                        "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 elevation-1 transition-transform group-hover:scale-105",
+                                                        "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 elevation-1 transition-transform group-hover:scale-105",
                                                         admin.role === UserRole.SUPER_ADMIN 
                                                             ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" 
                                                             : "bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)]"
@@ -218,7 +218,7 @@ export function AdminAccountManagementPage() {
                                                                 {admin.name}
                                                             </span>
                                                             {admin.synologySub === user?.synologySub && (
-                                                                <span className="px-2 py-0.5 rounded-md text-[9px] font-black bg-[var(--color-tertiary-container)] text-[var(--color-on-tertiary-container)] uppercase tracking-widest">
+                                                                <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-[var(--color-tertiary-container)] text-[var(--color-on-tertiary-container)] uppercase tracking-widest">
                                                                     ME
                                                                 </span>
                                                             )}
@@ -233,7 +233,7 @@ export function AdminAccountManagementPage() {
                                             <td className="px-6 py-6">
                                                 <div className="flex items-center gap-3">
                                                     <span className={cn(
-                                                        "px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase",
+                                                        "px-2 py-0.5 rounded-full text-[9px] font-medium tracking-widest uppercase",
                                                         admin.role === UserRole.SUPER_ADMIN 
                                                             ? "bg-amber-500 text-white shadow-sm shadow-amber-500/20" 
                                                             : "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
@@ -243,7 +243,7 @@ export function AdminAccountManagementPage() {
                                                     
                                                     {isSuperAdmin && admin.synologySub !== user?.synologySub && (
                                                         <select 
-                                                            className="h-8 px-2 rounded-lg bg-[var(--color-surface-container-high)] border-none text-[10px] font-black focus:ring-2 focus:ring-[var(--color-primary)]/30 transition-all outline-none cursor-pointer appearance-none elevation-1"
+                                                            className="h-8 px-2 rounded-lg bg-[var(--color-surface-container-high)] border-none text-[9px] font-medium focus:ring-2 focus:ring-[var(--color-primary)]/30 transition-all outline-none cursor-pointer appearance-none elevation-1"
                                                             value={admin.role}
                                                             onChange={(e) => updateRoleMutation.mutate({ id: admin.id, role: e.target.value as UserRole })}
                                                         >
@@ -286,7 +286,7 @@ export function AdminAccountManagementPage() {
                             <Card 
                                 key={admin.id} 
                                 className={cn(
-                                    "p-5 rounded-2xl border border-[var(--color-outline-variant)]/20 elevation-1",
+                                    "p-5 rounded-xl border border-[var(--color-outline-variant)]/20 elevation-1",
                                     admin.synologySub === user?.synologySub ? "bg-[var(--color-primary-container)]/5 border-[var(--color-primary)]/20" : "bg-[var(--color-surface-container-low)]"
                                 )}
                             >
@@ -306,7 +306,7 @@ export function AdminAccountManagementPage() {
                                                     {admin.name}
                                                 </span>
                                                 {admin.synologySub === user?.synologySub && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-[var(--color-tertiary-container)] text-[var(--color-on-tertiary-container)] uppercase">
+                                                    <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-[var(--color-tertiary-container)] text-[var(--color-on-tertiary-container)] uppercase">
                                                         ME
                                                     </span>
                                                 )}
@@ -331,14 +331,14 @@ export function AdminAccountManagementPage() {
                                 <div className="flex items-center justify-between pt-4 border-t border-[var(--color-outline-variant)]/10">
                                     <div className="flex items-center gap-2">
                                         <span className={cn(
-                                            "px-2 py-0.5 rounded-full text-[9px] font-black tracking-widest uppercase",
+                                            "px-2 py-0.5 rounded-full text-[9px] font-medium tracking-widest uppercase",
                                             admin.role === UserRole.SUPER_ADMIN ? "bg-amber-500 text-white" : "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
                                         )}>
                                             {admin.role}
                                         </span>
                                         {isSuperAdmin && admin.synologySub !== user?.synologySub && (
                                             <select 
-                                                className="h-7 px-1.5 rounded-lg bg-[var(--color-surface-container-high)] text-[9px] font-black outline-none appearance-none border border-[var(--color-outline-variant)]/20"
+                                                className="h-7 px-1.5 rounded-lg bg-[var(--color-surface-container-high)] text-[9px] font-medium outline-none appearance-none border border-[var(--color-outline-variant)]/20"
                                                 value={admin.role}
                                                 onChange={(e) => updateRoleMutation.mutate({ id: admin.id, role: e.target.value as UserRole })}
                                             >

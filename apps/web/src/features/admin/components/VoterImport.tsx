@@ -123,7 +123,7 @@ export function VoterImport() {
         
         {/* Left Side: Upload Controls */}
         <div className="lg:col-span-5 space-y-6">
-            <Card className="p-0 overflow-hidden border border-[var(--color-outline-variant)]/30 elevation-1 rounded-[32px] bg-[var(--color-surface-container-low)]">
+            <Card className="p-0 overflow-hidden border border-[var(--color-outline-variant)]/30 elevation-1 rounded-xl bg-[var(--color-surface-container-low)]">
                 <div className="p-6 bg-[var(--color-surface-container-high)]/50 border-b border-[var(--color-outline-variant)]/30 flex justify-between items-center">
                     <h2 className="text-xl font-bold text-[var(--color-on-surface)] flex items-center gap-2">
                         <Upload className="w-5 h-5 text-[var(--color-primary)]" />
@@ -141,7 +141,7 @@ export function VoterImport() {
                             <select
                                 value={selectedElectionId}
                                 onChange={(e) => setSelectedElectionId(e.target.value)}
-                                className="w-full appearance-none px-5 py-4 rounded-2xl bg-[var(--color-surface-container-high)] border-2 border-transparent focus:border-[var(--color-primary)]/30 text-[var(--color-on-surface)] font-bold transition-all cursor-pointer elevation-1"
+                                className="w-full appearance-none px-5 py-4 rounded-xl bg-[var(--color-surface-container-high)] border-2 border-transparent focus:border-[var(--color-primary)]/30 text-[var(--color-on-surface)] font-bold transition-all cursor-pointer elevation-1"
                             >
                                 {elections.map((e) => (
                                     <option key={e.id} value={e.id}>{e.name}</option>
@@ -155,7 +155,7 @@ export function VoterImport() {
 
                     <div 
                         className={cn(
-                            "border-2 border-dashed rounded-3xl p-8 text-center transition-all relative overflow-hidden group",
+                            "border-2 border-dashed rounded-xl p-8 text-center transition-all relative overflow-hidden group",
                             isElectionLocked 
                                 ? 'bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800 cursor-not-allowed' 
                                 : selectedFile 
@@ -165,7 +165,7 @@ export function VoterImport() {
                         onClick={() => !isElectionLocked && fileInputRef.current?.click()}
                     >
                         <div className={cn(
-                            "mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-all duration-500 shadow-sm",
+                            "mx-auto w-16 h-16 rounded-xl flex items-center justify-center mb-4 transition-all duration-500 shadow-sm",
                             isElectionLocked 
                                 ? 'bg-amber-500 text-white animate-pulse' 
                                 : selectedFile 
@@ -194,7 +194,7 @@ export function VoterImport() {
                         disabled={isSubmitDisabled} 
                         loading={importMutation.isPending}
                         variant="filled"
-                        className="w-full h-14 rounded-2xl text-base font-bold shadow-lg shadow-[var(--color-primary)]/10"
+                        className="w-full h-14 rounded-xl text-base font-bold shadow-lg shadow-[var(--color-primary)]/10"
                         icon={<Database className="w-5 h-5" />}
                     >
                         確認執行匯入
@@ -202,7 +202,7 @@ export function VoterImport() {
 
                     {status.type !== 'idle' && (
                         <div className={cn(
-                            "p-4 rounded-2xl border animate-slide-up flex gap-4",
+                            "p-4 rounded-xl border animate-slide-up flex gap-4",
                             status.type === 'success' ? 'bg-green-50 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800' : 'bg-red-50 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
                         )}>
                             <div className="shrink-0 p-1 bg-white/20 rounded-full">
@@ -222,7 +222,7 @@ export function VoterImport() {
 
         {/* Right Side: Data Table */}
         <div className="lg:col-span-7 space-y-6">
-            <Card className="p-0 overflow-hidden border border-[var(--color-outline-variant)]/30 elevation-1 rounded-[32px] bg-[var(--color-surface)] min-h-[600px] flex flex-col">
+            <Card className="p-0 overflow-hidden border border-[var(--color-outline-variant)]/30 elevation-1 rounded-xl bg-[var(--color-surface)] min-h-[600px] flex flex-col">
                 <div className="p-6 border-b border-[var(--color-outline-variant)]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <h3 className="text-xl font-bold text-[var(--on-surface)] flex items-center gap-2">
