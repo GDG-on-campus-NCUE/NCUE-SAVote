@@ -5,7 +5,7 @@ import { api } from './auth.api';
 export interface ImportVotersResponse {
   votersImported: number;
   duplicatesSkipped: number;
-  merkleRootHash: string;
+  //merkleRootHash: string;
 }
 
 interface ImportVotersPayload {

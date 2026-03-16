@@ -114,6 +114,7 @@ export class AuthService {
           name: permission.name || userinfo.name || 'Admin',
           email: userinfo.email || null,
           role: permission.role,
+          studentIdHash: '',
         },
       });
     } else {

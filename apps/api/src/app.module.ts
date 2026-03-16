@@ -13,6 +13,7 @@ import { UsersModule } from './users/users.module';
 import { VotersModule } from './voters/voters.module';
 import { VotesModule } from './votes/votes.module';
 import { AdminsModule } from './admins/admins.module';
+import { UserVoteKeyModule } from './user-vote-key/user-vote-key.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { AdminsModule } from './admins/admins.module';
     VotersModule,
     VotesModule,
     AdminsModule,
+    UserVoteKeyModule,
   ],
   controllers: [AppController],
   providers: [

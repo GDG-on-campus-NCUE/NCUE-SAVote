@@ -12,6 +12,16 @@ export class SubmitVoteDto {
   @IsNotEmpty()
   vote: string;
 
+  @ApiProperty({ description: 'The vote contents' })
+  @IsString()
+  @IsNotEmpty()
+  voteContent: string;
+
+  @ApiProperty({ description: 'The key for encrypt and decrypt the vote' })
+  @IsString()
+  @IsNotEmpty()
+  encryptKey: string;
+
   @ApiProperty({ description: 'The ZK proof object' })
   @IsObject()
   @IsNotEmpty()

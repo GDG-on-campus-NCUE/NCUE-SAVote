@@ -7,7 +7,7 @@ export interface Candidate {
 export interface Election {
     id: string;
     name: string;
-    merkleRootHash: string | null;
+    //merkleRootHash: string | null;
     status: ElectionStatus;
     startTime: Date | null;
     endTime: Date | null;
@@ -37,8 +37,8 @@ export interface VoterEligibilityRequest {
 export interface VoterEligibilityResponse {
     eligible: boolean;
     election: Election | null;
-    merkleRootHash: string | null;
-    merkleProof: string[];
+    //merkleRootHash: string | null;
+    //merkleProof: string[];
     leafIndex?: number;
     reason?: string;
 }
@@ -50,7 +50,7 @@ export interface VoteSubmission {
     electionId: string;
     encryptedVote: string;
     zkProof: ZKProof;
-    merkleProof: string[];
+    //merkleProof: string[];
 }
 export interface ElectionState {
     elections: Election[];

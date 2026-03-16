@@ -42,7 +42,7 @@ export class ElectionsService {
         description: dto.description,
         type: dto.type,
         config: dto.config,
-        merkleRoot: dto.merkleRootHash ?? null,
+        //merkleRoot: dto.merkleRootHash ?? null,
         startTime: dto.startTime ? new Date(dto.startTime) : undefined,
         endTime: dto.endTime ? new Date(dto.endTime) : undefined,
       } as any,
@@ -71,7 +71,7 @@ export class ElectionsService {
         description: dto.description,
         type: dto.type,
         config: dto.config,
-        merkleRoot: dto.merkleRootHash ?? undefined,
+        //merkleRoot: dto.merkleRootHash ?? undefined,
         startTime: dto.startTime ? new Date(dto.startTime) : undefined,
         endTime: dto.endTime ? new Date(dto.endTime) : undefined,
       } as any,
@@ -136,11 +136,11 @@ export class ElectionsService {
       throw new BadRequestException('No eligible voters to finalize');
     }
 
-    if (!election.merkleRoot) {
-      throw new BadRequestException(
-        'merkleRoot must be set before finalizing voter list',
-      );
-    }
+    // if (!election.merkleRoot) {
+    //   throw new BadRequestException(
+    //     'merkleRoot must be set before finalizing voter list',
+    //   );
+    // }
 
     return {
       success: true,

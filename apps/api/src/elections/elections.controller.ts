@@ -91,7 +91,7 @@ export class ElectionsController {
   async getAdminSummary(@Param('id') id: string) {
     const election = await this.electionsService.getAdminSummary(id);
     const tally = await this.votesService.getTally(id);
-    return { election, tally, totalVotes: tally.totalVotes };
+    return { election, tally, totalVotes: tally.result };
   }
 
   // --- Voter Management ---

@@ -34,42 +34,42 @@ enum UserRole {
 // Stores the Synology OIDC sub (UID) for admin users.
 // This allows local authorization management.
 model AdminPermission {
-  id           String    @id @default(uuid())
-  synologySub  String    @unique @db.VarChar(100) // The "sub" field from Synology OIDC
-  role         UserRole  @default(ADMIN)
-  name         String?   @db.VarChar(100)         // Optional memo
-  
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id          String   @id @default(uuid())
+  synologySub String   @unique @db.VarChar(100) // The "sub" field from Synology OIDC
+  role        UserRole @default(ADMIN)
+  name        String?  @db.VarChar(100) // Optional memo
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("admin_permissions")
 }
 
 model User {
-  id               String           @id @default(uuid())
-  studentIdHash    String?          @unique @db.VarChar(64) // SHA-256 hash (hex) - Nullable for admins
-  class            String?          @db.VarChar(50)         // Optional for admins
-  email            String?          @db.VarChar(255)        
-  
+  id            String  @id @default(uuid())
+  studentIdHash String  @unique @db.VarChar(64) // SHA-256 hash (hex) - Nullable for admins
+  class         String? @db.VarChar(50) // Optional for admins
+  email         String? @db.VarChar(255)
+
   // Synology OIDC identifier (for Admins)
-  synologySub      String?          @unique @db.VarChar(100) 
+  synologySub String? @unique @db.VarChar(100)
 
   // Fields for recovery/admin legacy (will be deprecated as OIDC is phased in)
-  username         String?          @unique @db.VarChar(100) 
-  password         String?          @db.VarChar(255)         
-  name             String?          @db.VarChar(100)         
-  lastLoginIp      String?          @db.VarChar(45)          
+  username    String? @unique @db.VarChar(100)
+  password    String? @db.VarChar(255)
+  name        String? @db.VarChar(100)
+  lastLoginIp String? @db.VarChar(45)
 
   enrollmentStatus EnrollmentStatus @default(ACTIVE)
   role             UserRole         @default(USER)
-  
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  sessions         Session[]
-  adminLoginLogs   AdminLoginLog[]
-  
+  sessions       Session[]
+  adminLoginLogs AdminLoginLog[]
+
   @@index([class])
   @@index([role])
   @@map("users")
@@ -84,7 +84,7 @@ model AdminLoginLog {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   ipAddress String   @db.VarChar(45)
   loginAt   DateTime @default(now())
-  
+
   @@index([userId])
   @@map("admin_login_logs")
 }
@@ -108,7 +108,7 @@ model Session {
   ipAddress      String?   @db.VarChar(45) // IPv6 max length
   createdAt      DateTime  @default(now())
   lastActivityAt DateTime  @default(now())
-  
+
   @@index([userId, revoked])
   @@index([jti])
   @@index([expiresAt]) // For cleanup job
@@ -120,6 +120,15 @@ model Session {
 // ============================================================================
 // Represents a voting election. Merkle root hash field for eligibility verification.
 
+enum ElectionStatus {
+  DRAFT
+  REGISTRATION_OPEN
+  VOTING_OPEN
+  VOTING_CLOSED
+  TALLIED
+  FINISHED
+}
+
 enum ElectionType {
   PRESIDENTIAL
   DISTRICT_COUNCILOR
@@ -127,26 +136,31 @@ enum ElectionType {
 }
 
 model Election {
-  id              String          @id @default(uuid())
-  name            String          @db.VarChar(255)
-  description     String?         @db.Text
-  type            ElectionType    @default(PRESIDENTIAL)
-  config          Json?           // Stores specific rules (thresholds, seats, etc.)
+  id          String       @id @default(uuid())
+  name        String       @db.VarChar(255)
+  description String?      @db.Text
+  type        ElectionType @default(PRESIDENTIAL)
+  config      Json? // Stores specific rules (thresholds, seats, etc.)
 
   // ZK Config
-  merkleRoot      String?         @db.VarChar(100) // Root of the voter tree at snapshot time
-  merkleTreeDepth Int             @default(20)
-  
-  startTime       DateTime?
-  endTime         DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  
+  //merkleRoot      String?         @db.VarChar(100) // Root of the voter tree at snapshot time
+  //merkleTreeDepth Int             @default(20)
+
+  status    ElectionStatus @default(DRAFT)
+  startTime DateTime?
+  endTime   DateTime?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  finalResult Json?
+
   // Relations
-  eligibleVoters  EligibleVoter[]
-  candidates      Candidate[]
-  votes           Vote[]
-  
+  eligibleVoters EligibleVoter[]
+  candidates     Candidate[]
+  votes          Vote[]
+  userVoteKeys   UserVoteKey[]
+
+  @@index([status])
   @@index([startTime, endTime])
   @@map("elections")
 }
@@ -158,18 +172,16 @@ model Election {
 // Imported by Admin. 
 
 model EligibleVoter {
-  id         String   @id @default(uuid())
-  studentId  String   @db.VarChar(20)  // Plaintext student ID (for management)
-  class      String   @db.VarChar(50)
-  
-  // ZK Registration
-  identityCommitment String? @db.VarChar(100) // The ZK commitment
+  id            String @id @default(uuid())
+  studentId     String @db.VarChar(20) // Plaintext student ID (for management)
+  studentIdHash String @db.VarChar(64)
+  class         String @db.VarChar(50)
 
   electionId String
   election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
 
-  @@unique([studentId, electionId]) // One entry per student per election
+  @@unique([studentIdHash, electionId]) // One entry per student per election
   @@index([electionId])
   @@index([studentId])
   @@map("eligible_voters")
@@ -181,15 +193,15 @@ model EligibleVoter {
 // Represents a candidate in an election.
 
 model Candidate {
-  id          String   @id @default(uuid())
-  name        String   @db.VarChar(100)
-  bio         String?  @db.Text
-  photoUrl    String?  @db.VarChar(500)
-  electionId  String
-  election    Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id         String   @id @default(uuid())
+  name       String   @db.VarChar(100)
+  bio        String?  @db.Text
+  photoUrl   String?  @db.VarChar(500)
+  electionId String
+  election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
   // Relations
   receivedVotes Vote[]
 
@@ -204,23 +216,45 @@ model Candidate {
 // Does NOT link to a User or Student ID to ensure anonymity.
 
 model Vote {
-  id            String   @id @default(uuid())
-  electionId    String
-  election      Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
-  
+  id         String   @id @default(uuid())
+  electionId String
+  election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
+
+  voteContent String     @db.Text
   // The candidate voted for (extracted from proof for easy tallying)
   // Note: The proof verifies that this candidateId matches the one in publicSignals
-  candidateId   String
-  candidate     Candidate @relation(fields: [candidateId], references: [id])
+  candidateId String?
+  candidate   Candidate? @relation(fields: [candidateId], references: [id])
+
+  // encrypt the vote and for decrypt
+  encryptKey String? @db.Text
 
   // ZK Proof Data
-  nullifierHash String   @db.VarChar(100) // Prevents double voting (unique per election)
-  proof         Json     // The Groth16 proof object
-  publicSignals Json     // Public inputs
-  
-  createdAt     DateTime @default(now())
+  //nullifierHash String   @db.VarChar(100) // Prevents double voting (unique per election)
+  proof         Json? // The Groth16 proof object
+  publicSignals Json? // Public inputs
 
-  @@unique([electionId, nullifierHash]) // Ensure uniqueness per election
+  createdAt DateTime @default(now())
+
   @@index([electionId])
   @@map("votes")
+}
+
+model UserVoteKey {
+  // Numeric Increase ID
+  id       String @id @default(uuid())
+  hashedID String // user identity code
+
+  electionId String
+  election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
+
+  // Commitment is used for verifing the ZK proof
+  commitment String @db.Text @unique
+
+  hasVoted Boolean   @default(false)
+  votedAt  DateTime?
+
+  @@unique([hashedID, electionId])
+  @@index([electionId])
+  @@map("user_vote_key")
 }

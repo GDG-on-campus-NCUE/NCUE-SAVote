@@ -52,7 +52,7 @@ export const VotingBooth: React.FC = () => {
     if (
       eligibilityError &&
       (eligibilityError as any)?.response?.data ===
-        "COMMITMENT_NOT_REGISTERED" &&
+      "COMMITMENT_NOT_REGISTERED" &&
       electionId
     ) {
       navigate(`/elections/${electionId}/setup-key`);
@@ -95,28 +95,28 @@ export const VotingBooth: React.FC = () => {
       const studentIdBigInt = BigInt(studentIdHex);
 
       // Merkle Path
-      const { merkleRootHash, merkleProof, leafIndex } = eligibility;
-      if (!merkleRootHash || leafIndex === undefined) {
-        throw new Error("Invalid eligibility data");
-      }
+      // const { merkleRootHash, merkleProof, leafIndex } = eligibility;
+      // if (!merkleRootHash || leafIndex === undefined) {
+      //   throw new Error("Invalid eligibility data");
+      // }
 
       // Convert leafIndex to pathIndices (binary array, LSB first)
       // Depth 20
-      const pathIndices = leafIndex
-        .toString(2)
-        .padStart(20, "0")
-        .split("")
-        .reverse()
-        .map(Number);
+      // const pathIndices = leafIndex
+      //   .toString(2)
+      //   .padStart(20, "0")
+      //   .split("")
+      //   .reverse()
+      //   .map(Number);
 
       const input = {
-        root: merkleRootHash,
+        //root: merkleRootHash,
         electionId: electionIdBigInt.toString(),
         vote: voteBigInt.toString(),
         secret: secretBigInt.toString(),
         studentIdHash: studentIdBigInt.toString(),
-        pathIndices,
-        siblings: merkleProof,
+        //pathIndices,
+        //siblings: merkleProof,
       };
 
       // Generate Proof
@@ -186,11 +186,10 @@ export const VotingBooth: React.FC = () => {
             key={candidate.id}
             interactive
             variant={selectedCandidate === candidate.id ? "filled" : "outlined"}
-            className={`relative overflow-hidden transition-all duration-300 group ${
-              selectedCandidate === candidate.id
+            className={`relative overflow-hidden transition-all duration-300 group ${selectedCandidate === candidate.id
                 ? "bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]"
                 : "hover:bg-[var(--color-surface-variant)]/30"
-            }`}
+              }`}
             onClick={() => setSelectedCandidate(candidate.id)}
           >
             <div className="aspect-video bg-[var(--color-surface-variant)] relative overflow-hidden">

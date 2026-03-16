@@ -14,7 +14,7 @@ import type {
 } from '@savote/shared-types';
 import type { Election as PrismaElection } from '@prisma/client';
 import * as crypto from 'crypto';
-import { MerkleTreeService } from '../merkle/merkle.service';
+//import { MerkleTreeService } from '../merkle/merkle.service';
 
 export interface ParsedVoterRecord {
   studentId: string;
@@ -33,7 +33,7 @@ export class VotersService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly merkleTreeService: MerkleTreeService,
+    //private readonly merkleTreeService: MerkleTreeService,
   ) {}
 
   // ===========================================================================
@@ -85,26 +85,26 @@ export class VotersService {
     return { success: true };
   }
 
-  async snapshotElection(electionId: string): Promise<string> {
-    this.logger.log(
-      `Snapshotting election ${electionId} (Generating Merkle Root)`,
-    );
+  // async snapshotElection(electionId: string): Promise<string> {
+  //   this.logger.log(
+  //     `Snapshotting election ${electionId} (Generating Merkle Root)`,
+  //   );
 
-    // Compute root using MerkleTreeService
-    const root = await this.merkleTreeService.getTreeRoot(electionId);
+  //   // Compute root using MerkleTreeService
+  //   const root = await this.merkleTreeService.getTreeRoot(electionId);
 
-    // Update Election
-    await this.prisma.election.update({
-      where: { id: electionId },
-      data: { merkleRoot: root },
-    });
+  //   // Update Election
+  //   await this.prisma.election.update({
+  //     where: { id: electionId },
+  //     data: { merkleRoot: root },
+  //   });
 
-    return root;
-  }
+  //   return root;
+  // }
 
-  async getMerkleProof(electionId: string, commitment: string) {
-    return this.merkleTreeService.getProof(electionId, commitment);
-  }
+  // async getMerkleProof(electionId: string, commitment: string) {
+  //   return this.merkleTreeService.getProof(electionId, commitment);
+  // }
 
   // ===========================================================================
   // Import / Eligibility Logic
@@ -224,16 +224,16 @@ export class VotersService {
         eligible: false,
         election: sharedElection,
         reason: 'NOT_ELIGIBLE',
-        merkleProof: [],
-        merkleRootHash: election.merkleRoot,
+        //merkleProof: [],
+        //merkleRootHash: election.merkleRoot,
       };
     }
 
     return {
       eligible: true,
       election: sharedElection,
-      merkleRootHash: election.merkleRoot,
-      merkleProof: [],
+      //merkleRootHash: election.merkleRoot,
+      //merkleProof: [],
       isRegistered: !!voter.identityCommitment,
     } as any;
   }
@@ -263,7 +263,6 @@ export class VotersService {
     return {
       id: election.id,
       name: election.name,
-      merkleRootHash: election.merkleRoot,
       status: computedStatus as unknown as ElectionStatus,
       type: election.type as unknown as ElectionType,
       startTime: election.startTime,

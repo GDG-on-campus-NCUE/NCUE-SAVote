@@ -48,7 +48,7 @@ template MerkleTreeInclusionProof(nLevels) {
 // nLevels: Merkle Tree depth (e.g., 20)
 template Vote(nLevels) {
     // Public Inputs
-    signal input root;              // Merkle Root
+    //signal input root;              // Merkle Root
     signal input electionId;        // Election ID
     signal input vote;              // Vote choice
     signal input nullifierHash;     // Public nullifier to prevent double voting

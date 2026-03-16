@@ -23,6 +23,8 @@ services:
 
   # --- 2. 後端 (NestJS API) ---
   api:
+    ports:
+      - "3000:3000"
     build:
       context: .
       dockerfile: apps/api/Dockerfile

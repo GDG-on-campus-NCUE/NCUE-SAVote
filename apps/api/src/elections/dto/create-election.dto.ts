@@ -24,9 +24,9 @@ export class CreateElectionDto {
   @IsObject()
   config?: any;
 
-  @IsOptional()
-  @IsString()
-  merkleRootHash?: string;
+  // @IsOptional()
+  // @IsString()
+  // merkleRootHash?: string;
 
   @IsDateString({}, { message: '開始時間必須是有效的日期格式' })
   @IsNotEmpty({ message: '必須設定開始投票時間' })

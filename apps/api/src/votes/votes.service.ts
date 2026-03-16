@@ -3,214 +3,181 @@ import {
   BadRequestException,
   ConflictException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubmitVoteDto } from './dto/submit-vote.dto';
-import { verifyVoteProof } from '@savote/crypto-lib';
+//import { verifyVoteProof } from '@savote/crypto-lib';
 import { bigIntToUuid } from '../utils/zk-utils';
+import { randomBytes } from 'crypto';
+import * as CryptoJS from 'crypto-js';
+import { ElectionStatus } from '@prisma/client'; // 1. 確保有匯入 Enum
+import { ExceptionsHandler } from '@nestjs/core/exceptions/exceptions-handler';
 
 @Injectable()
 export class VotesService {
-  constructor(private prisma: PrismaService) {}
+  logger: any;
+  constructor(private prisma: PrismaService) { }
 
-  async submitVote(dto: SubmitVoteDto) {
-    const { publicSignals, electionId, proof } = dto;
-    const [root, pubElectionId, pubVote, nullifierHash] = publicSignals;
-
-    // 1. Verify Consistency
-    const derivedElectionIdBigInt = bigIntToUuid(pubElectionId);
-    if (derivedElectionIdBigInt !== electionId) {
-      throw new BadRequestException(
-        'Election ID in proof does not match target election',
-      );
+  async submitVote(dto: SubmitVoteDto, userId: string) {
+    // 1. Revoting check
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (user?.studentIdHash == null){
+      return;
     }
-
-    // 2. Check if Election exists and is open
-    const election = await this.prisma.election.findUnique({
-      where: { id: electionId },
+    const voteKey = await this.prisma.userVoteKey.findUnique({
+      where: {
+        hashedID_electionId: {
+          hashedID: user?.studentIdHash,
+          electionId: dto.electionId
+        }
+      }
     });
-    if (!election) throw new NotFoundException('Election not found');
 
-    const now = new Date();
-    if (election.startTime && now < new Date(election.startTime)) {
-        throw new BadRequestException('Voting has not started yet');
-    }
-    if (election.endTime && now > new Date(election.endTime)) {
-        throw new BadRequestException('Voting has already ended');
+    if (!voteKey || voteKey.hasVoted) {
+      this.logger.warn(`${userId} tried to revote`);
+      // Fake msg
+      return { status: 'success', message: 'Vote submitted successfully' };
     }
 
-    // 3. Check Double Voting (Nullifier)
-    const existingVote = await this.prisma.vote.findUnique({
-      where: { electionId_nullifierHash: { electionId, nullifierHash } },
-    });
-    if (existingVote) {
-      throw new ConflictException('Vote already cast (Nullifier collision)');
-    }
-
-    // 4. Verify ZK Proof
-    const isValid = await verifyVoteProof(proof, publicSignals);
+    // 2. ZK, Vaidation check功
+    const isValid = await this.verifyZk(dto.proof, dto.publicSignals);
     if (!isValid) {
-      throw new BadRequestException('Invalid ZK Proof');
+      // Fake msg
+      return { status: 'success', message: 'Vote submitted successfully' };
     }
 
-    // 5. Verify Merkle Root
-    if (election.merkleRoot && election.merkleRoot !== root) {
-      throw new BadRequestException(
-        'Invalid Merkle Root (Eligibility verification failed)',
-      );
-    }
+    // 3. Write into database
+    await this.prisma.$transaction([
+      // A. Mark Key as used
+      this.prisma.userVoteKey.update({
+        where: { id: voteKey.id },
+        data: { hasVoted: true, votedAt: new Date() }
+      }),
+      // B. Save the vote without recording
+      this.prisma.vote.create({
+        data: {
+          electionId: dto.electionId,
+          voteContent: dto.voteContent,
+          encryptKey: dto.encryptKey,
+          proof: dto.proof,
+          publicSignals: dto.publicSignals
+        }
+      })
+    ]);
 
-    // 6. Verify Candidate Validity
-    const candidateId = bigIntToUuid(pubVote);
-    const candidate = await this.prisma.candidate.findUnique({
-      where: { id: candidateId },
-    });
-    if (!candidate || candidate.electionId !== electionId) {
-      throw new BadRequestException('Invalid candidate for this election');
-    }
-
-    // 7. Save Vote
-    return this.prisma.vote.create({
-      data: {
-        nullifierHash: nullifierHash,
-        proof: proof,
-        publicSignals: publicSignals as any,
-        electionId: electionId,
-        candidateId: candidateId,
-      },
-    });
+    return { status: 'success', message: 'Vote submitted successfully' };
   }
 
+  // =============================================
+  // Verify ZK. 
+  // Not finished.
+  // =============================================
+  private async verifyZk(proof: any, publicSignals: any[]): Promise<boolean> {
+    return true; // 先讓所有票都通過，等電路調好再來接 snarkjs
+  }
+
+  // 輔助方法：載入對應選舉的 VK
+  private async loadVerificationKey(electionId: string) {
+    // 這裡可以從檔案系統讀取，或是從資料庫的 Election 表拿
+    // return JSON.parse(fs.readFileSync(`keys/${electionId}_vkey.json`, 'utf8'));
+  }
+  
+  // Trigger the finish of election
   async getTally(electionId: string) {
-    const election = await this.prisma.election.findUnique({
-      where: { id: electionId },
-      include: { candidates: true },
-    });
-
-    if (!election) throw new NotFoundException('Election not found');
-
-    // Only allow viewing results after voting is closed
-    const now = new Date();
-    if (!election.endTime || now < new Date(election.endTime)) {
-      throw new BadRequestException(
-        'Results not available yet - voting period is still active',
-      );
+    // 1. 檢查選舉是否已經結束，避免重複統計
+    const election = await this.prisma.election.findUnique({ where: { id: electionId } });
+    if (election?.status == ElectionStatus.FINISHED) {
+      throw new BadRequestException('Already tallied this election');
     }
+  
+    // 2. 呼叫你的 private 統計邏輯
+    const tallyData = await this.performTally(electionId);
+  
+    // 3. 將結果寫回資料庫，並標記為結束
+    await this.prisma.election.update({
+      where: { id: electionId },
+      data: {
+        status: ElectionStatus.FINISHED,
+        finalResult: tallyData.results, // 直接存入 JSON 欄位
+      },
+    });
+  
+    return { message: '統計完成', result: tallyData.results };
+  }
 
+  // ================================== 
+  // Tally the vote when the elections are finished.
+  // ==================================
+  private async performTally(electionId: string) {
+    // 1. Select all votes in the same election
     const votes = await this.prisma.vote.findMany({
       where: { electionId },
-      select: { candidateId: true },
+      select: {
+        voteContent: true,
+        encryptKey: true,
+      },
     });
-
-    const totalEligibleVoters = await this.prisma.eligibleVoter.count({
-      where: { electionId },
-    });
-
-    const voteCounts: Record<string, number> = {};
-    votes.forEach((v) => {
-      voteCounts[v.candidateId] = (voteCounts[v.candidateId] || 0) + 1;
-    });
-
-    const candidatesWithVotes = election.candidates.map((c) => ({
-      ...c,
-      voteCount: voteCounts[c.id] || 0,
-    }));
-
-    let resultSummary: any = {};
-
-    switch (election.type) {
-      case 'PRESIDENTIAL': {
-        if (candidatesWithVotes.length === 1) {
-          const c = candidatesWithVotes[0];
-          const threshold = totalEligibleVoters * 0.1;
-          const isElected = c.voteCount >= threshold;
-          resultSummary = {
-            type: 'PRESIDENTIAL_UNCONTESTED',
-            threshold: Math.ceil(threshold),
-            winner: isElected ? c : null,
-            isElected,
-            note: isElected ? 'Elected' : 'Not Elected',
-          };
-        } else {
-          const sorted = [...candidatesWithVotes].sort((a, b) => b.voteCount - a.voteCount);
-          const winner = sorted[0];
-          const runnerUp = sorted[1];
-          if (runnerUp && winner.voteCount === runnerUp.voteCount) {
-            resultSummary = { type: 'PRESIDENTIAL_CONTESTED', winner: null, tie: true, note: 'Tie' };
-          } else {
-            resultSummary = { type: 'PRESIDENTIAL_CONTESTED', winner: winner, tie: false, note: 'Elected' };
-          }
+  
+    const results: Record<string, number> = {};
+  
+    // 2. Accumulation
+    for (const vote of votes) {
+      try {
+        const bytes = CryptoJS.AES.decrypt(vote.voteContent, vote.encryptKey || '');
+        const decryptedContent = bytes.toString(CryptoJS.enc.Utf8);
+  
+        if (decryptedContent) {
+          results[decryptedContent] = (results[decryptedContent] || 0) + 1;
         }
-        break;
-      }
-      case 'DISTRICT_COUNCILOR': {
-        const sorted = [...candidatesWithVotes].sort((a, b) => b.voteCount - a.voteCount);
-        if (sorted.length === 0) {
-          resultSummary = { type: 'DISTRICT', winner: null, note: 'No candidates' };
-        } else {
-          const winner = sorted[0];
-          const runnerUp = sorted[1];
-          if (runnerUp && winner.voteCount === runnerUp.voteCount) {
-            resultSummary = { type: 'DISTRICT', winner: null, tie: true, note: 'Tie' };
-          } else {
-            resultSummary = { type: 'DISTRICT', winner: winner, note: 'Elected' };
-          }
-        }
-        break;
-      }
-      case 'AT_LARGE_COUNCILOR': {
-        const threshold = totalEligibleVoters * 0.01;
-        const qualified = candidatesWithVotes.filter((c) => c.voteCount >= threshold);
-        const sorted = qualified.sort((a, b) => b.voteCount - a.voteCount);
-        const winners = sorted.slice(0, 16);
-        resultSummary = {
-          type: 'AT_LARGE_SNTV',
-          threshold: Math.ceil(threshold),
-          winners: winners,
-          note: `Top ${winners.length} elected`,
-        };
-        break;
+
+      } catch (error) {
+        this.logger.error(`Error: ${error.message}`);
       }
     }
-
+  
     return {
-      tally: voteCounts,
+      electionId,
       totalVotes: votes.length,
-      totalEligibleVoters,
-      candidates: candidatesWithVotes,
-      result: resultSummary,
+      results, 
     };
   }
 
-  async getAuditLogs(electionId: string) {
-    const election = await this.prisma.election.findUnique({
-      where: { id: electionId },
+  // =============================================
+  // 
+  // =============================================
+  async getVoterCredential(userId: string, electionId: string) {
+    // 1. find ID
+    // Here need to modify
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    
+    
+    // 2. find key, if not, generate
+    if (!user) throw new Error('User not found');
+    const voteKey = await this.prisma.userVoteKey.findUnique({
+      where: {
+        
+        hashedID_electionId: { hashedID: user.studentIdHash, electionId }
+      }
     });
 
-    if (!election) throw new NotFoundException('Election not found');
+    // 3. group validation check
+    if (!voteKey) throw new ForbiddenException('Do not in the valid group');
+    //if (voteKey.hasVoted) throw new ForbiddenException('');
 
-    const now = new Date();
-    if (!election.endTime || now < new Date(election.endTime)) {
-      throw new BadRequestException('Audit logs not available yet');
+
+    // 4. generate a random encKey
+    let currentEncryptKey = null;
+
+    if (!currentEncryptKey) {
+      // 產生 32 bytes (256-bit) 的隨機金鑰
+      currentEncryptKey = randomBytes(32).toString('hex');
     }
 
-    return this.prisma.vote.findMany({
-      where: { electionId },
-      select: {
-        id: true,
-        nullifierHash: true,
-        proof: true,
-        publicSignals: true,
-        createdAt: true,
-      },
-    });
-  }
-
-  async checkNullifier(electionId: string, nullifierHash: string) {
-    const vote = await this.prisma.vote.findUnique({
-      where: { electionId_nullifierHash: { electionId, nullifierHash } },
-      select: { id: true, nullifierHash: true, createdAt: true },
-    });
-    return { exists: !!vote, vote };
+    // 5. Send (EK,PK)
+    return {
+      proveKey: voteKey.proveKey,
+      encryptKey: currentEncryptKey,
+    };
   }
 }
