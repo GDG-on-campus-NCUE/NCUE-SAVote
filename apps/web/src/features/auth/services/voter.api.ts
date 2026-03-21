@@ -21,7 +21,12 @@ export const voterApi = {
 
     const response = await api.post<ApiResponse<ImportVotersResponse>>(
       API_ENDPOINTS.VOTERS.IMPORT,
-      formData
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
     );
 
     if (!response.data.success || !response.data.data) {

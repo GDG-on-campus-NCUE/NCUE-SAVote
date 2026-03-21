@@ -16,12 +16,11 @@ export class VotesController {
   @ApiResponse({ status: 400, description: 'Invalid proof or input' })
   @ApiResponse({ status: 409, description: 'Double voting detected (Handled by Silent Return)' })
   async submitVote(
-    @Body() submitVoteDto: SubmitVoteDto,
-    @Req() req: any 
+    @Body() submitVoteDto: SubmitVoteDto
   ) {
-    const userId = req.user.id;
+    //const userId = req.user.id;
 
-    return await this.votesService.submitVote(submitVoteDto, userId);
+    return await this.votesService.submitVote(submitVoteDto);
   }
 
 
@@ -47,12 +46,12 @@ export class VotesController {
     return this.votesService.checkNullifier(electionId, nullifier);
   }*/
 
-  @Get('hello/:electionId')
-  @UseGuards(JwtAuthGuard) // 必須登入
-  async serverHello(@Req() req: any, @Param('electionId') electionId: string) {
-    const userId = req.user.id; // 從 JWT 拿到 userId
+  // @Get('hello/:electionId')
+  // @UseGuards(JwtAuthGuard) // 必須登入
+  // async serverHello(@Req() req: any, @Param('electionId') electionId: string) {
+  //   const userId = req.user.id; // 從 JWT 拿到 userId
 
-    // 呼叫 Service 執行邏輯
-    return this.votesService.getVoterCredential(userId, electionId);
-  }
+  //   // 呼叫 Service 執行邏輯
+  //   //return this.votesService.getVoterCredential(userId, electionId);
+  // }
 }

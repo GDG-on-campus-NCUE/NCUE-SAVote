@@ -7,8 +7,8 @@ async function main() {
 
   // 1. Create/Update Initial Super Admin Permission
   const superAdminSub =
-    process.env.INITIAL_SUPER_ADMIN_SUB || 'S1354032';
-  const superAdminName = process.env.INITIAL_SUPER_ADMIN_NAME || '陳泰銘';
+    process.env.INITIAL_SUPER_ADMIN_SUB || 'M1454007';
+  const superAdminName = process.env.INITIAL_SUPER_ADMIN_NAME || '蔣光宗';
 
   // We use upsert to ensure that if the record exists, it gets updated with the correct role/name
   await prisma.adminPermission.upsert({

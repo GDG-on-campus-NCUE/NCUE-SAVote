@@ -7,10 +7,10 @@ export class SubmitVoteDto {
   @IsNotEmpty()
   electionId: string;
 
-  @ApiProperty({ description: 'The ID of the candidate voted for' })
-  @IsString()
-  @IsNotEmpty()
-  vote: string;
+  // @ApiProperty({ description: 'The ID of the candidate voted for' })
+  // @IsString()
+  // @IsNotEmpty()
+  // vote: string;
 
   @ApiProperty({ description: 'The vote contents' })
   @IsString()

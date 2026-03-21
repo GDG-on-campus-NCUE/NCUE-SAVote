@@ -14,7 +14,7 @@ const SetupPage = lazy(() => import("./features/auth/pages/SetupPage").then(m =>
 const HomePage = lazy(() => import("./features/home/pages/HomePage").then(m => ({ default: m.HomePage })));
 const VotingBooth = lazy(() => import("./features/voting/pages/VotingBooth").then(m => ({ default: m.VotingBooth })));
 const VoteSuccess = lazy(() => import("./features/voting/pages/VoteSuccess").then(m => ({ default: m.VoteSuccess })));
-const KeySetupPage = lazy(() => import("./features/voting/pages/KeySetupPage").then(m => ({ default: m.KeySetupPage })));
+//const KeySetupPage = lazy(() => import("./features/voting/pages/KeySetupPage").then(m => ({ default: m.KeySetupPage })));
 
 const AdminDashboardPage = lazy(() => import("./features/admin/pages/AdminDashboardPage").then(m => ({ default: m.AdminDashboardPage })));
 const ElectionManagementPage = lazy(() => import("./features/admin/pages/ElectionManagementPage").then(m => ({ default: m.ElectionManagementPage })));
@@ -50,7 +50,6 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/vote/:electionId" element={<VotingBooth />} />
                 <Route path="/vote/success" element={<VoteSuccess />} />
-                <Route path="/vote/keys" element={<KeySetupPage />} />
               </Route>
 
               {/* Protected Admin Routes with Persistent Layout */}

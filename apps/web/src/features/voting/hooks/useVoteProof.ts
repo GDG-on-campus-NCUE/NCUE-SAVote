@@ -58,8 +58,8 @@ export const useVoteProof = (): UseVoteProofReturn => {
             // Send data to worker
             workerRef.current.postMessage({
                 input,
-                wasmPath: '/zk/vote.wasm',
-                zkeyPath: '/zk/vote_final.zkey',
+                wasmPath: '/main.wasm',
+                zkeyPath: '/main_final.zkey',
             });
         });
     };

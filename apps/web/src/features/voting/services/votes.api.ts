@@ -2,7 +2,8 @@ import { api } from '../../auth/services/auth.api';
 
 export interface SubmitVoteRequest {
     electionId: string;
-    vote: string;
+    voteContent: string;
+    encryptKey: string;
     proof: any;
     publicSignals: string[];
 }

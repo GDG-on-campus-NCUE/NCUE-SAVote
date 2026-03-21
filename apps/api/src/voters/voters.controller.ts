@@ -74,7 +74,7 @@ export class VotersController {
   async verifyEligibility(
     @Body() dto: VerifyEligibilityDto,
     @Req() req: Request,
-  ): Promise<ApiResponse<VoterEligibilityResponse>> {
+  ): Promise<ApiResponse<any>> {
     const payload = req.user as JWTPayload;
     if (!payload?.studentIdHash) {
       throw new BadRequestException('STUDENT_ID_UNAVAILABLE');

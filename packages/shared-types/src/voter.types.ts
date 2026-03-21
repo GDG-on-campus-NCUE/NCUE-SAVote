@@ -54,6 +54,7 @@ export interface VoterEligibilityRequest {
 export interface VoterEligibilityResponse {
     eligible: boolean;
     election: Election | null;
+    isRegistered: boolean;
     // merkleRootHash: string | null;
     // merkleProof: string[];
     leafIndex?: number;

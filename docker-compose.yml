@@ -39,7 +39,7 @@ services:
         condition: service_healthy
     # 使用 db push 模式：同步結構
     command: >
-      sh -c "cd apps/api && npx prisma db push --accept-data-loss && npx prisma db seed && npm run start:prod"
+      sh -c "cd apps/api && npx prisma db push --accept-data-loss && npx prisma db seed && npm run start:dev"
     restart: always
     networks:
       - savote-network

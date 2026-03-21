@@ -7,13 +7,13 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateElectionDto } from './dto/create-election.dto';
 import { UpdateElectionDto } from './dto/update-election.dto';
-
+import * as crypto from 'crypto';
 import { ImportEligibleVotersDto } from './dto/import-eligible-voters.dto';
 import { CreateEligibleVoterDto } from './dto/create-eligible-voter.dto';
 
 @Injectable()
 export class ElectionsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
    * Internal check to prevent modification or deletion after an election starts.
@@ -91,10 +91,10 @@ export class ElectionsService {
   async getAdminSummary(id: string) {
     const election = await this.findOne(id);
     this.assertCanViewResults(election);
-    
+
     // Original logic to fetch tally would go here or be called from votes service
     // This is a placeholder indicating that we perform the check BEFORE data retrieval
-    return election; 
+    return election;
   }
 
   async importEligibleVoters(electionId: string, dto: ImportEligibleVotersDto) {
@@ -102,17 +102,32 @@ export class ElectionsService {
     this.assertCanModifyElection(election);
 
     const lines = dto.csv.trim().split(/\r?\n/);
-    const voters: CreateEligibleVoterDto[] = [];
+
+    // 💡 小提醒：如果 CreateEligibleVoterDto 報錯，請去那個 DTO 檔案裡加上 studentIdHash: string
+    const voters: any[] = [];
+
     for (const line of lines) {
       const [studentId, className] = line.split(',').map((s) => s.trim());
       if (studentId && className) {
-        voters.push({ studentId, class: className, electionId });
+
+        // 👈 在這裡算出 Hash 值
+        // (注意：請確保你的 elections.service 裡也有 hashStudentId 這個方法，沒有的話要從 voters.service 複製過來或做成共用工具)
+        const studentIdHash = await this.hashStudentId(studentId);
+
+        voters.push({
+          studentId,
+          class: className,
+          electionId,
+          studentIdHash // 👈 把算好的 Hash 塞進去
+        });
       }
     }
+
     const created = await this.prisma.eligibleVoter.createMany({
       data: voters,
       skipDuplicates: true,
     });
+
     return { imported: created.count };
   }
 
@@ -146,5 +161,8 @@ export class ElectionsService {
       success: true,
       totalVoters: voters.length,
     };
+  }
+  private hashStudentId(studentId: string): string {
+    return crypto.createHash('sha256').update(studentId).digest('hex');
   }
 }

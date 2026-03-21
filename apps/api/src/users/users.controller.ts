@@ -28,7 +28,7 @@ export class UsersController {
       data: {
         id: user.id,
         studentIdHash: user.studentIdHash,
-        class: user.class,
+        class: user.class ?? '',
         email: user.email,
         name: user.name,
         enrollmentStatus: user.enrollmentStatus as unknown as EnrollmentStatus,

@@ -41,34 +41,37 @@ export class AuthService {
     ipAddress: string,
     userAgent: string,
   ): Promise<LoginResponse> {
-    const studentId = userinfo.preferred_username || userinfo.sub;
-    if (!studentId) throw new UnauthorizedException('Student ID not found in OIDC info');
+    const rawStudentId = userinfo.preferred_username || userinfo.sub;
+    if (!rawStudentId) { 
+      throw new UnauthorizedException('Student ID not found in OIDC info');
+    }
+
+    const cleanStudentId = rawStudentId.replace('NCUESA\\', '').trim().toUpperCase();
+
+    const studentIdHash = crypto.createHash('sha256').update(cleanStudentId).digest('hex');
 
     const userClass = (userinfo['class'] || userinfo['ou'] || 'UNKNOWN') as string;
     const email = userinfo.email || null;
     const name = userinfo.name || userinfo.preferred_username || null;
-    const studentIdHash = crypto.createHash('sha256').update(studentId).digest('hex');
 
-    const existingUser = await this.prisma.user.findUnique({ where: { studentIdHash } });
-    const isNewUser = !existingUser;
+    const user = await this.prisma.user.upsert({
+      where: { studentIdHash },
+      update: {
+        class: userClass,
+        email: email || undefined,
+        name: name || undefined
+      },
+      create: {
+        studentIdHash,
+        class: userClass,
+        email,
+        name,
+        role: UserRole.USER,
+      },
+    });
 
-    let user = existingUser;
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          studentIdHash,
-          class: userClass,
-          email,
-          name,
-          role: UserRole.USER,
-        },
-      });
-    } else {
-      user = await this.prisma.user.update({
-        where: { id: user.id },
-        data: { class: userClass, email: email || user.email, name: name || user.name },
-      });
-    }
+    // 判斷是否為新用戶 (看建立跟更新時間是否一致)
+    const isNewUser = user.createdAt.getTime() === user.updatedAt.getTime();
 
     const tokens = await this.generateTokens(user, ipAddress, userAgent);
 
@@ -89,7 +92,7 @@ export class AuthService {
   ): Promise<LoginResponse> {
     const rawSub = userinfo.sub;
     if (!rawSub) throw new UnauthorizedException('Synology Sub not found');
-    
+
     // Normalize sub (e.g. "NCUESA\S123" -> "S123")
     const synologySub = normalizeSub(rawSub);
 
