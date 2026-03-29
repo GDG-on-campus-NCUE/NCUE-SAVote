@@ -76,12 +76,12 @@ export class VotersService {
 
       if (!voter) throw new NotFoundException('VOTER_NOT_ELIGIBLE');
 
-    
+
       // . 檢查是否已經註冊過金鑰 
       const existingKey = await tx.userVoteKey.findFirst({
         where: {
           electionId,
-          hashedID: studentIdHash 
+          hashedID: studentIdHash
         },
       });
 
@@ -95,7 +95,7 @@ export class VotersService {
           electionId: electionId,
           commitment: commitment,
           hasVoted: false,
-          hashedID: studentIdHash 
+          hashedID: studentIdHash
         },
       });
 
@@ -253,6 +253,25 @@ export class VotersService {
         mismatchID: studentIdHash,
         reason: 'NOT_ELIGIBLE',
       };
+    }
+
+    const voteKeyRecord = await this.prisma.userVoteKey.findUnique({
+      where: {
+        hashedID_electionId: {
+          hashedID: studentIdHash,
+          electionId: electionId,
+        },
+      },
+    });
+
+    if (voteKeyRecord && voteKeyRecord.hasVoted) {
+      return {
+        eligible: false,
+        election: sharedElection,
+        mismatchID: studentIdHash,
+        reason: 'ALREADY_VOTED',
+        hasVoted: true
+      }
     }
 
     // 3. 檢查是否已經註冊過 (看 identityCommitment 有沒有值)

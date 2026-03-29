@@ -10,7 +10,7 @@ import { UserRole } from "@savote/shared-types";
 // Lazy Pages
 const LoginPage = lazy(() => import("./features/auth/pages/LoginPage").then(m => ({ default: m.LoginPage })));
 const CallbackPage = lazy(() => import("./features/auth/pages/CallbackPage").then(m => ({ default: m.CallbackPage })));
-const SetupPage = lazy(() => import("./features/auth/pages/SetupPage").then(m => ({ default: m.SetupPage })));
+//const SetupPage = lazy(() => import("./features/auth/pages/SetupPage").then(m => ({ default: m.SetupPage })));
 const HomePage = lazy(() => import("./features/home/pages/HomePage").then(m => ({ default: m.HomePage })));
 const VotingBooth = lazy(() => import("./features/voting/pages/VotingBooth").then(m => ({ default: m.VotingBooth })));
 const VoteSuccess = lazy(() => import("./features/voting/pages/VoteSuccess").then(m => ({ default: m.VoteSuccess })));
@@ -66,12 +66,12 @@ function App() {
                 <Route path="/admin/accounts" element={<AdminAccountManagementPage />} />
               </Route>
 
-              {/* Standalone Protected Routes */}
+              {/* Standalone Protected Routes
               <Route path="/auth/setup" element={
                 <ProtectedRoute>
                    <SetupPage />
                 </ProtectedRoute>
-              } />
+              } /> */}
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/admin" replace />} />

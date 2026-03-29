@@ -57,7 +57,7 @@ export const VotingBooth: React.FC = () => {
     enabled: !!electionId,
   });
 
-  // 2. Check Eligibility & Get Merkle Path
+  // 2. Check Eligibility
   const {
     data: eligibility,
     isLoading: isLoadingEligibility,
@@ -84,8 +84,6 @@ export const VotingBooth: React.FC = () => {
         isRegistered: eligibility?.isRegistered,
         setupDone: setupDoneRef.current
       });
-      //if (!eligibility || !eligibility.eligible || setupDoneRef.current) return;
-
 
       const storageKey = `savote_secret_${electionId}`;
       let existingSecret = localStorage.getItem(storageKey);
@@ -202,7 +200,15 @@ export const VotingBooth: React.FC = () => {
     );
   }
 
-  if (eligibilityError || (eligibility && !eligibility.eligible)) {
+  if (eligibilityError || (eligibility && (!eligibility.eligible || eligibility.hasVoted))) {
+    
+    // 動態決定標題與內文
+    const isAlreadyVoted = eligibility?.hasVoted;
+    const title = isAlreadyVoted ? "已完成投票" : "無法投票";
+    const message = isAlreadyVoted 
+      ? "您已經成功投過票，無法重複提交選票。" 
+      : (eligibility?.reason || "您不符合此次選舉的投票資格。");
+
     return (
       <div className="min-h-[60vh] flex justify-center items-center p-4">
         <Card className="max-w-md w-full text-center p-8 flex flex-col items-center gap-4">
@@ -210,10 +216,10 @@ export const VotingBooth: React.FC = () => {
             <AlertTriangle className="w-8 h-8" />
           </div>
           <h2 className="text-2xl font-bold text-[var(--color-on-surface)]">
-            無法投票
+            {title}
           </h2>
           <p className="text-[var(--color-on-surface-variant)]">
-            {eligibility?.reason || "您不符合此次選舉的投票資格。"}
+            {message}
           </p>
           <Button onClick={() => navigate("/")} variant="outlined">
             返回首頁
@@ -221,7 +227,8 @@ export const VotingBooth: React.FC = () => {
         </Card>
       </div>
     );
-  }
+  };
+  
 
   return (
     <div className="space-y-8 animate-fade-in pb-24">

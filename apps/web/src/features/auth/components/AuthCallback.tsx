@@ -37,19 +37,21 @@ export const AuthCallback = () => {
             navigate('/admin', { replace: true });
             return;
           }
+          setNullifierSecretStatus(true);
+          navigate('/', { replace: true });
+          return;
+          // const storedSecret = await storage.getNullifierSecret();
+          // const hasSecretForUser = storedSecret && storedSecret.studentIdHash === user.studentIdHash;
 
-          const storedSecret = await storage.getNullifierSecret();
-          const hasSecretForUser = storedSecret && storedSecret.studentIdHash === user.studentIdHash;
+          // if (hasSecretForUser) {
+          //   setNullifierSecretStatus(true);
+          //   navigate('/', { replace: true });
+          //   return;
+          // }
 
-          if (hasSecretForUser) {
-            setNullifierSecretStatus(true);
-            navigate('/', { replace: true });
-            return;
-          }
-
-          setNullifierSecretStatus(false);
-          // Directly navigate to setup if no key found (Auto-generate flow)
-          navigate('/auth/setup', { replace: true });
+          // setNullifierSecretStatus(false);
+          // // Directly navigate to setup if no key found (Auto-generate flow)
+          // navigate('/auth/setup', { replace: true });
           
         } catch (error) {
           console.error('Callback error:', error);
