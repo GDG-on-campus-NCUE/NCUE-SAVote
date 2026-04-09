@@ -36,19 +36,37 @@ export class ElectionsService {
   }
 
   async create(dto: CreateElectionDto) {
-    return this.prisma.election.create({
+    // Generate RSA key pair
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: {
+        type: 'spki',
+        format: 'pem',
+      },
+      privateKeyEncoding: {
+        type: 'pkcs8',
+        format: 'pem',
+      },
+    });
+
+    const newElection = await this.prisma.election.create({
       data: {
         name: dto.name,
         description: dto.description,
         type: dto.type,
         config: dto.config,
-        //merkleRoot: dto.merkleRootHash ?? null,
         startTime: dto.startTime ? new Date(dto.startTime) : undefined,
         endTime: dto.endTime ? new Date(dto.endTime) : undefined,
+        publicKey: publicKey,
+        privateKey: privateKey,
       } as any,
     });
-  }
 
+    // Omit privateKey before returning to client
+    const { privateKey: _, ...safeElection } = newElection;
+
+    return safeElection;
+  }
   async findAll() {
     return this.prisma.election.findMany({
       orderBy: { createdAt: 'desc' },
@@ -103,22 +121,21 @@ export class ElectionsService {
 
     const lines = dto.csv.trim().split(/\r?\n/);
 
-    // 💡 小提醒：如果 CreateEligibleVoterDto 報錯，請去那個 DTO 檔案裡加上 studentIdHash: string
+    // 如果 CreateEligibleVoterDto 報錯，請去那個 DTO 檔案裡加上 studentIdHash: string
     const voters: any[] = [];
 
     for (const line of lines) {
       const [studentId, className] = line.split(',').map((s) => s.trim());
       if (studentId && className) {
 
-        // 👈 在這裡算出 Hash 值
-        // (注意：請確保你的 elections.service 裡也有 hashStudentId 這個方法，沒有的話要從 voters.service 複製過來或做成共用工具)
+        // 在這裡算出 Hash 值
         const studentIdHash = await this.hashStudentId(studentId);
 
         voters.push({
           studentId,
           class: className,
           electionId,
-          studentIdHash // 👈 把算好的 Hash 塞進去
+          studentIdHash // 把算好的 Hash 塞進去
         });
       }
     }

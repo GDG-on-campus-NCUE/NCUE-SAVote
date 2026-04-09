@@ -322,9 +322,12 @@ export class VotersService {
       type: election.type as unknown as ElectionType,
       startTime: election.startTime,
       endTime: election.endTime,
+      publicKey: election.publicKey,
+      //privateKey: null,
       createdAt: election.createdAt,
       updatedAt: election.updatedAt,
       candidates: [],
+      
     };
   }
 }

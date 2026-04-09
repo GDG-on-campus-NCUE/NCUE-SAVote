@@ -7,10 +7,10 @@ export interface Candidate {
 export interface Election {
     id: string;
     name: string;
-    //merkleRootHash: string | null;
     status: ElectionStatus;
     startTime: Date | null;
     endTime: Date | null;
+    publicKey: string | null;
     createdAt: Date;
     updatedAt: Date;
     candidates: Candidate[];

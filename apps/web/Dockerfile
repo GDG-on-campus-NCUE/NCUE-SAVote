@@ -26,6 +26,7 @@ COPY . .
 # 設置環境變量並構建
 ARG VITE_API_BASE_URL=/api
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 RUN pnpm turbo run build --filter=web...
 
 # --- 服務階段 (Nginx) ---

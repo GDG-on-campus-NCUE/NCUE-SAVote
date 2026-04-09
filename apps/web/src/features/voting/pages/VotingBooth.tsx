@@ -12,12 +12,17 @@ import { Card } from "../../../components/m3/Card";
 import { Button } from "../../../components/m3/Button";
 import { Dialog } from "../../../components/m3/Dialog";
 import { Check, AlertTriangle, Loader2, X } from "lucide-react";
+import { encryptWithPublicKey } from "../../../lib/crypto";
 
 import { generateZkSecret, calculateCommitment } from "../../../lib/zk";
 // ZK Secret Generating Function
 
 import { votersApi } from "../services/voters.api";
 import { useRef } from "react";
+
+
+
+
 
 export const VotingBooth: React.FC = () => {
   const { electionId } = useParams<{ electionId: string }>();
@@ -68,6 +73,7 @@ export const VotingBooth: React.FC = () => {
     enabled: !!electionId,
     retry: false,
   });
+  const election = eligibility?.election;
 
 
 
@@ -136,19 +142,21 @@ export const VotingBooth: React.FC = () => {
   });
 
   const handleVote = async () => {
-    setIsConfirmDialogOpen(false); // Close dialog
+    setIsConfirmDialogOpen(false);
 
+    // Check if election.publicKey exists
     if (
       !electionId ||
+      !election?.publicKey ||
       !selectedCandidate ||
       !secret ||
       !user?.studentIdHash
     ) {
+      console.error("Missing required voting parameters or public key");
       return;
     }
 
     try {
-      // 1. 格式化輸入：確保 studentIdHash 和 secret 都是十進位字串
       const studentIdStr = normalizeToBigIntString(user.studentIdHash);
       const secretStr = normalizeToBigIntString(secret);
 
@@ -160,25 +168,28 @@ export const VotingBooth: React.FC = () => {
         secret: secretStr,
       };
 
-      // 2. 產生 Proof
       console.log("Step: Generating Proof with inputs", { studentIdStr });
       const { proof, publicSignals } = await generateProof(input);
 
-      console.log("[PROOF] Commitment:", publicSignals[0]);
       if (testCommitment !== publicSignals[0]) {
         console.error("WARNING: NO CORRESPOND");
       }
 
-      // 3. 送出選票
+      // Encrypt the selected candidate using the election's public key
+      const encryptedVoteContent = await encryptWithPublicKey(
+        `${selectedCandidate}`,
+        election.publicKey
+      );
+
+      // Submit the encrypted vote
       await submitVoteMutation.mutateAsync({
         electionId,
-        voteContent: String(selectedCandidate),
-        encryptKey: "test-key", // 這裡可以維持原樣或改用 crypto.ts 的 key
+        voteContent: encryptedVoteContent,
+        encryptKey: "RSA-OAEP", // Or any identifier your backend expects, or remove if not needed
         proof,
         publicSignals,
       });
-    }
-    catch (err) {
+    } catch (err) {
       console.error("Voting failed:", err);
     }
   };
@@ -201,12 +212,12 @@ export const VotingBooth: React.FC = () => {
   }
 
   if (eligibilityError || (eligibility && (!eligibility.eligible || eligibility.hasVoted))) {
-    
+
     // 動態決定標題與內文
     const isAlreadyVoted = eligibility?.hasVoted;
     const title = isAlreadyVoted ? "已完成投票" : "無法投票";
-    const message = isAlreadyVoted 
-      ? "您已經成功投過票，無法重複提交選票。" 
+    const message = isAlreadyVoted
+      ? "您已經成功投過票，無法重複提交選票。"
       : (eligibility?.reason || "您不符合此次選舉的投票資格。");
 
     return (
@@ -228,7 +239,7 @@ export const VotingBooth: React.FC = () => {
       </div>
     );
   };
-  
+
 
   return (
     <div className="space-y-8 animate-fade-in pb-24">

@@ -45,20 +45,7 @@ export const VoteSuccess: React.FC = () => {
             投票成功！
           </h1>
           <p className="text-[var(--color-on-surface-variant)]">
-            您的選票已匿名記錄。下方是您的數位收執聯。
-          </p>
-        </div>
-
-        <div className="p-6 bg-[var(--color-surface-variant)] rounded-xl border border-[var(--color-outline-variant)] text-left">
-          <h3 className="text-xs font-bold text-[var(--color-primary)] uppercase tracking-wider mb-2">
-            投票收執聯 (Nullifier Hash)
-          </h3>
-          <code className="block p-3 bg-[var(--color-surface)] border border-[var(--color-outline)] rounded-lg text-sm break-all font-mono text-[var(--color-on-surface)]">
-            {receipt.nullifier}
-          </code>
-          <p className="text-xs text-[var(--color-on-surface-variant)] mt-3 flex items-center gap-1">
-            <AlertTriangle className="w-3 h-3" />
-            請保存此雜湊值，以便在最終計票時驗證您的選票。
+            選舉結束後將進行開票。
           </p>
         </div>
 

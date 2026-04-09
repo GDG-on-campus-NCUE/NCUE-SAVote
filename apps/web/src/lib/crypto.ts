@@ -170,3 +170,54 @@ export function getRandomHex(length: number): string {
     .join('')
     .slice(0, length);
 }
+
+function importPublicKey(pem: string) {
+  const pemHeader = "-----BEGIN PUBLIC KEY-----";
+  const pemFooter = "-----END PUBLIC KEY-----";
+  
+  // Extract base64 content
+  const pemContents = pem.substring(
+    pem.indexOf(pemHeader) + pemHeader.length,
+    pem.indexOf(pemFooter)
+  ).replace(/\s/g, '');
+
+  const binaryDerString = window.atob(pemContents);
+  const buf = new ArrayBuffer(binaryDerString.length);
+  const bufView = new Uint8Array(buf);
+  
+  for (let i = 0, strLen = binaryDerString.length; i < strLen; i++) {
+    bufView[i] = binaryDerString.charCodeAt(i);
+  }
+
+  // Import key for RSA-OAEP encryption
+  return window.crypto.subtle.importKey(
+    "spki",
+    buf,
+    {
+      name: "RSA-OAEP",
+      hash: "SHA-256",
+    },
+    true,
+    ["encrypt"]
+  );
+}
+
+export async function encryptWithPublicKey(text: string, pemPublicKey: string): Promise<string> {
+  const publicKey = await importPublicKey(pemPublicKey);
+  const encodedText = new TextEncoder().encode(text);
+
+  const encryptedBuffer = await window.crypto.subtle.encrypt(
+    { name: "RSA-OAEP" },
+    publicKey,
+    encodedText
+  );
+
+  // Convert encrypted ArrayBuffer to Base64 string for transmission
+  const encryptedBytes = new Uint8Array(encryptedBuffer);
+  let binary = '';
+  for (let i = 0; i < encryptedBytes.byteLength; i++) {
+      binary += String.fromCharCode(encryptedBytes[i]);
+  }
+  
+  return window.btoa(binary);
+}

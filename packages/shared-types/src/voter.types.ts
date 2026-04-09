@@ -23,6 +23,7 @@ export interface Election {
     config?: any;
     startTime: Date | null;
     endTime: Date | null;
+    publicKey: string | null;
     createdAt: Date;
     updatedAt: Date;
     candidates: Candidate[];

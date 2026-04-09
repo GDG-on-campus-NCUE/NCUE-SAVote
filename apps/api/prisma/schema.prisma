@@ -154,6 +154,10 @@ model Election {
 
   finalResult Json?
 
+  // Vote Encrypt Pair Key
+  publicKey  String @db.Text
+  privateKey String @db.Text
+
   // Relations
   eligibleVoters EligibleVoter[]
   candidates     Candidate[]
@@ -249,7 +253,7 @@ model UserVoteKey {
   election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
 
   // Commitment is used for verifing the ZK proof
-  commitment String @db.Text @unique
+  commitment String @unique @db.Text
 
   hasVoted Boolean   @default(false)
   votedAt  DateTime?
