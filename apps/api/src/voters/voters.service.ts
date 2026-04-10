@@ -104,27 +104,6 @@ export class VotersService {
     });
   }
 
-  // async snapshotElection(electionId: string): Promise<string> {
-  //   this.logger.log(
-  //     `Snapshotting election ${electionId} (Generating Merkle Root)`,
-  //   );
-
-  //   // Compute root using MerkleTreeService
-  //   const root = await this.merkleTreeService.getTreeRoot(electionId);
-
-  //   // Update Election
-  //   await this.prisma.election.update({
-  //     where: { id: electionId },
-  //     data: { merkleRoot: root },
-  //   });
-
-  //   return root;
-  // }
-
-  // async getMerkleProof(electionId: string, commitment: string) {
-  //   return this.merkleTreeService.getProof(electionId, commitment);
-  // }
-
   // ===========================================================================
   // Import / Eligibility Logic
   // ===========================================================================

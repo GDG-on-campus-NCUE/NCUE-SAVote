@@ -10,9 +10,16 @@ import { UpdateElectionDto } from './dto/update-election.dto';
 import * as crypto from 'crypto';
 import { ImportEligibleVotersDto } from './dto/import-eligible-voters.dto';
 import { CreateEligibleVoterDto } from './dto/create-eligible-voter.dto';
+import { Logger } from '@nestjs/common';
+import type {
+  AdminSummaryResponse,
+  Election as SharedElection,
+} from '@savote/shared-types';
+import { ElectionStatus, ELECTION_RULES } from '@savote/shared-types';
 
 @Injectable()
 export class ElectionsService {
+  private readonly logger = new Logger(ElectionsService.name);
   constructor(private prisma: PrismaService) { }
 
   /**
@@ -89,7 +96,6 @@ export class ElectionsService {
         description: dto.description,
         type: dto.type,
         config: dto.config,
-        //merkleRoot: dto.merkleRootHash ?? undefined,
         startTime: dto.startTime ? new Date(dto.startTime) : undefined,
         endTime: dto.endTime ? new Date(dto.endTime) : undefined,
       } as any,
@@ -103,16 +109,176 @@ export class ElectionsService {
     return { success: true };
   }
 
-  /**
-   * Enhanced result fetching with strict time check.
-   */
-  async getAdminSummary(id: string) {
-    const election = await this.findOne(id);
+
+
+  async getAdminSummary(id: string): Promise<AdminSummaryResponse> {
+    // 1. Fetch election with sensitive keys and candidates
+    const election = await this.prisma.election.findUnique({
+      where: { id },
+      include: { candidates: true }
+    });
+
+    if (!election || !election.privateKey) {
+      throw new NotFoundException('ELECTION_OR_KEY_NOT_FOUND');
+    }
+
     this.assertCanViewResults(election);
 
-    // Original logic to fetch tally would go here or be called from votes service
-    // This is a placeholder indicating that we perform the check BEFORE data retrieval
-    return election;
+    // 2. Fetch all encrypted votes
+    const votes = await this.prisma.vote.findMany({
+      where: { electionId: id },
+      select: { voteContent: true }
+    });
+
+    // 3. Get metadata
+    const totalVotes = votes.length;
+    const totalEligibleVoters = await this.prisma.eligibleVoter.count({
+      where: { electionId: id }
+    });
+
+    // 4. Decrypt and Tally
+    const tallyMap: Record<string, number> = {};
+
+    // Initialize tally for all candidates
+    election.candidates.forEach(c => {
+      tallyMap[c.id] = 0;
+    });
+
+    votes.forEach((v) => {
+      try {
+        // Decrypt using the privateKey from database
+        const decryptedBuffer = crypto.privateDecrypt(
+          {
+            key: election.privateKey,
+            padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+            oaepHash: 'sha256',
+          },
+          Buffer.from(v.voteContent, 'base64')
+        );
+
+        const candidateId = decryptedBuffer.toString('utf8');
+
+        if (tallyMap[candidateId] !== undefined) {
+          tallyMap[candidateId]++;
+        } else {
+          // Handle invalid or "None of the above" votes if necessary
+          this.logger.warn(`Decrypted invalid candidateId: ${candidateId}`);
+        }
+      } catch (err) {
+        // Check if err is an instance of Error
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        this.logger.error(`Failed to decrypt vote: ${errorMessage}`);
+      }
+    });
+
+    // 5. Format candidate data for frontend
+    const candidateResults = election.candidates.map((c) => ({
+      ...c,
+      voteCount: tallyMap[c.id] || 0,
+    }));
+
+    // 6. Determine the winner
+    const ruleEvaluation = this.evaluateElectionRules(
+      election.type,
+      candidateResults,
+      totalVotes,
+      totalEligibleVoters
+    );
+
+    const finalTallyData = {
+      tally: tallyMap,
+      totalVotes: totalVotes,
+      totalEligibleVoters: totalEligibleVoters,
+      candidates: ruleEvaluation.candidates,
+      result: {
+        winners: ruleEvaluation.winners,
+        note: ruleEvaluation.note
+      }
+    };
+
+    await this.prisma.election.update({
+      where: { id: id },
+      data: {
+        status: ElectionStatus.FINISHED,
+        finalResult: finalTallyData,
+      },
+    });
+
+    // 7. return results
+    return {
+      election: this.toSharedElection(election),
+      totalVotes: totalVotes,
+      tally: finalTallyData
+    };
+
+  }
+
+  private evaluateElectionRules(
+    electionType: string,
+    candidates: any[],
+    totalVotes: number,
+    totalEligibleVoters: number
+  ) {
+    // Fetch rule from config, fallback to zero quota if invalid type
+    const rule = ELECTION_RULES[electionType] || { quota: 0 };
+    const candidateCount = candidates.length;
+
+    let thresholdVotes = 1;
+
+    // 1. Calculate dynamic threshold based on election type
+    if (electionType === 'PRESIDENTIAL' && candidateCount <= 1) {
+      // Walkover election calculation
+      thresholdVotes = Math.ceil(totalEligibleVoters * (rule.walkoverThresholdRate || 0));
+    } else if (electionType === 'AT_LARGE_COUNCILOR') {
+      // Proportional representation calculation
+      thresholdVotes = Math.ceil(totalVotes * (rule.thresholdRate || 0));
+    }
+
+    // 2. Universal core logic: filter, sort, and slice
+    const winners = [...candidates]
+      .filter(c => c.voteCount > 0 && c.voteCount >= thresholdVotes)
+      .sort((a, b) => b.voteCount - a.voteCount)
+      .slice(0, rule.quota);
+
+    // 3. Generate dynamic evaluation notes
+    let ruleNote = '';
+    if (electionType === 'PRESIDENTIAL' && candidateCount <= 1) {
+      const ratePct = (rule.walkoverThresholdRate || 0) * 100;
+      if (winners.length > 0) {
+        ruleNote = `總投票且跨越 ${ratePct}% 門檻 (需達 ${thresholdVotes} 票)`;
+      } else {
+        ruleNote = `無人跨越 ${ratePct}% 門檻 (需達 ${thresholdVotes} 票)，無人當選`;
+      }
+    } else if (electionType === 'AT_LARGE_COUNCILOR') {
+      const ratePct = (rule.thresholdRate || 0) * 100;
+      ruleNote = `取跨越 ${ratePct}% 門檻 (需達 ${thresholdVotes} 票) 之前 ${rule.quota} 名，共 ${winners.length} 人當選`;
+    } else {
+      // Default fallback for standard plurality voting (e.g., DISTRICT_COUNCILOR)
+      ruleNote = winners.length > 0 ? '最高票者當選' : '無人獲得有效票數';
+    }
+
+    // 4. Map isElected boolean to all candidates
+    const mappedCandidates = candidates.map(c => ({
+      ...c,
+      isElected: winners.some(w => w.id === c.id)
+    }));
+
+    return {
+      candidates: mappedCandidates,
+      winners: winners,
+      note: ruleNote
+    };
+  }
+
+  private toSharedElection(election: any): SharedElection {
+    // Extract privateKey out, keep the rest
+    const { privateKey: _, ...safeElection } = election;
+
+    return {
+      ...safeElection,
+      status: election.status as unknown as ElectionStatus,
+      candidates: election.candidates || [],
+    } as SharedElection;
   }
 
   async importEligibleVoters(electionId: string, dto: ImportEligibleVotersDto) {
@@ -181,5 +347,29 @@ export class ElectionsService {
   }
   private hashStudentId(studentId: string): string {
     return crypto.createHash('sha256').update(studentId).digest('hex');
+  }
+
+  // The result for public user to get
+  async getPublicResults(id: string) {
+    const election = await this.prisma.election.findUnique({
+      where: { id },
+    });
+
+    if (!election) {
+      throw new NotFoundException('找不到該場選舉');
+    }
+
+    // Not yet when not finished
+    if (election.status !== 'TALLIED' && election.status !== 'FINISHED') {
+      throw new ForbiddenException('選舉結果尚未公布，請耐心等候！');
+    }
+
+    const cachedData = election.finalResult as any;
+
+    return {
+      election: this.toSharedElection(election),
+      totalVotes: cachedData?.totalVotes || 0,
+      tally: cachedData // 完美對齊你前端的 VoteServiceTally 格式
+    };
   }
 }

@@ -23,7 +23,7 @@ const AdminAccountManagementPage = lazy(() => import("./features/admin/pages/Adm
 const AdminMonitoringPage = lazy(() => import("./features/admin/pages/AdminMonitoringPage").then(m => ({ default: m.AdminMonitoringPage })));
 const VoterManagementPage = lazy(() => import("./features/admin/pages/VoterManagementPage").then(m => ({ default: m.VoterManagementPage })));
 const ElectionBulletinPage = lazy(() => import("./features/info/pages/ElectionBulletinPage").then(m => ({ default: m.ElectionBulletinPage })));
-const VerificationCenter = lazy(() => import("./features/verify/pages/VerificationCenter").then(m => ({ default: m.VerificationCenter })));
+const PublicResultsPage = lazy(() => import("./features/voting/pages/PublicResultsPage").then(m => ({ default: m.PublicResultsPage })));
 
 // Auth Error (Static import to ensure it shows up immediately on failure)
 import { AuthError } from "./components/AuthError";
@@ -43,7 +43,7 @@ function App() {
               <Route path="/auth/callback" element={<CallbackPage />} />
               <Route path="/auth/error" element={<AuthError />} />
               <Route path="/info/bulletin" element={<ElectionBulletinPage />} />
-              <Route path="/verify/:electionId" element={<VerificationCenter />} />
+              <Route path="/:electionId/results" element={< PublicResultsPage/>} />
 
               {/* Protected Voter Routes with Persistent Layout */}
               <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
@@ -65,13 +65,6 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}><MainLayout /></ProtectedRoute>}>
                 <Route path="/admin/accounts" element={<AdminAccountManagementPage />} />
               </Route>
-
-              {/* Standalone Protected Routes
-              <Route path="/auth/setup" element={
-                <ProtectedRoute>
-                   <SetupPage />
-                </ProtectedRoute>
-              } /> */}
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/admin" replace />} />

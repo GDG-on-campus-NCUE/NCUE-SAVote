@@ -25,7 +25,7 @@ export class ElectionsController {
     private readonly electionsService: ElectionsService,
     private readonly candidatesService: CandidatesService,
     private readonly votesService: VotesService,
-  ) {}
+  ) { }
 
   @Post()
   @UseGuards(JwtAuthGuard, AdminGuard)
@@ -89,9 +89,7 @@ export class ElectionsController {
   @Get(':id/admin-summary')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getAdminSummary(@Param('id') id: string) {
-    const election = await this.electionsService.getAdminSummary(id);
-    const tally = await this.votesService.getTally(id);
-    return { election, tally, totalVotes: tally.result };
+    return this.electionsService.getAdminSummary(id);
   }
 
   // --- Voter Management ---
@@ -108,5 +106,10 @@ export class ElectionsController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   listVoters(@Param('id') id: string) {
     return this.electionsService.listEligibleVoters(id);
+  }
+
+  @Get(':id/results') 
+  async getPublicResults(@Param('id') id: string) {
+    return this.electionsService.getPublicResults(id);
   }
 }

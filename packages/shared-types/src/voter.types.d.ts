@@ -20,7 +20,8 @@ export declare enum ElectionStatus {
     REGISTRATION_OPEN = "REGISTRATION_OPEN",
     VOTING_OPEN = "VOTING_OPEN",
     VOTING_CLOSED = "VOTING_CLOSED",
-    TALLIED = "TALLIED"
+    TALLIED = "TALLIED",
+    FINISHED = "FINISHED"
 }
 export interface EligibleVoter {
     id: string;

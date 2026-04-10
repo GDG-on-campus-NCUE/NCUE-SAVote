@@ -24,11 +24,11 @@ export class VotesController {
   }
 
 
-  @Get(':electionId/tally')
-  @ApiOperation({ summary: 'Get election tally' })
-  getTally(@Param('electionId') electionId: string) {
-    return this.votesService.getTally(electionId);
-  }
+  // @Get('/:electionId/tally')
+  // @ApiOperation({ summary: 'Get election tally' })
+  // getTally(@Param('electionId') electionId: string) {
+  //   return this.votesService.getTally(electionId);
+  // }
 
 
   /*@Get(':electionId/logs')

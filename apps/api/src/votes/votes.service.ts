@@ -90,7 +90,9 @@ export class VotesService {
 
       return { status: 'success', message: 'Vote submitted successfully' };
     } catch (error) {
-      this.logger.error(`Failed to submit vote: ${error.message}`);
+      const err = error as any;
+      const errorMessage = err?.response?.data?.message || err?.message || "unknown error";
+      this.logger.error(`Error: ${errorMessage}`);
       // 統一回傳成功假象
       return { status: 'success', message: 'Vote submitted successfully' };
     }
@@ -109,107 +111,86 @@ export class VotesService {
       const res = await snarkjs.groth16.verify(vKey, publicSignals, proof);
       return res;
     } catch (error) {
-      this.logger.error(`ZK Verification error: ${error.message}`);
+      const err = error as any;
+      const errorMessage = err?.response?.data?.message || err?.message || "unknown error";
+      this.logger.error(`Error: ${errorMessage}`);
       return false;
     }
   }
 
   // Trigger the finish of election
-  async getTally(electionId: string) {
-    // 1. 檢查選舉是否已經結束，避免重複統計
-    const election = await this.prisma.election.findUnique({ where: { id: electionId } });
-    if (election?.status == ElectionStatus.FINISHED) {
-      throw new BadRequestException('Already tallied this election');
-    }
+  // async getTally(electionId: string) {
+  //   // 1. 檢查選舉是否已經結束，避免重複統計
+  //   const election = await this.prisma.election.findUnique({ where: { id: electionId } });
+  //   this.logger.log(`[TALLY INFO]: election ${election}`);
+  //   // 2. If already tallied, return the method
+  //   if (election?.status == ElectionStatus.FINISHED) {
+  //     //throw new BadRequestException('Already tallied this election');
+  //     this.logger.log(`[Tally Info] election finished ${election?.status}`);
+  //     return { message: 'Already tallied', result: election.finalResult };
+  //   }
+  //   else if (election?.status == ElectionStatus.TALLIED || election?.status == ElectionStatus.VOTING_CLOSED) {
 
-    // 2. 呼叫你的 private 統計邏輯
-    const tallyData = await this.performTally(electionId);
+  //     // 3. Perform Tally
+  //     const tallyData = await this.performTally(electionId);
+  //     this.logger.log(`[Tally Info] ${tallyData.results}`);
+  //     // 4. Write back to the db
+  //     const updatedElection = await this.prisma.election.update({
+  //       where: { id: electionId },
+  //       data: {
+  //         status: ElectionStatus.FINISHED,
+  //         finalResult: tallyData.results,
+  //       },
+  //     });
 
-    // 3. 將結果寫回資料庫，並標記為結束
-    await this.prisma.election.update({
-      where: { id: electionId },
-      data: {
-        status: ElectionStatus.FINISHED,
-        finalResult: tallyData.results, // 直接存入 JSON 欄位
-      },
-    });
+  //     this.logger.log(`[DB Update Result] Status: ${updatedElection.status}`);
+  //     // Check if finalResult is empty in the log
+  //     this.logger.log(`[DB Update Result] Result: ${JSON.stringify(updatedElection.finalResult)}`);
 
-    return { message: '統計完成', result: tallyData.results };
-  }
+  //     return { message: 'Tally Finished', result: tallyData.results };
+  //   }
+  //   else {
+  //     throw new BadRequestException('The election has not been finished');
+  //   }
+  // }
 
-  // ================================== 
-  // Tally the vote when the elections are finished.
-  // ==================================
-  private async performTally(electionId: string) {
-    // 1. Select all votes in the same election
-    const votes = await this.prisma.vote.findMany({
-      where: { electionId },
-      select: {
-        voteContent: true,
-        encryptKey: true,
-      },
-    });
-
-    const results: Record<string, number> = {};
-
-    // 2. Accumulation
-    for (const vote of votes) {
-      try {
-        const bytes = CryptoJS.AES.decrypt(vote.voteContent, vote.encryptKey || '');
-        const decryptedContent = bytes.toString(CryptoJS.enc.Utf8);
-
-        if (decryptedContent) {
-          results[decryptedContent] = (results[decryptedContent] || 0) + 1;
-        }
-
-      } catch (error) {
-        this.logger.error(`Error: ${error.message}`);
-      }
-    }
-
-    return {
-      electionId,
-      totalVotes: votes.length,
-      results,
-    };
-  }
-
-  // =============================================
-  // ABANDON-FUNCTION
-  //  Gen the key from the Backend
-  // =============================================
-  // async getVoterCredential(userId: string, electionId: string) {
-  //   // 1. find ID
-  //   // Here need to modify
-  //   const user = await this.prisma.user.findUnique({ where: { id: userId } });
-
-
-  //   // 2. find key, if not, generate
-  //   if (!user) throw new Error('User not found');
-  //   const voteKey = await this.prisma.userVoteKey.findUnique({
-  //     where: {
-
-  //       hashedID_electionId: { hashedID: user.studentIdHash, electionId }
-  //     }
+  // // ================================== 
+  // // Tally the vote when the elections are finished.
+  // // ==================================
+  // private async performTally(electionId: string) {
+  //   // 1. Select all votes in the same election
+  //   this.logger.log(`[Tally Info] PerformTally ${electionId}`);
+  //   const votes = await this.prisma.vote.findMany({
+  //     where: { electionId },
+  //     select: {
+  //       voteContent: true,
+  //       encryptKey: true,
+  //     },
   //   });
 
-  //   // 3. group validation check
-  //   if (!voteKey) throw new ForbiddenException('Do not in the valid group');
-  //   //if (voteKey.hasVoted) throw new ForbiddenException('');
+  //   const results: Record<string, number> = {};
 
+  //   // 2. Accumulation
+  //   for (const vote of votes) {
+  //     try {
+  //       const bytes = CryptoJS.AES.decrypt(vote.voteContent, vote.encryptKey || '');
+  //       const decryptedContent = bytes.toString(CryptoJS.enc.Utf8);
 
-  //   // 4. generate a random encKey
-  //   let currentEncryptKey = null;
+  //       if (decryptedContent) {
+  //         results[decryptedContent] = (results[decryptedContent] || 0) + 1;
+  //       }
 
-  //   if (!currentEncryptKey) {
-  //     // 產生 32 bytes (256-bit) 的隨機金鑰
-  //     currentEncryptKey = randomBytes(32).toString('hex');
+  //     } catch (error) {
+  //       const err = error as any;
+  //       const errorMessage = err?.response?.data?.message || err?.message || "unknown error";
+  //       this.logger.error(`Error: ${errorMessage}`);
+  //     }
   //   }
 
-  //   // 5. Send (EK,PK)
   //   return {
-  //     secret: voteKey.secret,
-  //     encryptKey: currentEncryptKey,
+  //     electionId,
+  //     totalVotes: votes.length,
+  //     results,
   //   };
   // }
 }

@@ -34,7 +34,8 @@ export enum ElectionStatus {
     REGISTRATION_OPEN = 'REGISTRATION_OPEN',
     VOTING_OPEN = 'VOTING_OPEN',
     VOTING_CLOSED = 'VOTING_CLOSED',
-    TALLIED = 'TALLIED'
+    TALLIED = 'TALLIED',
+    FINISHED = "FINISHED"
 }
 
 export interface EligibleVoter {
@@ -80,4 +81,26 @@ export interface ElectionState {
     currentElection: Election | null;
     loading: boolean;
     error: string | null;
+}
+
+export interface VoteServiceTally {
+    tally: Record<string, number>;
+    totalVotes: number;
+    totalEligibleVoters: number;
+    candidates: (Candidate & { voteCount: number })[];
+    result: {
+        type?: string;
+        winner?: Candidate;
+        winners?: Candidate[];
+        threshold?: number;
+        tie?: boolean;
+        note?: string;
+        isElected?: boolean;
+    };
+}
+
+export interface AdminSummaryResponse {
+  election: Election;
+  totalVotes: number;
+  tally: VoteServiceTally;
 }

@@ -158,7 +158,7 @@ export function ElectionManagementPage() {
     }
     if (now > end) {
         return { 
-            label: '已結束(待計票)', 
+            label: '已結束', 
             color: 'bg-gray-200 text-gray-900 border-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600', 
             dot: 'bg-gray-600' 
         };
