@@ -11,6 +11,7 @@ export const LoginPage = () => {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const handleAdminLogin = () => {
+    sessionStorage.setItem('loginIntent', 'admin');
     window.location.href = `${API_URL}/auth/admin/login`;
   };
 
@@ -19,6 +20,7 @@ export const LoginPage = () => {
   };
 
   const handleSSOConfirm = () => {
+    sessionStorage.setItem('loginIntent', 'home');
     window.location.href = `${API_URL}/auth/login`;
   };
 

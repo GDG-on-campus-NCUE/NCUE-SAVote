@@ -20,7 +20,7 @@ export const AuthCallback = () => {
 
     const handleCallback = async () => {
       setIsProcessing(true);
-      
+
       const accessToken = searchParams.get('accessToken');
       const refreshToken = searchParams.get('refreshToken');
 
@@ -32,27 +32,32 @@ export const AuthCallback = () => {
           const user = await authApi.getCurrentUser();
           setAuth(accessToken, refreshToken, user);
 
-          // Handle Admin Redirect
-          if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+          // Handle Redirect
+          const intent = sessionStorage.getItem('loginIntent');
+          sessionStorage.removeItem('loginIntent');
+
+          // A: redirect to home
+          if (intent === 'home') {
+            setNullifierSecretStatus(true);
+            navigate('/', { replace: true });
+            return;
+          }
+
+          // B: admin Login and check permission
+          if (intent === 'admin' && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN')) {
             navigate('/admin', { replace: true });
             return;
           }
-          setNullifierSecretStatus(true);
-          navigate('/', { replace: true });
+
+          // C: url direct link
+          if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+            navigate('/admin', { replace: true });
+          } else {
+            setNullifierSecretStatus(true);
+            navigate('/', { replace: true });
+          }
           return;
-          // const storedSecret = await storage.getNullifierSecret();
-          // const hasSecretForUser = storedSecret && storedSecret.studentIdHash === user.studentIdHash;
 
-          // if (hasSecretForUser) {
-          //   setNullifierSecretStatus(true);
-          //   navigate('/', { replace: true });
-          //   return;
-          // }
-
-          // setNullifierSecretStatus(false);
-          // // Directly navigate to setup if no key found (Auto-generate flow)
-          // navigate('/auth/setup', { replace: true });
-          
         } catch (error) {
           console.error('Callback error:', error);
           setErrorMessage('登入驗證失敗，請稍後再試。');
@@ -64,7 +69,7 @@ export const AuthCallback = () => {
 
     handleCallback();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  }, []);
 
   if (errorMessage) {
     return (
