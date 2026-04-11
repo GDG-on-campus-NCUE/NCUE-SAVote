@@ -44,7 +44,7 @@ export function AdminDashboardPage() {
           stat: 'Live'
       },
       {
-          title: '帳號管理',
+          title: '權限管理',
           description: '管理後台管理員與超級管理員帳號權限與登入記錄。',
           icon: <ShieldCheck className="w-7 h-7" />,
           to: '/admin/accounts',

@@ -33,7 +33,7 @@ services:
       - ./apps/api/.env
     environment:
       DATABASE_URL: "postgresql://postgres:password@db:5432/savote_db?schema=public"
-      NODE_ENV: development
+      NODE_ENV: production
     depends_on:
       db:
         condition: service_healthy

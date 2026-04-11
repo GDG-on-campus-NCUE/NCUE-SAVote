@@ -303,7 +303,7 @@ export function ElectionManagementPage() {
                                                                     </button>
                                                                     <button 
                                                                         onClick={() => { if(window.confirm('確定要刪除此選舉嗎？')) deleteMutation.mutate(election.id); }}
-                                                                        className="w-10 h-10 rounded-xl hover:bg-[var(--color-error-container)] hover:text-[var(--color-on-error-container)] text-[var(--color-error)] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
+                                                                        className="w-10 h-10 rounded-xl hover:bg-[var(--color-error-container)] hover:text-[var(--color-on-error-container)] text-[var(--color-error)] transition-all flex items-center justify-center"
                                                                         title="刪除選舉"
                                                                     >
                                                                         <Trash2 className="w-4 h-4" />
@@ -420,8 +420,7 @@ export function ElectionManagementPage() {
             <form onSubmit={handleSubmit} className="py-4 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <TextField 
-                        label="選舉名稱"
-                        placeholder="請輸入選舉名稱 (必填)"
+                        label="選舉名稱 (必填)"
                         value={formData.name}
                         onChange={e => setFormData({...formData, name: e.target.value})}
                         required
@@ -456,20 +455,18 @@ export function ElectionManagementPage() {
                     </div>
 
                     <TextField 
-                        label="開始投票時間"
+                        label="開始投票時間 (必填)"
                         type="datetime-local"
                         value={formData.startTime}
                         onChange={e => setFormData({...formData, startTime: e.target.value})}
                         required
-                        helperText="請設定正確的開始時間 (必填)"
                     />
                     <TextField 
-                        label="結束投票時間"
+                        label="結束投票時間 (必填)"
                         type="datetime-local"
                         value={formData.endTime}
                         onChange={e => setFormData({...formData, endTime: e.target.value})}
                         required
-                        helperText="結束時間必須晚於開始時間 (必填)"
                     />
 
                     <TextField 

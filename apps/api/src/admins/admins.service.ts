@@ -6,10 +6,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@savote/shared-types';
 import { normalizeSub } from '../utils/auth-utils';
+import { OidcService } from '../auth/oidc.service';
 
 @Injectable()
 export class AdminsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private oidcService: OidcService,
+  ) {}
 
   async create(data: { synologySub: string; name: string; role: UserRole }) {
     // Normalize sub (e.g. "NCUESA\S123" -> "S123")
@@ -75,6 +79,73 @@ export class AdminsService {
       where: { synologySub: permission.synologySub },
       data: { role: UserRole.USER as any },
     });
+
+    return { success: true };
+  }
+
+  async getOidcSettings() {
+    const keys = [
+      'VOTER_OIDC_ISSUER',
+      'VOTER_OIDC_CLIENT_ID',
+      'VOTER_OIDC_CLIENT_SECRET',
+      'ADMIN_OIDC_ISSUER',
+      'ADMIN_OIDC_CLIENT_ID',
+      'ADMIN_OIDC_CLIENT_SECRET',
+    ];
+
+    const settings: Record<string, string> = {};
+    for (const key of keys) {
+      const dbVal = await this.prisma.systemConfig.findUnique({
+        where: { key },
+      });
+      if (dbVal && dbVal.value) {
+        if (key.includes('SECRET')) {
+          settings[key] = '********';
+        } else {
+          settings[key] = dbVal.value;
+        }
+      } else {
+        settings[key] = '';
+      }
+    }
+    return settings;
+  }
+
+  async updateOidcSettings(settings: Record<string, string>) {
+    const validKeys = [
+      'VOTER_OIDC_ISSUER',
+      'VOTER_OIDC_CLIENT_ID',
+      'VOTER_OIDC_CLIENT_SECRET',
+      'ADMIN_OIDC_ISSUER',
+      'ADMIN_OIDC_CLIENT_ID',
+      'ADMIN_OIDC_CLIENT_SECRET',
+    ];
+
+    for (const key of validKeys) {
+      const value = settings[key];
+      if (value === undefined || value === null) continue;
+
+      if (key.includes('SECRET') && value === '********') {
+        continue; // Skip unchanged masked secret
+      }
+
+      if (value.trim() === '') {
+        try {
+          await this.prisma.systemConfig.delete({ where: { key } });
+        } catch (e) {
+          // Ignore if record doesn't exist
+        }
+      } else {
+        await this.prisma.systemConfig.upsert({
+          where: { key },
+          update: { value: value.trim() },
+          create: { key, value: value.trim() },
+        });
+      }
+    }
+
+    // Reload OIDC clients with new settings
+    await this.oidcService.reloadClients();
 
     return { success: true };
   }

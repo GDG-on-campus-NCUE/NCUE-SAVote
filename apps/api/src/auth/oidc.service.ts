@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Issuer, Client, TokenSet, UserinfoResponse } from 'openid-client';
+import { PrismaService } from '../prisma/prisma.service';
 
 export enum OidcType {
   VOTER = 'voter',
@@ -13,28 +14,59 @@ export class OidcService implements OnModuleInit {
   private adminClient: Client;
   private readonly logger = new Logger(OidcService.name);
 
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+  ) {}
 
   async onModuleInit() {
     await this.initClient(OidcType.VOTER);
     await this.initClient(OidcType.ADMIN);
   }
 
-  private async initClient(type: OidcType) {
+  async getConfigValue(key: string): Promise<string> {
+    try {
+      const dbConfig = await this.prisma.systemConfig.findUnique({
+        where: { key },
+      });
+      if (dbConfig && dbConfig.value !== undefined && dbConfig.value !== null) {
+        return dbConfig.value;
+      }
+    } catch (error) {
+      // Table might not exist yet during initial boot/migration
+      this.logger.debug(`Could not fetch ${key} from DB, falling back to .env`);
+    }
+    return this.configService.get<string>(key) || '';
+  }
+
+  private getCallbackUrl(type: OidcType): string {
+    const origin = process.env.CORS_ORIGIN || 'https://election.ncuesa.org.tw';
+    return type === OidcType.VOTER 
+      ? `${origin}/api/auth/callback` 
+      : `${origin}/api/auth/admin/callback`;
+  }
+
+  async initClient(type: OidcType) {
     try {
       const prefix = type === OidcType.VOTER ? 'VOTER_OIDC' : 'ADMIN_OIDC';
-      const issuerUrl = this.configService.get<string>(`${prefix}_ISSUER`);
-      
+
+      const issuerUrl = await this.getConfigValue(`${prefix}_ISSUER`);
+      const clientId = await this.getConfigValue(`${prefix}_CLIENT_ID`);
+      const clientSecret = await this.getConfigValue(`${prefix}_CLIENT_SECRET`);
+      const callbackUrl = this.getCallbackUrl(type);
+
       if (!issuerUrl) {
-        this.logger.warn(`${prefix}_ISSUER not set, ${type} OIDC will not work`);
+        this.logger.warn(
+          `${prefix}_ISSUER not set, ${type} OIDC will not work`,
+        );
         return;
       }
 
       const issuer = await Issuer.discover(issuerUrl);
       const client = new issuer.Client({
-        client_id: this.configService.get<string>(`${prefix}_CLIENT_ID`) || '',
-        client_secret: this.configService.get<string>(`${prefix}_CLIENT_SECRET`) || '',
-        redirect_uris: [this.configService.get<string>(`${prefix}_CALLBACK_URL`) || ''],
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uris: [callbackUrl],
         response_types: ['code'],
       });
 
@@ -43,12 +75,25 @@ export class OidcService implements OnModuleInit {
 
       this.logger.log(`Initialized ${type} OIDC client for ${issuer.issuer}`);
     } catch (error) {
-      this.logger.error(`Failed to initialize ${type} OIDC client: ${error.message}`);
+      this.logger.error(
+        `Failed to initialize ${type} OIDC client: ${error.message}`,
+      );
     }
   }
 
-  getAuthorizationUrl(type: OidcType, code_challenge: string, state: string): string {
-    const client = type === OidcType.VOTER ? this.voterClient : this.adminClient;
+  async reloadClients() {
+    this.logger.log('Reloading OIDC clients with latest config...');
+    await this.initClient(OidcType.VOTER);
+    await this.initClient(OidcType.ADMIN);
+  }
+
+  getAuthorizationUrl(
+    type: OidcType,
+    code_challenge: string,
+    state: string,
+  ): string {
+    const client =
+      type === OidcType.VOTER ? this.voterClient : this.adminClient;
     if (!client) throw new Error(`${type} OIDC client not initialized`);
 
     return client.authorizationUrl({
@@ -65,11 +110,11 @@ export class OidcService implements OnModuleInit {
     code_verifier: string,
     state: string,
   ): Promise<{ tokenSet: TokenSet; userinfo: UserinfoResponse }> {
-    const client = type === OidcType.VOTER ? this.voterClient : this.adminClient;
+    const client =
+      type === OidcType.VOTER ? this.voterClient : this.adminClient;
     if (!client) throw new Error(`${type} OIDC client not initialized`);
 
-    const prefix = type === OidcType.VOTER ? 'VOTER_OIDC' : 'ADMIN_OIDC';
-    const callbackUrl = this.configService.get<string>(`${prefix}_CALLBACK_URL`);
+    const callbackUrl = this.getCallbackUrl(type);
 
     const params = client.callbackParams(req);
     const tokenSet = await client.callback(callbackUrl, params, {

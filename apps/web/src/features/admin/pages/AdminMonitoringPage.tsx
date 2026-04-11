@@ -70,7 +70,7 @@ export function AdminMonitoringPage() {
   return (
     <div className="space-y-8 animate-fade-in pb-24">
       <AdminHeader 
-        title="開票監控中心"
+        title="開票監控"
         subtitle="查看已結束選舉的即時統計結果與當選情況。"
       />
 

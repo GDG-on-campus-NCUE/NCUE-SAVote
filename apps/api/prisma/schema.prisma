@@ -278,3 +278,9 @@ model Lottery {
   electionId String
   election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
 }
+
+model SystemConfig {
+  key       String   @id @db.VarChar(100)
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}

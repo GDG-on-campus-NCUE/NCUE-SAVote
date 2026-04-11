@@ -108,55 +108,107 @@ export class VotersService {
   // Import / Eligibility Logic
   // ===========================================================================
 
-  async parseCsv(buffer: Buffer): Promise<ParsedVoterRecord[]> {
-    if (!buffer || !buffer.length) {
-      throw new BadRequestException('CSV_FILE_EMPTY');
-    }
+    async parseCsv(buffer: Buffer): Promise<ParsedVoterRecord[]> {
 
-    let rows: Record<string, string>[];
-    try {
-      rows = parse(buffer, {
-        columns: true,
-        skip_empty_lines: true,
-        bom: true,
-        trim: true,
-      });
-    } catch (error) {
-      throw new BadRequestException('INVALID_CSV_FORMAT');
-    }
+      if (!buffer || !buffer.length) {
 
-    const normalized: ParsedVoterRecord[] = [];
-    const dedupe = new Set<string>();
+        throw new BadRequestException('CSV_FILE_EMPTY');
 
-    for (const row of rows) {
-      if (
-        !Object.prototype.hasOwnProperty.call(row, 'studentId') ||
-        !Object.prototype.hasOwnProperty.call(row, 'class')
-      ) {
-        throw new BadRequestException('INVALID_CSV_HEADERS');
       }
 
-      const studentId = this.normalizeStudentId(row.studentId);
-      const classValue = this.normalizeClass(row.class);
+  
 
-      if (!studentId || !classValue) {
-        continue;
+      let rows: Record<string, string>[];
+
+      try {
+
+        rows = parse(buffer, {
+
+          columns: true,
+
+          skip_empty_lines: true,
+
+          bom: true,
+
+          trim: true,
+
+        });
+
+      } catch (error) {
+
+        throw new BadRequestException('INVALID_CSV_FORMAT');
+
       }
 
-      const key = `${studentId}:${classValue}`;
-      if (dedupe.has(key)) {
-        continue;
+  
+
+      const normalized: ParsedVoterRecord[] = [];
+
+      const dedupe = new Set<string>();
+
+  
+
+      for (const row of rows) {
+
+        const keys = Object.keys(row);
+
+        if (keys.length === 0) continue;
+
+  
+
+        // Always grab the first column, regardless of its header name (e.g. studID, 學號, etc.)
+
+        const rawStudentId = row[keys[0]];
+
+        const studentId = this.normalizeStudentId(rawStudentId);
+
+        const classValue = '-';
+
+  
+
+        if (!studentId) {
+
+          continue;
+
+        }
+
+  
+
+        const key = `${studentId}:${classValue}`;
+
+        if (dedupe.has(key)) {
+
+          continue;
+
+        }
+
+        dedupe.add(key);
+
+        normalized.push({
+
+          studentId,
+
+          studentIdHash: this.hashStudentId(studentId),
+
+          class: classValue,
+
+        });
+
       }
-      dedupe.add(key);
-      normalized.push({
-        studentId,
-        studentIdHash: await this.hashStudentId(studentId),
-        class: classValue,
-      });
+
+  
+
+      if (normalized.length === 0) {
+
+        throw new BadRequestException('CSV_NO_VALID_RECORDS');
+
+      }
+
+  
+
+      return normalized;
+
     }
-
-    return normalized;
-  }
 
   async importVoters(
     electionId: string,
@@ -289,8 +341,10 @@ export class VotersService {
     let computedStatus: any = 'DRAFT';
 
     if (election.startTime && election.endTime) {
-      if (now < new Date(election.startTime)) computedStatus = 'REGISTRATION_OPEN';
-      else if (now <= new Date(election.endTime)) computedStatus = 'VOTING_OPEN';
+      if (now < new Date(election.startTime))
+        computedStatus = 'REGISTRATION_OPEN';
+      else if (now <= new Date(election.endTime))
+        computedStatus = 'VOTING_OPEN';
       else computedStatus = 'VOTING_CLOSED';
     }
 
