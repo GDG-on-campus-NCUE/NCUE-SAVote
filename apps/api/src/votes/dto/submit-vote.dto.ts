@@ -7,10 +7,20 @@ export class SubmitVoteDto {
   @IsNotEmpty()
   electionId: string;
 
-  @ApiProperty({ description: 'The ID of the candidate voted for' })
+  // @ApiProperty({ description: 'The ID of the candidate voted for' })
+  // @IsString()
+  // @IsNotEmpty()
+  // vote: string;
+
+  @ApiProperty({ description: 'The vote contents' })
   @IsString()
   @IsNotEmpty()
-  vote: string;
+  voteContent: string;
+
+  @ApiProperty({ description: 'The key for encrypt and decrypt the vote' })
+  @IsString()
+  @IsNotEmpty()
+  encryptKey: string;
 
   @ApiProperty({ description: 'The ZK proof object' })
   @IsObject()

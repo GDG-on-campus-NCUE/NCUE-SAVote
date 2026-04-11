@@ -14,7 +14,7 @@ import type {
 } from '@savote/shared-types';
 import type { Election as PrismaElection } from '@prisma/client';
 import * as crypto from 'crypto';
-import { MerkleTreeService } from '../merkle/merkle.service';
+import { generateIdentityCommitment } from '@savote/crypto-lib';
 
 export interface ParsedVoterRecord {
   studentId: string;
@@ -33,8 +33,8 @@ export class VotersService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly merkleTreeService: MerkleTreeService,
-  ) {}
+    //private readonly merkleTreeService: MerkleTreeService,
+  ) { }
 
   // ===========================================================================
   // Core Business Logic
@@ -47,6 +47,7 @@ export class VotersService {
   ) {
     this.logger.log(
       `Registering identity commitment for election ${electionId}`,
+      `Write the commitment for ${commitment}`
     );
 
     const election = await this.prisma.election.findUnique({
@@ -56,54 +57,51 @@ export class VotersService {
       throw new NotFoundException('ELECTION_NOT_FOUND');
     }
 
-    // Registration is only allowed BEFORE the election starts
+    // Registration is only allowed DURING the election
     const now = new Date();
-    if (election.startTime && now >= new Date(election.startTime)) {
+    if (election.endTime && now >= new Date(election.endTime)) {
       throw new BadRequestException('REGISTRATION_CLOSED');
     }
-
-    const voter = await this.prisma.eligibleVoter.findFirst({
-      where: {
-        electionId,
-        studentId: studentIdHash,
-      },
-    });
-
-    if (!voter) {
-      throw new NotFoundException('VOTER_NOT_ELIGIBLE');
+    else if (election.startTime && now <= new Date(election.startTime)) {
+      throw new BadRequestException('REGISTRATION_NOT_START');
     }
 
-    if (voter.identityCommitment) {
-      throw new BadRequestException('COMMITMENT_ALREADY_REGISTERED');
-    }
+    return await this.prisma.$transaction(async (tx) => {
+      // 檢查選民資格並鎖定 (防止 Concurrent 註冊)
+      const voter = await tx.eligibleVoter.findUnique({
+        where: {
+          studentIdHash_electionId: { studentIdHash, electionId },
+        },
+      });
 
-    await this.prisma.eligibleVoter.update({
-      where: { id: voter.id },
-      data: { identityCommitment: commitment },
+      if (!voter) throw new NotFoundException('VOTER_NOT_ELIGIBLE');
+
+
+      // . 檢查是否已經註冊過金鑰 
+      const existingKey = await tx.userVoteKey.findFirst({
+        where: {
+          electionId,
+          hashedID: studentIdHash
+        },
+      });
+
+      if (existingKey) {
+        throw new BadRequestException('ALREADY_REGISTERED');
+      }
+
+      // . 寫入：建立匿名票匭
+      const newVoteKey = await tx.userVoteKey.create({
+        data: {
+          electionId: electionId,
+          commitment: commitment,
+          hasVoted: false,
+          hashedID: studentIdHash
+        },
+      });
+
+      this.logger.log(`Create VoteKey Success: ${newVoteKey.id}`);
+      return { success: true };
     });
-
-    return { success: true };
-  }
-
-  async snapshotElection(electionId: string): Promise<string> {
-    this.logger.log(
-      `Snapshotting election ${electionId} (Generating Merkle Root)`,
-    );
-
-    // Compute root using MerkleTreeService
-    const root = await this.merkleTreeService.getTreeRoot(electionId);
-
-    // Update Election
-    await this.prisma.election.update({
-      where: { id: electionId },
-      data: { merkleRoot: root },
-    });
-
-    return root;
-  }
-
-  async getMerkleProof(electionId: string, commitment: string) {
-    return this.merkleTreeService.getProof(electionId, commitment);
   }
 
   // ===========================================================================
@@ -226,12 +224,17 @@ export class VotersService {
 
     const records = await this.parseCsv(fileBuffer);
 
-    const createResult = await this.prisma.eligibleVoter.createMany({
-      data: records.map((record) => ({
+    const dataToInsert = await Promise.all(
+      records.map(async (record) => ({
         electionId,
         studentId: record.studentId,
+        studentIdHash: record.studentIdHash,
         class: record.class,
-      })),
+      }))
+    );
+
+    const createResult = await this.prisma.eligibleVoter.createMany({
+      data: dataToInsert,
       skipDuplicates: true,
     });
 
@@ -243,11 +246,17 @@ export class VotersService {
     };
   }
 
+  // ===========================================================================
+  // Eligibility & Key Generation Logic
+  // ===========================================================================
   async verifyEligibility(
     electionId: string,
     studentIdHash: string,
     classValue: string,
-  ): Promise<VoterEligibilityResponse> {
+  ): Promise<any> {
+    this.logger.log(`Verifying eligibility for election: ${electionId}`);
+
+    // 1. 取得選舉資訊
     const election = await this.prisma.election.findUnique({
       where: { id: electionId },
     });
@@ -255,39 +264,64 @@ export class VotersService {
       throw new NotFoundException('ELECTION_NOT_FOUND');
     }
 
-    const voters = await this.prisma.eligibleVoter.findMany({
-      where: { electionId },
-      select: {
-        studentId: true,
-        class: true,
-        identityCommitment: true,
+    const sharedElection = this.toSharedElection(election);
+
+    // 2. 檢查是否有投票資格 (在 eligible_voters 表裡尋找)
+    const voter = await this.prisma.eligibleVoter.findUnique({
+      where: {
+        studentIdHash_electionId: {
+          electionId: electionId,
+          studentIdHash: studentIdHash,
+        },
       },
     });
 
-    const sharedElection = this.toSharedElection(election);
-
-    // Find the specific voter
-    const voter = voters.find(
-      (v) => this.hashStudentId(v.studentId) === studentIdHash,
-    );
-
+    // 如果找不到，代表沒資格
     if (!voter) {
       return {
         eligible: false,
         election: sharedElection,
+        mismatchID: studentIdHash,
         reason: 'NOT_ELIGIBLE',
-        merkleProof: [],
-        merkleRootHash: election.merkleRoot,
       };
     }
 
+    const voteKeyRecord = await this.prisma.userVoteKey.findUnique({
+      where: {
+        hashedID_electionId: {
+          hashedID: studentIdHash,
+          electionId: electionId,
+        },
+      },
+    });
+
+    if (voteKeyRecord && voteKeyRecord.hasVoted) {
+      return {
+        eligible: false,
+        election: sharedElection,
+        mismatchID: studentIdHash,
+        reason: 'ALREADY_VOTED',
+        hasVoted: true
+      }
+    }
+
+    // 3. 檢查是否已經註冊過 (看 identityCommitment 有沒有值)
+    // 根據我們剛才定好的邏輯，如果有值，就代表前端已經生成過並傳給我們了
+    const existingKey = await this.prisma.userVoteKey.findUnique({
+      where: {
+        hashedID_electionId: {
+          hashedID: studentIdHash,
+          electionId: electionId
+        },
+      },
+    });
+
+    // 4. 單純回傳狀態給前端，前端會根據 isRegistered 決定要不要跳出「註冊」畫面
     return {
       eligible: true,
       election: sharedElection,
-      merkleRootHash: election.merkleRoot,
-      merkleProof: [],
-      isRegistered: !!voter.identityCommitment,
-    } as any;
+      isRegistered: !!existingKey, // true 或 false
+    };
   }
 
   private normalizeClass(raw: string | undefined): string {
@@ -317,14 +351,16 @@ export class VotersService {
     return {
       id: election.id,
       name: election.name,
-      merkleRootHash: election.merkleRoot,
       status: computedStatus as unknown as ElectionStatus,
       type: election.type as unknown as ElectionType,
       startTime: election.startTime,
       endTime: election.endTime,
+      publicKey: election.publicKey,
+      //privateKey: null,
       createdAt: election.createdAt,
       updatedAt: election.updatedAt,
       candidates: [],
+      
     };
   }
 }

@@ -134,9 +134,9 @@ export const HomePage = () => {
                                             </Button>
                                         )}
                                         {status.started && (
-                                            <Link to={`/verify/${election.id}`} className="w-full">
+                                            <Link to={`/${election.id}/results`} className="w-full">
                                                 <Button variant="text" className="w-full h-12 rounded-xl font-bold hover:bg-[var(--color-primary)]/5" icon={<ChevronRight className="w-4 h-4" />}>
-                                                    驗證與結果
+                                                    查看結果
                                                 </Button>
                                             </Link>
                                         )}

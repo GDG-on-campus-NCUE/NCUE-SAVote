@@ -7,6 +7,7 @@ import {
   Patch,
   Delete,
   UseGuards,
+  Query
 } from '@nestjs/common';
 import { ElectionsService } from './elections.service';
 import { CandidatesService } from './candidates.service';
@@ -25,7 +26,7 @@ export class ElectionsController {
     private readonly electionsService: ElectionsService,
     private readonly candidatesService: CandidatesService,
     private readonly votesService: VotesService,
-  ) {}
+  ) { }
 
   @Post()
   @UseGuards(JwtAuthGuard, AdminGuard)
@@ -89,9 +90,7 @@ export class ElectionsController {
   @Get(':id/admin-summary')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getAdminSummary(@Param('id') id: string) {
-    const election = await this.electionsService.getAdminSummary(id);
-    const tally = await this.votesService.getTally(id);
-    return { election, tally, totalVotes: tally.totalVotes };
+    return this.electionsService.getAdminSummary(id);
   }
 
   // --- Voter Management ---
@@ -109,4 +108,28 @@ export class ElectionsController {
   listVoters(@Param('id') id: string) {
     return this.electionsService.listEligibleVoters(id);
   }
+
+  @Get(':id/results')
+  async getPublicResults(@Param('id') id: string) {
+    return this.electionsService.getPublicResults(id);
+  }
+
+  // Lottery
+  @Get(':id/lottery/draw')
+  @UseGuards(JwtAuthGuard, AdminGuard) 
+  async drawLottery(
+    @Param('id') id: string,
+    @Query('count') count: string,
+  ) {
+    const drawCount = parseInt(count, 10) || 1;
+    return this.electionsService.drawLottery(id, drawCount);
+  }
+
+  @Get(':id/lottery')
+  async getLottery(
+    @Param('id') id: string,
+  ) {
+    return this.electionsService.getLottery(id);
+  }
+
 }

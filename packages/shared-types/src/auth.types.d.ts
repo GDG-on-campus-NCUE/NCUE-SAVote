@@ -10,7 +10,8 @@ export interface User {
 }
 export declare enum UserRole {
     USER = "USER",
-    ADMIN = "ADMIN"
+    ADMIN = "ADMIN",
+    SUPER_ADMIN = "SUPER_ADMIN"
 }
 export declare enum EnrollmentStatus {
     ACTIVE = "ACTIVE",

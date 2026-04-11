@@ -4,30 +4,57 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { candidateApi } from "../../auth/services/candidate.api";
 import { voterApi } from "../../auth/services/voter.api";
 import { votesApi } from "../services/votes.api";
-import { useNullifierSecret } from "../../auth/hooks/useNullifierSecret";
+//import { useNullifierSecret } from "../../auth/hooks/useNullifierSecret";
 import { useVoteProof } from "../hooks/useVoteProof";
-import { uuidToBigInt } from "../../../lib/zk-utils";
+//import { uuidToBigInt } from "../../../lib/zk-utils";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { Card } from "../../../components/m3/Card";
 import { Button } from "../../../components/m3/Button";
 import { Dialog } from "../../../components/m3/Dialog";
 import { Check, AlertTriangle, Loader2, X } from "lucide-react";
+import { encryptWithPublicKey } from "../../../lib/crypto";
+
+import { generateZkSecret, calculateCommitment } from "../../../lib/zk";
+// ZK Secret Generating Function
+
+import { votersApi } from "../services/voters.api";
+import { useRef } from "react";
+
+
+
+
 
 export const VotingBooth: React.FC = () => {
   const { electionId } = useParams<{ electionId: string }>();
   const navigate = useNavigate();
-  const { secret } = useNullifierSecret();
+  //const { secret } = useNullifierSecret();
   const { user } = useAuth();
   const {
     generateProof,
     isLoading: isGeneratingProof,
     error: proofError,
   } = useVoteProof();
+
+  const [secret, setSecret] = useState<string | null>(null);
+  const [isRegisteringKey, setIsRegisteringKey] = useState(false);
+  const setupDoneRef = useRef(false);
+  console.log(isRegisteringKey);
+
   const [selectedCandidate, setSelectedCandidate] = useState<string | null>(
     null,
   );
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
+  const normalizeToBigIntString = (value: string) => {
+    if (!value) return "";
+    try {
+      const hex = value.startsWith("0x") ? value : "0x" + value;
+      return BigInt(hex).toString();
+    } catch (e) {
+      console.error("Format conversion error:", value);
+      return "";
+    }
+  };
   // 1. Fetch Candidates
   const { data: candidates, isLoading: isLoadingCandidates } = useQuery({
     queryKey: ["candidates", electionId],
@@ -35,7 +62,7 @@ export const VotingBooth: React.FC = () => {
     enabled: !!electionId,
   });
 
-  // 2. Check Eligibility & Get Merkle Path
+  // 2. Check Eligibility
   const {
     data: eligibility,
     isLoading: isLoadingEligibility,
@@ -46,18 +73,65 @@ export const VotingBooth: React.FC = () => {
     enabled: !!electionId,
     retry: false,
   });
+  const election = eligibility?.election;
+
+
 
   // Handle eligibility error redirect
   React.useEffect(() => {
-    if (
-      eligibilityError &&
-      (eligibilityError as any)?.response?.data ===
-        "COMMITMENT_NOT_REGISTERED" &&
-      electionId
-    ) {
-      navigate(`/elections/${electionId}/setup-key`);
-    }
-  }, [eligibilityError, electionId, navigate]);
+    const studentId = user?.studentIdHash;
+    if (!electionId || !studentId || !eligibility || setupDoneRef.current) return;
+
+    const initKeyAndRegister = async () => {
+
+      setupDoneRef.current = true;
+      console.log("Step1:進入 initKeyAndRegister", {
+        hasEligibility: !!eligibility,
+        isRegistered: eligibility?.isRegistered,
+        setupDone: setupDoneRef.current
+      });
+
+      const storageKey = `savote_secret_${electionId}`;
+      let existingSecret = localStorage.getItem(storageKey);
+
+
+
+      if (!existingSecret) {
+        console.log("產生全新金鑰");
+        const newSecret = generateZkSecret();
+        existingSecret = normalizeToBigIntString(newSecret);
+        localStorage.setItem(storageKey, existingSecret);
+      } else {
+        console.log("使用既有金鑰");
+      }
+
+      // 2. 同步到 React State
+      setSecret(existingSecret);
+
+      // 3. 根據後端狀態決定是否要「送出」註冊 (這步保證資料庫的正確性)
+      if (!eligibility.isRegistered) {
+        try {
+          setIsRegisteringKey(true);
+
+          //const normalizedId = normalizeToBigIntString(studentId);
+
+          // 這裡最重要：用上面那個「穩定」的 currentSecret 來算
+          const commitment = await calculateCommitment(studentId, existingSecret);
+
+          console.log("[DEBUG] Registering Commitment:", commitment);
+          await votersApi.registerCommitment(electionId, commitment);
+
+          console.log("Success");
+        } catch (error) {
+          console.error("Failed: ", error);
+        } finally {
+          setIsRegisteringKey(false);
+        }
+      }
+    };
+
+    initKeyAndRegister();
+  }, [electionId, user?.studentIdHash, eligibility]);
 
   // 3. Submit Vote Mutation
   const submitVoteMutation = useMutation({
@@ -68,64 +142,50 @@ export const VotingBooth: React.FC = () => {
   });
 
   const handleVote = async () => {
-    setIsConfirmDialogOpen(false); // Close dialog
+    setIsConfirmDialogOpen(false);
 
+    // Check if election.publicKey exists
     if (
       !electionId ||
+      !election?.publicKey ||
       !selectedCandidate ||
       !secret ||
-      !eligibility ||
       !user?.studentIdHash
     ) {
-      if (!user?.studentIdHash) console.error("Missing studentIdHash");
+      console.error("Missing required voting parameters or public key");
       return;
     }
 
     try {
-      // Prepare Inputs
-      const electionIdBigInt = uuidToBigInt(electionId);
-      const voteBigInt = uuidToBigInt(selectedCandidate);
-      // Ensure secret is properly formatted as hex
-      const secretHex = secret.startsWith("0x") ? secret : "0x" + secret;
-      const secretBigInt = BigInt(secretHex);
+      const studentIdStr = normalizeToBigIntString(user.studentIdHash);
+      const secretStr = normalizeToBigIntString(secret);
 
-      const studentIdHex = user.studentIdHash.startsWith("0x")
-        ? user.studentIdHash
-        : "0x" + user.studentIdHash;
-      const studentIdBigInt = BigInt(studentIdHex);
-
-      // Merkle Path
-      const { merkleRootHash, merkleProof, leafIndex } = eligibility;
-      if (!merkleRootHash || leafIndex === undefined) {
-        throw new Error("Invalid eligibility data");
-      }
-
-      // Convert leafIndex to pathIndices (binary array, LSB first)
-      // Depth 20
-      const pathIndices = leafIndex
-        .toString(2)
-        .padStart(20, "0")
-        .split("")
-        .reverse()
-        .map(Number);
+      const testCommitment = await calculateCommitment(user.studentIdHash, secret);
+      console.log("[TEST] Commitment:", testCommitment);
 
       const input = {
-        root: merkleRootHash,
-        electionId: electionIdBigInt.toString(),
-        vote: voteBigInt.toString(),
-        secret: secretBigInt.toString(),
-        studentIdHash: studentIdBigInt.toString(),
-        pathIndices,
-        siblings: merkleProof,
+        studentId: studentIdStr,
+        secret: secretStr,
       };
 
-      // Generate Proof
+      console.log("Step: Generating Proof with inputs", { studentIdStr });
       const { proof, publicSignals } = await generateProof(input);
 
-      // Submit Vote
+      if (testCommitment !== publicSignals[0]) {
+        console.error("WARNING: NO CORRESPOND");
+      }
+
+      // Encrypt the selected candidate using the election's public key
+      const encryptedVoteContent = await encryptWithPublicKey(
+        `${selectedCandidate}`,
+        election.publicKey
+      );
+
+      // Submit the encrypted vote
       await submitVoteMutation.mutateAsync({
         electionId,
-        vote: selectedCandidate,
+        voteContent: encryptedVoteContent,
+        encryptKey: "RSA-OAEP", // Or any identifier your backend expects, or remove if not needed
         proof,
         publicSignals,
       });
@@ -134,19 +194,32 @@ export const VotingBooth: React.FC = () => {
     }
   };
 
+
+
   const selectedCandidateData = candidates?.find(
     (c) => c.id === selectedCandidate,
   );
 
-  if (isLoadingCandidates || isLoadingEligibility) {
+  if (isLoadingCandidates || isLoadingEligibility || isRegisteringKey) {
     return (
-      <div className="min-h-[60vh] flex justify-center items-center">
+      <div className="min-h-[60vh] flex flex-col justify-center items-center gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-[var(--color-primary)]" />
+        <p className="text-[var(--color-on-surface-variant)]">
+          {isRegisteringKey ? "正在初始化投票資格..." : "載入中..."}
+        </p>
       </div>
     );
   }
 
-  if (eligibilityError || (eligibility && !eligibility.eligible)) {
+  if (eligibilityError || (eligibility && (!eligibility.eligible || eligibility.hasVoted))) {
+
+    // 動態決定標題與內文
+    const isAlreadyVoted = eligibility?.hasVoted;
+    const title = isAlreadyVoted ? "已完成投票" : "無法投票";
+    const message = isAlreadyVoted
+      ? "您已經成功投過票，無法重複提交選票。"
+      : (eligibility?.reason || "您不符合此次選舉的投票資格。");
+
     return (
       <div className="min-h-[60vh] flex justify-center items-center p-4">
         <Card className="max-w-md w-full text-center p-8 flex flex-col items-center gap-4">
@@ -154,10 +227,10 @@ export const VotingBooth: React.FC = () => {
             <AlertTriangle className="w-8 h-8" />
           </div>
           <h2 className="text-2xl font-bold text-[var(--color-on-surface)]">
-            無法投票
+            {title}
           </h2>
           <p className="text-[var(--color-on-surface-variant)]">
-            {eligibility?.reason || "您不符合此次選舉的投票資格。"}
+            {message}
           </p>
           <Button onClick={() => navigate("/")} variant="outlined">
             返回首頁
@@ -165,7 +238,8 @@ export const VotingBooth: React.FC = () => {
         </Card>
       </div>
     );
-  }
+  };
+
 
   return (
     <div className="space-y-8 animate-fade-in pb-24">
@@ -186,11 +260,10 @@ export const VotingBooth: React.FC = () => {
             key={candidate.id}
             interactive
             variant={selectedCandidate === candidate.id ? "filled" : "outlined"}
-            className={`relative overflow-hidden transition-all duration-300 group ${
-              selectedCandidate === candidate.id
-                ? "bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]"
-                : "hover:bg-[var(--color-surface-variant)]/30"
-            }`}
+            className={`relative overflow-hidden transition-all duration-300 group ${selectedCandidate === candidate.id
+              ? "bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]"
+              : "hover:bg-[var(--color-surface-variant)]/30"
+              }`}
             onClick={() => setSelectedCandidate(candidate.id)}
           >
             <div className="aspect-video bg-[var(--color-surface-variant)] relative overflow-hidden">

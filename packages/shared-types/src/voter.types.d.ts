@@ -7,10 +7,10 @@ export interface Candidate {
 export interface Election {
     id: string;
     name: string;
-    merkleRootHash: string | null;
     status: ElectionStatus;
     startTime: Date | null;
     endTime: Date | null;
+    publicKey: string | null;
     createdAt: Date;
     updatedAt: Date;
     candidates: Candidate[];
@@ -20,7 +20,8 @@ export declare enum ElectionStatus {
     REGISTRATION_OPEN = "REGISTRATION_OPEN",
     VOTING_OPEN = "VOTING_OPEN",
     VOTING_CLOSED = "VOTING_CLOSED",
-    TALLIED = "TALLIED"
+    TALLIED = "TALLIED",
+    FINISHED = "FINISHED"
 }
 export interface EligibleVoter {
     id: string;
@@ -37,8 +38,9 @@ export interface VoterEligibilityRequest {
 export interface VoterEligibilityResponse {
     eligible: boolean;
     election: Election | null;
-    merkleRootHash: string | null;
-    merkleProof: string[];
+    isRegistered: boolean;
+    //merkleRootHash: string | null;
+    //merkleProof: string[];
     leafIndex?: number;
     reason?: string;
 }
@@ -50,7 +52,7 @@ export interface VoteSubmission {
     electionId: string;
     encryptedVote: string;
     zkProof: ZKProof;
-    merkleProof: string[];
+    //merkleProof: string[];
 }
 export interface ElectionState {
     elections: Election[];

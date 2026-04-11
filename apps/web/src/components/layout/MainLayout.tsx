@@ -13,6 +13,7 @@ import {
   User,
   Activity,
   SlidersHorizontal,
+  Coins
 } from "lucide-react";
 import { Button } from "../m3/Button";
 import { InstallPrompt } from "../InstallPrompt";
@@ -77,12 +78,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       to: "/admin/voters",
     });
 
-    actualNavItems.push({
-      label: "開票監控",
-      icon: <Activity className="w-6 h-6" strokeWidth={1.5} />,
-      activeIcon: <Activity className="w-6 h-6" strokeWidth={2.5} />,
-      to: "/admin/monitoring",
-    });
+        actualNavItems.push({ 
+            label: "開票監控", 
+            icon: <Activity className="w-6 h-6" strokeWidth={1.5} />, 
+            activeIcon: <Activity className="w-6 h-6" strokeWidth={2.5} />, 
+            to: "/admin/monitoring" 
+        });
+
+        actualNavItems.push({
+            label: '抽獎',
+            icon: <Coins className="w-6 h-6" strokeWidth={1.5} />,
+            activeIcon: <Coins className="w-6 h-6" strokeWidth={2.5} />,
+            to: '/admin/lottery'
+        });
 
     actualNavItems.push({
       label: "權限管理",

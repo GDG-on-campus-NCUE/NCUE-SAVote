@@ -49,32 +49,32 @@ export class VotersController {
     };
   }
 
-  @Get('merkle-proof')
-  @UseGuards(JwtAuthGuard)
-  async getMerkleProof(
-    @Query('electionId') electionId: string,
-    @Query('commitment') commitment: string,
-  ): Promise<ApiResponse<any>> {
-    if (!electionId || !commitment) {
-      throw new BadRequestException('electionId and commitment are required');
-    }
+  // @Get('merkle-proof')
+  // @UseGuards(JwtAuthGuard)
+  // async getMerkleProof(
+  //   @Query('electionId') electionId: string,
+  //   @Query('commitment') commitment: string,
+  // ): Promise<ApiResponse<any>> {
+  //   if (!electionId || !commitment) {
+  //     throw new BadRequestException('electionId and commitment are required');
+  //   }
 
-    const result = await this.votersService.getMerkleProof(
-      electionId,
-      commitment,
-    );
-    return {
-      success: true,
-      data: result,
-    };
-  }
+  //   const result = await this.votersService.getMerkleProof(
+  //     electionId,
+  //     commitment,
+  //   );
+  //   return {
+  //     success: true,
+  //     data: result,
+  //   };
+  // }
 
   @Post('verify-eligibility')
   @UseGuards(JwtAuthGuard)
   async verifyEligibility(
     @Body() dto: VerifyEligibilityDto,
     @Req() req: Request,
-  ): Promise<ApiResponse<VoterEligibilityResponse>> {
+  ): Promise<ApiResponse<any>> {
     const payload = req.user as JWTPayload;
     if (!payload?.studentIdHash) {
       throw new BadRequestException('STUDENT_ID_UNAVAILABLE');

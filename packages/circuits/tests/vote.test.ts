@@ -4,7 +4,7 @@ import { wasm } from 'circom_tester';
 import { expect } from 'chai';
 // @ts-ignore
 import { buildPoseidon } from 'circomlibjs';
-import { MerkleTree } from 'merkletreejs';
+//import { MerkleTree } from 'merkletreejs';
 
 describe('Vote Circuit', function () {
     this.timeout(100000);

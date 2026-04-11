@@ -17,12 +17,13 @@ export enum ElectionType {
 export interface Election {
     id: string;
     name: string;
-    merkleRootHash: string | null;
+    //merkleRootHash: string | null;
     status: ElectionStatus;
     type: ElectionType;
     config?: any;
     startTime: Date | null;
     endTime: Date | null;
+    publicKey: string | null;
     createdAt: Date;
     updatedAt: Date;
     candidates: Candidate[];
@@ -33,7 +34,8 @@ export enum ElectionStatus {
     REGISTRATION_OPEN = 'REGISTRATION_OPEN',
     VOTING_OPEN = 'VOTING_OPEN',
     VOTING_CLOSED = 'VOTING_CLOSED',
-    TALLIED = 'TALLIED'
+    TALLIED = 'TALLIED',
+    FINISHED = "FINISHED"
 }
 
 export interface EligibleVoter {
@@ -54,8 +56,10 @@ export interface VoterEligibilityRequest {
 export interface VoterEligibilityResponse {
     eligible: boolean;
     election: Election | null;
-    merkleRootHash: string | null;
-    merkleProof: string[];
+    isRegistered: boolean;
+    hasVoted: boolean;
+    // merkleRootHash: string | null;
+    // merkleProof: string[];
     leafIndex?: number;
     reason?: string;
 }
@@ -69,7 +73,7 @@ export interface VoteSubmission {
     electionId: string;
     encryptedVote: string;
     zkProof: ZKProof;
-    merkleProof: string[];
+    //merkleProof: string[];
 }
 
 export interface ElectionState {
@@ -77,4 +81,26 @@ export interface ElectionState {
     currentElection: Election | null;
     loading: boolean;
     error: string | null;
+}
+
+export interface VoteServiceTally {
+    tally: Record<string, number>;
+    totalVotes: number;
+    totalEligibleVoters: number;
+    candidates: (Candidate & { voteCount: number })[];
+    result: {
+        type?: string;
+        winner?: Candidate;
+        winners?: Candidate[];
+        threshold?: number;
+        tie?: boolean;
+        note?: string;
+        isElected?: boolean;
+    };
+}
+
+export interface AdminSummaryResponse {
+  election: Election;
+  totalVotes: number;
+  tally: VoteServiceTally;
 }
