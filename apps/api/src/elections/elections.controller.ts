@@ -7,6 +7,7 @@ import {
   Patch,
   Delete,
   UseGuards,
+  Query
 } from '@nestjs/common';
 import { ElectionsService } from './elections.service';
 import { CandidatesService } from './candidates.service';
@@ -108,8 +109,27 @@ export class ElectionsController {
     return this.electionsService.listEligibleVoters(id);
   }
 
-  @Get(':id/results') 
+  @Get(':id/results')
   async getPublicResults(@Param('id') id: string) {
     return this.electionsService.getPublicResults(id);
   }
+
+  // Lottery
+  @Get(':id/lottery/draw')
+  @UseGuards(JwtAuthGuard, AdminGuard) 
+  async drawLottery(
+    @Param('id') id: string,
+    @Query('count') count: string,
+  ) {
+    const drawCount = parseInt(count, 10) || 1;
+    return this.electionsService.drawLottery(id, drawCount);
+  }
+
+  @Get(':id/lottery')
+  async getLottery(
+    @Param('id') id: string,
+  ) {
+    return this.electionsService.getLottery(id);
+  }
+
 }

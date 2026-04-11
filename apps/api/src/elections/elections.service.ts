@@ -109,8 +109,83 @@ export class ElectionsService {
     return { success: true };
   }
 
+  async importEligibleVoters(electionId: string, dto: ImportEligibleVotersDto) {
+    const election = await this.findOne(electionId);
+    this.assertCanModifyElection(election);
 
+    const lines = dto.csv.trim().split(/\r?\n/);
 
+    // 如果 CreateEligibleVoterDto 報錯，請去那個 DTO 檔案裡加上 studentIdHash: string
+    const voters: any[] = [];
+
+    for (const line of lines) {
+      const [studentId, className] = line.split(',').map((s) => s.trim());
+      if (studentId && className) {
+
+        // 在這裡算出 Hash 值
+        const studentIdHash = await this.hashStudentId(studentId);
+
+        voters.push({
+          studentId,
+          class: className,
+          electionId,
+          studentIdHash // 把算好的 Hash 塞進去
+        });
+      }
+    }
+
+    const created = await this.prisma.eligibleVoter.createMany({
+      data: voters,
+      skipDuplicates: true,
+    });
+
+    return { imported: created.count };
+  }
+
+  async listEligibleVoters(electionId: string) {
+    return this.prisma.eligibleVoter.findMany({
+      where: { electionId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async finalizeVoterList(electionId: string) {
+    const election = await this.findOne(electionId);
+    this.assertCanModifyElection(election);
+
+    const voters = await this.prisma.eligibleVoter.findMany({
+      where: { electionId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!voters.length) {
+      throw new BadRequestException('No eligible voters to finalize');
+    }
+
+    // if (!election.merkleRoot) {
+    //   throw new BadRequestException(
+    //     'merkleRoot must be set before finalizing voter list',
+    //   );
+    // }
+
+    return {
+      success: true,
+      totalVoters: voters.length,
+    };
+  }
+  private hashStudentId(studentId: string): string {
+    return crypto.createHash('sha256').update(studentId).digest('hex');
+  }
+
+  // =======================
+  //  Tally Result
+  //    Admin Use
+  //    - getAdminSummary: Tally the election, trigger by admin
+  //    - evaluateElectionRules: Test what the rules should be apply
+  //    - toShareElection: Send the election info to the frontend 
+  //    Public Use
+  //    - getPublicResults: return the election result for public after election is finished
+  // =======================
   async getAdminSummary(id: string): Promise<AdminSummaryResponse> {
     // 1. Fetch election with sensitive keys and candidates
     const election = await this.prisma.election.findUnique({
@@ -281,75 +356,6 @@ export class ElectionsService {
     } as SharedElection;
   }
 
-  async importEligibleVoters(electionId: string, dto: ImportEligibleVotersDto) {
-    const election = await this.findOne(electionId);
-    this.assertCanModifyElection(election);
-
-    const lines = dto.csv.trim().split(/\r?\n/);
-
-    // 如果 CreateEligibleVoterDto 報錯，請去那個 DTO 檔案裡加上 studentIdHash: string
-    const voters: any[] = [];
-
-    for (const line of lines) {
-      const [studentId, className] = line.split(',').map((s) => s.trim());
-      if (studentId && className) {
-
-        // 在這裡算出 Hash 值
-        const studentIdHash = await this.hashStudentId(studentId);
-
-        voters.push({
-          studentId,
-          class: className,
-          electionId,
-          studentIdHash // 把算好的 Hash 塞進去
-        });
-      }
-    }
-
-    const created = await this.prisma.eligibleVoter.createMany({
-      data: voters,
-      skipDuplicates: true,
-    });
-
-    return { imported: created.count };
-  }
-
-  async listEligibleVoters(electionId: string) {
-    return this.prisma.eligibleVoter.findMany({
-      where: { electionId },
-      orderBy: { createdAt: 'asc' },
-    });
-  }
-
-  async finalizeVoterList(electionId: string) {
-    const election = await this.findOne(electionId);
-    this.assertCanModifyElection(election);
-
-    const voters = await this.prisma.eligibleVoter.findMany({
-      where: { electionId },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    if (!voters.length) {
-      throw new BadRequestException('No eligible voters to finalize');
-    }
-
-    // if (!election.merkleRoot) {
-    //   throw new BadRequestException(
-    //     'merkleRoot must be set before finalizing voter list',
-    //   );
-    // }
-
-    return {
-      success: true,
-      totalVoters: voters.length,
-    };
-  }
-  private hashStudentId(studentId: string): string {
-    return crypto.createHash('sha256').update(studentId).digest('hex');
-  }
-
-  // The result for public user to get
   async getPublicResults(id: string) {
     const election = await this.prisma.election.findUnique({
       where: { id },
@@ -370,6 +376,103 @@ export class ElectionsService {
       election: this.toSharedElection(election),
       totalVotes: cachedData?.totalVotes || 0,
       tally: cachedData // 完美對齊你前端的 VoteServiceTally 格式
+    };
+  }
+
+  // =======================
+  //  Lottery
+  //    Admin Use
+  //    -  
+  //    Public Use
+  //    - 
+  // =======================
+  // 加上這個抽獎函數
+  async drawLottery(electionId: string, count: number) {
+    // 1. Make sure N is possible
+    if (count <= 0) throw new BadRequestException('The lottery number should bigger than 0');
+
+    // 2. Take datas from userVoteKey
+    const votedKeys = await this.prisma.userVoteKey.findMany({
+      where: {
+        electionId: electionId,
+        hasVoted: true
+      }
+    });
+    this.logger.log(`[Lottery]: electionID ${electionId}`);
+    if (votedKeys.length === 0) {
+      throw new BadRequestException('No one vote, can not be draw');
+    }
+
+    const votedStudentIds = votedKeys.map(key => key.hashedID);
+
+    // 3. Join to the table eligibleVoter
+    const participants = await this.prisma.eligibleVoter.findMany({
+      where: {
+        studentIdHash: { in: votedStudentIds },
+        electionId: electionId
+      },
+      select: { studentId: true }
+    });
+
+    if (count > participants.length) {
+      throw new BadRequestException(`Wish have ${count}, but only ${participants.length} qulified`);
+    }
+
+    // 3. Shuffle the person
+    const shuffled = [...participants];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    // 4. 取出前 N 名的學號
+    const winners = shuffled.slice(0, count).map(p => p.studentId);
+
+    // 5. Insert to table
+    await this.prisma.$transaction(async (tx) => {
+      // // 選擇性功能：如果允許「重新抽獎」，就先刪除這場選舉舊的得獎名單
+      // await tx.lottery.deleteMany({
+      //   where: { electionId: electionId }
+      // });
+
+      await tx.lottery.createMany({
+        data: winners.map(studentId => ({
+          electionId: electionId,
+          studentId: studentId,
+        }))
+      });
+    });
+
+    await this.prisma.election.update({
+      where: { id: electionId },
+      data: {
+        hasDrawLottery: true,
+        participantsCount: participants.length
+      },
+    });
+    return;
+  }
+
+  async getLottery(electionId: string) {
+    const election = await this.prisma.election.findFirst({
+      where: {
+        id: electionId
+      }
+    });
+
+    const participantsCount = election?.participantsCount;
+
+    const winners = await this.prisma.lottery.findMany({
+      where: {
+        electionId: electionId
+      }
+    });
+
+    return {
+      electionId,
+      totalParticipants: participantsCount,
+      drawCount: winners.length,
+      winners: winners.map(w => w.studentId),
     };
   }
 }

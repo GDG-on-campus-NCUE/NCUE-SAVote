@@ -142,15 +142,16 @@ model Election {
   type        ElectionType @default(PRESIDENTIAL)
   config      Json? // Stores specific rules (thresholds, seats, etc.)
 
-  // ZK Config
-  //merkleRoot      String?         @db.VarChar(100) // Root of the voter tree at snapshot time
-  //merkleTreeDepth Int             @default(20)
+  status         ElectionStatus @default(DRAFT)
+  hasDrawLottery Boolean        @default(false)
 
-  status    ElectionStatus @default(DRAFT)
+  participantsCount   Int?
+  eiligibleCount Int?
+
   startTime DateTime?
   endTime   DateTime?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   finalResult Json?
 
@@ -163,6 +164,7 @@ model Election {
   candidates     Candidate[]
   votes          Vote[]
   userVoteKeys   UserVoteKey[]
+  lotteryWinners Lottery[]
 
   @@index([status])
   @@index([startTime, endTime])
@@ -261,4 +263,18 @@ model UserVoteKey {
   @@unique([hashedID, electionId])
   @@index([electionId])
   @@map("user_vote_key")
+}
+
+// ============================================================================
+// Lottery Entity
+// ============================================================================
+// Stores the lottery winner after the draw.
+
+model Lottery {
+  id        String   @id @default(uuid())
+  studentId String
+  createdAt DateTime @default(now())
+
+  electionId String
+  election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
 }

@@ -3,7 +3,7 @@ import { useNavigate, Link, Outlet } from 'react-router-dom';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { Navigation, NavItem } from '../m3/Navigation';
 import { ThemeToggle } from '../m3/ThemeToggle';
-import { Home, Settings, LogOut, BookOpen, LockKeyhole, LayoutDashboard, User, Activity } from 'lucide-react';
+import { Home, Settings, LogOut, BookOpen, LockKeyhole, LayoutDashboard, User, Activity, Coins } from 'lucide-react';
 import { Button } from '../m3/Button';
 import { InstallPrompt } from '../InstallPrompt';
 import { UserRole } from '@savote/shared-types';
@@ -44,61 +44,79 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const actualNavItems: NavItem[] = [];
 
     if (isAdmin) {
-        actualNavItems.push({ 
-            label: '總覽', 
-            icon: <LayoutDashboard className="w-6 h-6" strokeWidth={1.5} />, 
-            activeIcon: <LayoutDashboard className="w-6 h-6" strokeWidth={2.5} />, 
+        actualNavItems.push({
+            label: '總覽',
+            icon: <LayoutDashboard className="w-6 h-6" strokeWidth={1.5} />,
+            activeIcon: <LayoutDashboard className="w-6 h-6" strokeWidth={2.5} />,
             to: '/admin',
             end: true
         });
+
+        actualNavItems.push({
+            label: '選舉管理',
+            icon: <Settings className="w-6 h-6" strokeWidth={1.5} />,
+            activeIcon: <Settings className="w-6 h-6" strokeWidth={2.5} />,
+            to: '/admin/elections'
+        });
+
+        actualNavItems.push({
+            label: '選舉人',
+            icon: <User className="w-6 h-6" strokeWidth={1.5} />,
+            activeIcon: <User className="w-6 h-6" strokeWidth={2.5} />,
+            to: '/admin/voters'
+        });
+
+        actualNavItems.push({
+            label: '開票',
+            icon: <Activity className="w-6 h-6" strokeWidth={1.5} />,
+            activeIcon: <Activity className="w-6 h-6" strokeWidth={2.5} />,
+            to: '/admin/monitoring'
+        });
+
+        actualNavItems.push({
+            label: '抽獎',
+            icon: <Coins className="w-6 h-6" strokeWidth={1.5} />,
+            activeIcon: <Coins className="w-6 h-6" strokeWidth={2.5} />,
+            to: '/admin/lottery'
+        });
+
+        actualNavItems.push({
+            label: '權限管理',
+            icon: <LockKeyhole className="w-6 h-6" strokeWidth={1.5} />,
+            activeIcon: <LockKeyhole className="w-6 h-6" strokeWidth={2.5} />,
+            to: '/admin/accounts'
+        });
+
         
-        actualNavItems.push({ 
-            label: '選舉管理', 
-            icon: <Settings className="w-6 h-6" strokeWidth={1.5} />, 
-            activeIcon: <Settings className="w-6 h-6" strokeWidth={2.5} />, 
-            to: '/admin/elections' 
-        });
-
-        actualNavItems.push({ 
-            label: '選舉人', 
-            icon: <User className="w-6 h-6" strokeWidth={1.5} />, 
-            activeIcon: <User className="w-6 h-6" strokeWidth={2.5} />, 
-            to: '/admin/voters' 
-        });
-
-        actualNavItems.push({ 
-            label: '開票監控', 
-            icon: <Activity className="w-6 h-6" strokeWidth={1.5} />, 
-            activeIcon: <Activity className="w-6 h-6" strokeWidth={2.5} />, 
-            to: '/admin/monitoring' 
-        });
-
-        actualNavItems.push({ 
-            label: '權限管理', 
-            icon: <LockKeyhole className="w-6 h-6" strokeWidth={1.5} />, 
-            activeIcon: <LockKeyhole className="w-6 h-6" strokeWidth={2.5} />, 
-            to: '/admin/accounts' 
-        });
     } else {
-        actualNavItems.push({ 
-            label: '首頁', 
-            icon: <Home className="w-6 h-6" strokeWidth={1.5} />, 
-            activeIcon: <Home className="w-6 h-6" strokeWidth={2.5} />, 
+        actualNavItems.push({
+            label: '首頁',
+            icon: <Home className="w-6 h-6" strokeWidth={1.5} />,
+            activeIcon: <Home className="w-6 h-6" strokeWidth={2.5} />,
             to: '/',
             end: true
         });
-        
-        actualNavItems.push({ 
-            label: '指南', 
-            icon: <BookOpen className="w-6 h-6" strokeWidth={1.5} />, 
-            activeIcon: <BookOpen className="w-6 h-6" strokeWidth={2.5} />, 
-            to: '/info/guide' 
+
+        actualNavItems.push({
+            label: '指南',
+            icon: <BookOpen className="w-6 h-6" strokeWidth={1.5} />,
+            activeIcon: <BookOpen className="w-6 h-6" strokeWidth={2.5} />,
+            to: '/info/guide'
         });
+
+        actualNavItems.push({
+            label: '抽獎清單',
+            icon: <Coins className="w-6 h-6" strokeWidth={1.5} />,
+            activeIcon: <Coins className="w-6 h-6" strokeWidth={2.5} />,
+            to: '/lottery'
+        });
+
+        
     }
 
     const TopBar = () => (
         <header className="fixed top-0 left-0 right-0 h-20 bg-[var(--color-surface)]/80 backdrop-blur-xl z-40 border-b border-[var(--color-outline-variant)]/20 px-4 md:px-8 flex items-center justify-between transition-colors duration-500 md:pl-[104px]">
-             <Link to={isAdmin ? "/admin" : "/"} className="flex items-center gap-4 animate-fade-in hover:opacity-80 transition-opacity">
+            <Link to={isAdmin ? "/admin" : "/"} className="flex items-center gap-4 animate-fade-in hover:opacity-80 transition-opacity">
                 <img src="/sa_logo.webp" alt="Logo" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
                 <div className="flex flex-col">
                     <h1 className="text-base md:text-lg font-bold text-[var(--color-on-surface)] leading-tight tracking-tight">
@@ -108,39 +126,39 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                         NCUE Student Association
                     </span>
                 </div>
-             </Link>
+            </Link>
 
-             <div className="flex items-center gap-3">
-                 {user && (
-                     <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-full bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)]/30">
-                         <div className="flex flex-col items-end">
+            <div className="flex items-center gap-3">
+                {user && (
+                    <div className="hidden lg:flex items-center gap-3 px-4 py-2 rounded-full bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)]/30">
+                        <div className="flex flex-col items-end">
                             <span className="text-xs font-bold text-[var(--color-on-surface)]">
                                 {user.name || 'User'}
                             </span>
                             <span className="text-[10px] text-[var(--color-on-surface-variant)] opacity-70">
                                 {user.role}
                             </span>
-                         </div>
-                         <div className="w-8 h-8 rounded-full bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] flex items-center justify-center">
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] flex items-center justify-center">
                             <User className="w-4 h-4" />
-                         </div>
-                     </div>
-                 )}
-                 <div className="flex items-center gap-1">
+                        </div>
+                    </div>
+                )}
+                <div className="flex items-center gap-1">
                     <ThemeToggle />
                     <Button variant="text" onClick={handleLogout} className="ml-1 text-[var(--color-error)] hover:bg-[var(--color-error)]/10" icon={<LogOut className="w-4 h-4" />}>
                         <span className="hidden sm:inline text-xs font-bold">登出</span>
                     </Button>
-                 </div>
-             </div>
+                </div>
+            </div>
         </header>
     );
 
     return (
         <div className="min-h-screen bg-[var(--color-surface)] text-[var(--color-on-surface)] transition-colors duration-500 select-none overflow-x-hidden w-full">
-            <Navigation 
-                items={actualNavItems} 
-                orientation="vertical" 
+            <Navigation
+                items={actualNavItems}
+                orientation="vertical"
                 onItemClick={(to) => {
                     if (to === '/admin/accounts') {
                         return handleNavClick(UserRole.SUPER_ADMIN);

@@ -15,7 +15,9 @@ const HomePage = lazy(() => import("./features/home/pages/HomePage").then(m => (
 const VotingBooth = lazy(() => import("./features/voting/pages/VotingBooth").then(m => ({ default: m.VotingBooth })));
 const VoteSuccess = lazy(() => import("./features/voting/pages/VoteSuccess").then(m => ({ default: m.VoteSuccess })));
 //const KeySetupPage = lazy(() => import("./features/voting/pages/KeySetupPage").then(m => ({ default: m.KeySetupPage })));
+const LotteryPage = lazy(() => import("./features/voting/pages/LotteryPage").then(m => ({ default: m.LotteryPage})))
 
+const AdminLotteryPage = lazy(() => import("./features/admin/pages/AdminLotteryPage").then(m => ({ default: m.AdminLotteryPage })));
 const AdminDashboardPage = lazy(() => import("./features/admin/pages/AdminDashboardPage").then(m => ({ default: m.AdminDashboardPage })));
 const ElectionManagementPage = lazy(() => import("./features/admin/pages/ElectionManagementPage").then(m => ({ default: m.ElectionManagementPage })));
 const CandidateManagementPage = lazy(() => import("./features/admin/pages/CandidateManagementPage").then(m => ({ default: m.CandidateManagementPage })));
@@ -43,13 +45,14 @@ function App() {
               <Route path="/auth/callback" element={<CallbackPage />} />
               <Route path="/auth/error" element={<AuthError />} />
               <Route path="/info/bulletin" element={<ElectionBulletinPage />} />
-              <Route path="/:electionId/results" element={< PublicResultsPage/>} />
-
+              
               {/* Protected Voter Routes with Persistent Layout */}
               <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/vote/:electionId" element={<VotingBooth />} />
                 <Route path="/vote/success" element={<VoteSuccess />} />
+                <Route path="/:electionId/results" element={< PublicResultsPage />} />
+                <Route path="/lottery" element={< LotteryPage />} />
               </Route>
 
               {/* Protected Admin Routes with Persistent Layout */}
@@ -59,6 +62,7 @@ function App() {
                 <Route path="/admin/elections/:electionId/candidates" element={<CandidateManagementPage />} />
                 <Route path="/admin/voters" element={<VoterManagementPage />} />
                 <Route path="/admin/monitoring" element={<AdminMonitoringPage />} />
+                <Route path="/admin/lottery" element={<AdminLotteryPage />} />
               </Route>
 
               {/* Super Admin Only with Persistent Layout */}
