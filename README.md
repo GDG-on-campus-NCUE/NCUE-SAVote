@@ -44,7 +44,7 @@ sudo ./deploy.sh
 | `ADMIN_OIDC_ISSUER` | 管理員 Synology SSO 發行者 URL |
 | `INITIAL_SUPER_ADMIN_SUB` | 預設超級管理員的 Synology UID (sub) |
 | `INITIAL_SUPER_ADMIN_NAME` | 預設超級管理員姓名 |
-| `CORS_ORIGIN` | 系統對外網域 (e.g. https://election.ncuesa.org.tw) |
+| `CORS_ORIGIN` | 系統對外網域 (e.g. https://sa-election.ncue.edu.tw) |
 
 ---
 
