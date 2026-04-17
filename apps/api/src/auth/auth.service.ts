@@ -42,7 +42,7 @@ export class AuthService {
     userAgent: string,
   ): Promise<LoginResponse> {
     const rawStudentId = userinfo.preferred_username || userinfo.sub;
-    if (!rawStudentId) { 
+    if (!rawStudentId) {
       throw new UnauthorizedException('Student ID not found in OIDC info');
     }
 
@@ -63,6 +63,7 @@ export class AuthService {
       },
       create: {
         studentIdHash,
+        synologySub: cleanStudentId,
         class: userClass,
         email,
         name,
@@ -107,41 +108,38 @@ export class AuthService {
     }
 
     // 2. Sync with User table
-    let user = await this.prisma.user.findUnique({ where: { synologySub } });
-    const isNewUser = !user;
+    const studentIdHash = crypto.createHash('sha256').update(synologySub).digest('hex');
 
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          synologySub,
-          name: permission.name || userinfo.name || 'Admin',
-          email: userinfo.email || null,
-          role: permission.role,
-          studentIdHash: '',
-        },
-      });
-    } else {
-      user = await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          role: permission.role,
-          name: permission.name || userinfo.name || user.name,
-          lastLoginIp: ipAddress,
-        },
-      });
-    }
+    //const userClass = (userinfo['class'] || userinfo['ou'] || 'UNKNOWN') as string;
+
+    const admin = await this.prisma.user.upsert({
+      where: { studentIdHash },
+      update: {
+        role: permission.role,
+        name: permission.name || userinfo.name || undefined,
+        lastLoginIp: ipAddress,
+      },
+      create: {
+        studentIdHash: studentIdHash,
+        synologySub,
+        name: permission.name || userinfo.name || 'Admin',
+        email: userinfo.email || null,
+        role: permission.role,
+      },
+    });
 
     // 3. Log admin login
     await this.prisma.adminLoginLog.create({
-      data: { userId: user.id, ipAddress },
+      data: { userId: admin.id, ipAddress },
     });
 
-    const tokens = await this.generateTokens(user, ipAddress, userAgent);
+    const isNewUser = admin.createdAt.getTime() === admin.updatedAt.getTime();
+    const tokens = await this.generateTokens(admin, ipAddress, userAgent);
 
     return {
       ...tokens,
       isNewUser,
-      user: this.mapToUserProfile(user, ipAddress),
+      user: this.mapToUserProfile(admin, ipAddress),
     };
   }
 
