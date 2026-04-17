@@ -68,8 +68,8 @@ export function AdminSettingsPage() {
     }
   };
 
-  const voterCallbackUrl = "https://election.ncuesa.org.tw/api/auth/callback";
-  const adminCallbackUrl = "https://election.ncuesa.org.tw/api/auth/admin/callback";
+  const voterCallbackUrl = "https://sa-election.ncue.edu.tw/api/auth/callback";
+  const adminCallbackUrl = "https://sa-election.ncue.edu.tw/api/auth/admin/callback";
 
   if (isLoading) {
     return (

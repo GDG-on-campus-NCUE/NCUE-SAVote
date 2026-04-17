@@ -55,7 +55,7 @@ async function bootstrap() {
     origin: [
       process.env.CORS_ORIGIN,
       'http://localhost:5173',
-      'https://election.ncuesa.org.tw',
+      'https://sa-election.ncue.edu.tw',
     ].filter((origin): origin is string => !!origin),
     credentials: true,
   });

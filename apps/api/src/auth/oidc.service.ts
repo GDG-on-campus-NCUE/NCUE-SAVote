@@ -40,7 +40,7 @@ export class OidcService implements OnModuleInit {
   }
 
   private getCallbackUrl(type: OidcType): string {
-    const origin = process.env.CORS_ORIGIN || 'https://election.ncuesa.org.tw';
+    const origin = process.env.CORS_ORIGIN || 'https://sa-election.ncue.edu.tw';
     return type === OidcType.VOTER 
       ? `${origin}/api/auth/callback` 
       : `${origin}/api/auth/admin/callback`;
