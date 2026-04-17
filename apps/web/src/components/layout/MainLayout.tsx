@@ -19,6 +19,7 @@ import { Button } from "../m3/Button";
 import { InstallPrompt } from "../InstallPrompt";
 import { UserRole } from "@savote/shared-types";
 import { useToastStore } from "../../stores/toastStore";
+import { useLocation } from "react-router-dom";
 
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -28,6 +29,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const addToast = useToastStore((state) => state.addToast);
+
+  // In your component
+  const location = useLocation();
+
+  // Check if the current path is under the admin section
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   const isAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
@@ -55,7 +62,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const actualNavItems: NavItem[] = [];
 
-  if (isAdmin) {
+  if (isAdmin && isAdminRoute) {
     actualNavItems.push({
       label: "後台總覽",
       icon: <LayoutDashboard className="w-6 h-6" strokeWidth={1.5} />,
@@ -78,19 +85,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       to: "/admin/voters",
     });
 
-        actualNavItems.push({ 
-            label: "開票監控", 
-            icon: <Activity className="w-6 h-6" strokeWidth={1.5} />, 
-            activeIcon: <Activity className="w-6 h-6" strokeWidth={2.5} />, 
-            to: "/admin/monitoring" 
-        });
+    actualNavItems.push({
+      label: "開票監控",
+      icon: <Activity className="w-6 h-6" strokeWidth={1.5} />,
+      activeIcon: <Activity className="w-6 h-6" strokeWidth={2.5} />,
+      to: "/admin/monitoring"
+    });
 
-        actualNavItems.push({
-            label: '抽獎',
-            icon: <Coins className="w-6 h-6" strokeWidth={1.5} />,
-            activeIcon: <Coins className="w-6 h-6" strokeWidth={2.5} />,
-            to: '/admin/lottery'
-        });
+    actualNavItems.push({
+      label: '抽獎',
+      icon: <Coins className="w-6 h-6" strokeWidth={1.5} />,
+      activeIcon: <Coins className="w-6 h-6" strokeWidth={2.5} />,
+      to: '/admin/lottery'
+    });
 
     actualNavItems.push({
       label: "權限管理",
