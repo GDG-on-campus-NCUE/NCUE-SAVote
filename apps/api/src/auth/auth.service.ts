@@ -46,7 +46,7 @@ export class AuthService {
       throw new UnauthorizedException('Student ID not found in OIDC info');
     }
 
-    const cleanStudentId = rawStudentId.replace('NCUESA\\', '').trim().toUpperCase();
+    const cleanStudentId = rawStudentId.replace('NCUESA\\', '').trim();
 
     const studentIdHash = crypto.createHash('sha256').update(cleanStudentId).digest('hex');
 
