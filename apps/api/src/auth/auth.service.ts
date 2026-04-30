@@ -41,10 +41,8 @@ export class AuthService {
     ipAddress: string,
     userAgent: string,
   ): Promise<LoginResponse> {
-    console.log('=== NetIQ Userinfo ===', userinfo);
     const rawStudentId = userinfo.nickname || userinfo.preferred_username || userinfo.sub;
     if (!rawStudentId) {
-      console.log('== NOT FOUND USER');
       throw new UnauthorizedException('Student ID not found in OIDC info');
     }
 
@@ -54,7 +52,9 @@ export class AuthService {
 
     const userClass = (userinfo['class'] || userinfo['ou'] || 'UNKNOWN') as string;
     const email = userinfo.email || null;
-    const name = userinfo.name || userinfo.preferred_username || null;
+    const familyName = (userinfo.family_name as string) || '';
+    const givenName = (userinfo.given_name as string) || '';
+    const name = `${familyName}${givenName}`.trim() || userinfo.name || userinfo.preferred_username || null;
 
     const user = await this.prisma.user.upsert({
       where: { studentIdHash },
