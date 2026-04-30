@@ -41,7 +41,7 @@ export class AuthService {
     ipAddress: string,
     userAgent: string,
   ): Promise<LoginResponse> {
-    const rawStudentId = userinfo.preferred_username || userinfo.sub;
+    const rawStudentId = userinfo.preferred_username || userinfo.sub || userinfo.profile;
     if (!rawStudentId) {
       throw new UnauthorizedException('Student ID not found in OIDC info');
     }
