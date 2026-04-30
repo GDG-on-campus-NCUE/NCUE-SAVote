@@ -44,6 +44,7 @@ export class AuthService {
     console.log('=== NetIQ Userinfo ===', userinfo);
     const rawStudentId = userinfo.nickname || userinfo.preferred_username || userinfo.sub;
     if (!rawStudentId) {
+      console.log('== NOT FOUND USER');
       throw new UnauthorizedException('Student ID not found in OIDC info');
     }
 
