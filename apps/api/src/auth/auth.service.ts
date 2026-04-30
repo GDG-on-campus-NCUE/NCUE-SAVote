@@ -41,6 +41,7 @@ export class AuthService {
     ipAddress: string,
     userAgent: string,
   ): Promise<LoginResponse> {
+    console.log('=== NetIQ Userinfo ===', userinfo);
     const rawStudentId = userinfo.nickname || userinfo.preferred_username || userinfo.sub;
     if (!rawStudentId) {
       throw new UnauthorizedException('Student ID not found in OIDC info');
