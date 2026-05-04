@@ -122,7 +122,7 @@ export class ElectionsController {
     @Query('count') count: string,
   ) {
     const drawCount = parseInt(count, 10) || 1;
-    return this.electionsService.drawLottery(id, drawCount);
+    return this.electionsService.handleLottery(id, drawCount);
   }
 
   @Get(':id/lottery')
