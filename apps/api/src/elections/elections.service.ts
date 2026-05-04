@@ -387,7 +387,7 @@ export class ElectionsService {
   //    - 
   // =======================
   async handleLottery(electionId: string, count: number) {
-    const election = this.prisma.election.findUnique({
+    const election = await this.prisma.election.findUnique({
       where: {
         id: electionId
       }
