@@ -386,7 +386,21 @@ export class ElectionsService {
   //    Public Use
   //    - 
   // =======================
-  // 加上這個抽獎函數
+  async handleLottery(electionId: string, count: number) {
+    const election = this.prisma.election.findUnique({
+      where: {
+        id: electionId
+      }
+    });
+    if (!election) throw new NotFoundException('Election not found');
+    if (election.hasDrawLottery) {
+      return this.getLottery(electionId);
+    }
+    else {
+      return this.drawLottery(electionId, count);
+    }
+  }
+
   async drawLottery(electionId: string, count: number) {
     // 1. Make sure N is possible
     if (count <= 0) throw new BadRequestException('The lottery number should bigger than 0');
