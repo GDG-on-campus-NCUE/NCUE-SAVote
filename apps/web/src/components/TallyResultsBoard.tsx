@@ -89,7 +89,7 @@ export function TallyResultsBoard({ summary }: Props) {
             </div>
             <div>
               <h4 className="type-title-medium font-bold text-[var(--color-on-surface)]">勝選條件</h4>
-              <p className="text-xs text-[var(--color-on-surface-variant)] opacity-70">依照國立彰化師範大學選罷法規定</p>
+              <p className="text-xs text-[var(--color-on-surface-variant)] opacity-70">依照「國立彰化師範大學學生會選舉罷免暨推舉自治條例」規定</p>
             </div>
           </div>
           <p className="text-lg font-bold text-[var(--color-on-surface)] leading-relaxed bg-[var(--color-surface-container-high)] p-4 rounded-xl border border-[var(--color-outline-variant)]/30">
