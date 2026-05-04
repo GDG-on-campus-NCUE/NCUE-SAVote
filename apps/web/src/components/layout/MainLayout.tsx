@@ -7,7 +7,7 @@ import {
   Home,
   Settings,
   LogOut,
-  BookOpen,
+  //BookOpen,
   LockKeyhole,
   LayoutDashboard,
   User,
