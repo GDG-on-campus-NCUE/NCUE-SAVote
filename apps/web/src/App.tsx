@@ -30,6 +30,15 @@ const PublicResultsPage = lazy(() => import("./features/voting/pages/PublicResul
 
 // Auth Error (Static import to ensure it shows up immediately on failure)
 import { AuthError } from "./components/AuthError";
+import { useAuth } from "./features/auth/hooks/useAuth";
+
+const BulletinWrapper = () => {
+  const { isAuthenticated } = useAuth();
+  if (isAuthenticated) {
+    return <MainLayout><ElectionBulletinPage /></MainLayout>;
+  }
+  return <ElectionBulletinPage />;
+};
 
 const queryClient = new QueryClient();
 
@@ -45,7 +54,7 @@ function App() {
               <Route path="/auth/login" element={<LoginPage />} />
               <Route path="/auth/callback" element={<CallbackPage />} />
               <Route path="/auth/error" element={<AuthError />} />
-              <Route path="/info/bulletin" element={<ElectionBulletinPage />} />
+              <Route path="/info/bulletin" element={<BulletinWrapper />} />
 
               {/* Protected Voter Routes with Persistent Layout */}
               <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
