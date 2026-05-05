@@ -75,7 +75,7 @@ export const HomePage = () => {
                             <Card 
                                 key={election.id} 
                                 variant="elevated" 
-                                className="group flex flex-col h-full rounded-xl overflow-hidden border border-[var(--color-outline-variant)]/20 hover:-translate-y-1 transition-all duration-500 bg-[var(--color-surface)]"
+                                className="group flex flex-col h-full rounded-2xl overflow-hidden border border-[var(--color-outline-variant)]/20 hover:-translate-y-2 hover:shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] bg-[var(--color-surface)]"
                             >
                                 {/* Card Header / Status */}
                                 <div className="relative h-32 overflow-hidden bg-[var(--color-surface-container-high)]">

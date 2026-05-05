@@ -49,7 +49,7 @@ export function ElectionBulletinPage() {
 
               <Link to="/auth/login" className="md:hidden">
                   <Button variant="tonal" size="sm" className="rounded-full px-4 font-bold" icon={<ArrowLeft className="w-4 h-4" />}>
-                      返回首頁
+                      返回
                   </Button>
               </Link>
           </div>
@@ -68,28 +68,28 @@ export function ElectionBulletinPage() {
 
       {/* Main Content Area - Adjust padding for responsive header */}
       <main className={`flex-1 overflow-hidden ${!isAuthenticated ? 'pt-[136px] md:pt-20' : ''}`}>
-        <div className={`h-full max-w-7xl mx-auto px-4 ${!isAuthenticated ? 'md:px-12' : ''} py-6 md:py-8 flex flex-col md:flex-row gap-8`}>
-            
+        <div className={`h-full max-w-7xl mx-auto px-4 ${!isAuthenticated ? 'md:px-12' : ''} py-4 md:py-8 flex flex-col md:flex-row gap-6 md:gap-8`}>
+
             {/* List Side */}
-            <div className={`flex-1 flex flex-col gap-6 ${selectedElection ? 'hidden lg:flex' : 'flex'}`}>
+            <div className={`flex-1 flex flex-col gap-4 md:gap-6 ${selectedElection ? 'hidden lg:flex' : 'flex'}`}>
                 {isAuthenticated && (
                    <header className="flex flex-col gap-3 mb-2">
                       <div className="flex items-center gap-3">
                           <div className="h-8 w-1.5 bg-[var(--color-primary)] rounded-full" />
-                          <h2 className="text-3xl md:text-4xl font-bold text-[var(--color-on-surface)] tracking-tight">
+                          <h2 className="text-2xl md:text-4xl font-bold text-[var(--color-on-surface)] tracking-tight">
                               選舉公報
                           </h2>
                       </div>
                   </header>
                 )}
-                
+
                 <div className="flex items-center justify-between px-2">
-                    <h2 className="type-title-medium font-bold text-[var(--color-primary)] uppercase tracking-widest">
+                    <h2 className="type-title-small md:type-title-medium font-bold text-[var(--color-primary)] uppercase tracking-widest">
                         正式公報列表 ({bulletins.length})
                     </h2>
                 </div>
 
-                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                <div className="flex-1 overflow-y-auto pr-1 md:pr-2 custom-scrollbar space-y-3 md:space-y-4">
                     {isLoading ? (
                         [1,2,3].map(i => <div key={i} className="h-24 bg-[var(--color-surface-container-low)] rounded-xl animate-pulse" />)
                     ) : bulletins.length === 0 ? (
@@ -102,26 +102,26 @@ export function ElectionBulletinPage() {
                             <div 
                                 key={election.id}
                                 onClick={() => setSelectedElection(election)}
-                                className={`p-6 rounded-xl border cursor-pointer transition-all duration-300 flex items-center gap-5 group ${
+                                className={`p-4 md:p-6 rounded-xl border cursor-pointer transition-all duration-300 flex items-center gap-4 md:gap-5 group ${
                                     selectedElection?.id === election.id 
                                         ? 'bg-[var(--color-primary-container)] border-[var(--color-primary)] elevation-1' 
                                         : 'bg-[var(--color-surface-container-low)] border-transparent hover:bg-[var(--color-surface-container-high)]'
                                 }`}
                             >
-                                <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                                <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center shrink-0 transition-all ${
                                     selectedElection?.id === election.id 
                                         ? 'bg-[var(--color-primary)] text-[var(--color-on-primary)]' 
                                         : 'bg-[var(--color-surface-container-highest)] text-[var(--color-on-surface-variant)] group-hover:scale-105'
                                 }`}>
-                                    <FileText className="w-7 h-7" />
+                                    <FileText className="w-6 h-6 md:w-7 md:h-7" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h3 className={`text-lg font-bold truncate mb-1 ${
+                                    <h3 className={`text-base md:text-lg font-bold truncate mb-1 ${
                                         selectedElection?.id === election.id ? 'text-[var(--color-on-primary-container)]' : 'text-[var(--color-on-surface)]'
                                     }`}>
                                         {election.name}
                                     </h3>
-                                    <div className="flex items-center gap-3 text-xs font-medium opacity-60">
+                                    <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-xs font-medium opacity-60">
                                         <span className="flex items-center gap-1">
                                             <Calendar className="w-3 h-3" />
                                             {new Date(election.startTime!).toLocaleDateString()}
@@ -140,33 +140,36 @@ export function ElectionBulletinPage() {
             </div>
 
             {/* Preview Side */}
-            <div className={`flex-[1.5] h-full flex flex-col gap-6 ${!selectedElection ? 'hidden lg:flex' : 'flex'}`}>
+            <div className={`flex-[1.5] h-full flex flex-col gap-4 md:gap-6 ${!selectedElection ? 'hidden lg:flex' : 'flex'}`}>
                 {selectedElection ? (
                     <div className="h-full flex flex-col animate-slide-up">
-                        <div className="flex items-center justify-between mb-4 lg:mb-6 px-2">
-                            <div className="flex items-center gap-3">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 lg:mb-6 px-2">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <Button 
                                     variant="text" 
-                                    className="lg:hidden p-0 w-10 h-10 min-w-0" 
+                                    className="lg:hidden p-0 w-10 h-10 min-w-0 shrink-0" 
                                     onClick={() => setSelectedElection(null)}
                                     icon={<ArrowLeft className="w-5 h-5" />}
                                 />
-                                <h2 className="text-xl font-black text-[var(--color-on-surface)] line-clamp-1">
+                                <h2 className="text-lg md:text-xl font-black text-[var(--color-on-surface)] break-words leading-tight">
                                     {selectedElection.name}
                                 </h2>
                             </div>
-                            <a 
-                                href={(selectedElection.config as any).bulletinUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                            >
-                                <Button variant="tonal" size="sm" icon={<ExternalLink className="w-4 h-4" />} className="rounded-xl px-4">
-                                    在新分頁開啟
-                                </Button>
-                            </a>
+                            <div className="flex items-center gap-2 shrink-0 self-end md:self-auto">
+                                <a 
+                                    href={(selectedElection.config as any).bulletinUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="w-full md:w-auto"
+                                >
+                                    <Button variant="tonal" size="sm" icon={<ExternalLink className="w-4 h-4" />} className="rounded-xl px-4 w-full">
+                                        新分頁開啟
+                                    </Button>
+                                </a>
+                            </div>
                         </div>
 
-                        <div className="flex-1 rounded-xl border border-[var(--color-outline-variant)] overflow-hidden bg-black/5 elevation-1">
+                        <div className="flex-1 rounded-2xl border border-[var(--color-outline-variant)] overflow-hidden bg-black/5 elevation-1 relative">
                             <iframe 
                                 src={(selectedElection.config as any).bulletinUrl.replace('/view', '/preview')} 
                                 className="w-full h-full border-none"
@@ -175,12 +178,12 @@ export function ElectionBulletinPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-[var(--color-surface-container-low)] rounded-xl border border-dashed border-[var(--color-outline-variant)] opacity-60">
-                        <div className="p-8 rounded-full bg-[var(--color-surface-container-high)] mb-6">
-                            <Info className="w-16 h-16 text-[var(--color-outline)]" />
+                    <div className="h-full flex flex-col items-center justify-center text-center p-8 md:p-12 bg-[var(--color-surface-container-low)] rounded-2xl border border-dashed border-[var(--color-outline-variant)] opacity-60">
+                        <div className="p-6 md:p-8 rounded-full bg-[var(--color-surface-container-high)] mb-6">
+                            <Info className="w-12 h-12 md:w-16 md:h-16 text-[var(--color-outline)]" />
                         </div>
-                        <h3 className="text-2xl font-bold text-[var(--color-on-surface)] mb-2">請選擇選舉名稱</h3>
-                        <p className="max-w-xs font-medium">點擊左側列表中的選舉，即可在此即時預覽其正式公報內容。</p>
+                        <h3 className="text-xl md:text-2xl font-bold text-[var(--color-on-surface)] mb-2">請選擇選舉名稱</h3>
+                        <p className="max-w-xs font-medium text-sm md:text-base">點擊左側列表中的選舉，即可在此即時預覽其正式公報內容。</p>
                     </div>
                 )}
             </div>
