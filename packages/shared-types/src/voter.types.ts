@@ -17,7 +17,7 @@ export enum ElectionType {
 export interface Election {
     id: string;
     name: string;
-    //merkleRootHash: string | null;
+    isVisible: boolean;
     status: ElectionStatus;
     type: ElectionType;
     config?: any;

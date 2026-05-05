@@ -25,7 +25,8 @@ export const API_ENDPOINTS = {
     VERIFY: '/voters/verify-eligibility',
   },
   ELECTIONS: {
-    LIST: '/elections',
+    ALLLIST: '/elections',
+    LIST: '/elections/visible',
     CREATE: '/elections',
     GET: (id: string) => `/elections/${id}`,
   },

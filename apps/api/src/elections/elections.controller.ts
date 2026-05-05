@@ -39,6 +39,11 @@ export class ElectionsController {
     return this.electionsService.findAll();
   }
 
+  @Get('visible')
+  findVisibleAll() {
+    return this.electionsService.findVisibleAll();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.electionsService.findOne(id);
@@ -57,6 +62,15 @@ export class ElectionsController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   remove(@Param('id') id: string) {
     return this.electionsService.remove(id);
+  }
+
+  @Patch(':id/visibility')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async updateVisibility(
+    @Param('id') id: string,
+    @Body('isVisible') isVisible: boolean,
+  ) {
+    return this.electionsService.updateVisibility(id, isVisible);
   }
 
   // --- Candidate Management ---
@@ -116,7 +130,7 @@ export class ElectionsController {
 
   // Lottery
   @Get(':id/lottery/draw')
-  @UseGuards(JwtAuthGuard, AdminGuard) 
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async drawLottery(
     @Param('id') id: string,
     @Query('count') count: string,
