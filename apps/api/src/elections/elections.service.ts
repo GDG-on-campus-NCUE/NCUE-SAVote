@@ -79,7 +79,14 @@ export class ElectionsService {
       orderBy: { createdAt: 'desc' },
     });
   }
-
+  async findVisibleAll() {
+    return this.prisma.election.findMany({
+      where: {
+        isVisible: true
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
   async findOne(id: string) {
     const election = await this.prisma.election.findUnique({ where: { id } });
     if (!election) throw new NotFoundException('Election not found');
@@ -175,6 +182,16 @@ export class ElectionsService {
   }
   private hashStudentId(studentId: string): string {
     return crypto.createHash('sha256').update(studentId).digest('hex');
+  }
+
+  async updateVisibility(id: string, isVisible: boolean) {
+    const election = await this.prisma.election.findUnique({ where: { id } });
+    if (!election) throw new NotFoundException('Election not found');
+
+    return this.prisma.election.update({
+      where: { id },
+      data: { isVisible },
+    });
   }
 
   // =======================
@@ -393,6 +410,10 @@ export class ElectionsService {
       }
     });
     if (!election) throw new NotFoundException('Election not found');
+    if (election.status !== 'TALLIED' && election.status !== 'FINISHED') {
+      throw new ForbiddenException('選舉尚未結束，請耐心等候！');
+    }
+
     if (election.hasDrawLottery) {
       return this.getLottery(electionId);
     }

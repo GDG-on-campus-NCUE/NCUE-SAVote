@@ -144,9 +144,10 @@ model Election {
 
   status         ElectionStatus @default(DRAFT)
   hasDrawLottery Boolean        @default(false)
+  isVisible      Boolean        @default(true)
 
-  participantsCount   Int?
-  eiligibleCount Int?
+  participantsCount Int?
+  eiligibleCount    Int?
 
   startTime DateTime?
   endTime   DateTime?

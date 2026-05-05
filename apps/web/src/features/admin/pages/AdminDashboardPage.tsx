@@ -6,7 +6,9 @@ import {
     Users, 
     Activity, 
     ShieldCheck, 
-    ArrowUpRight
+    ArrowUpRight,
+    Coins,
+    SlidersHorizontal
 } from 'lucide-react';
 import { UserRole } from '@savote/shared-types';
 
@@ -44,10 +46,24 @@ export function AdminDashboardPage() {
           stat: 'Live'
       },
       {
+          title: '抽獎',
+          description: '管理抽獎清單',
+          icon: <Coins className="w-7 h-7" />,
+          to: '/admin/lottery',
+          stat: 'Lottery'
+      },
+      {
           title: '權限管理',
           description: '管理後台管理員與超級管理員帳號權限與登入記錄。',
           icon: <ShieldCheck className="w-7 h-7" />,
           to: '/admin/accounts',
+          stat: 'Admin Only'
+      },
+      {
+          title: '系統設定',
+          description: '設定後台OIDC URL資訊',
+          icon: <SlidersHorizontal className="w-7 h-7" />,
+          to: '/admin/settings',
           stat: 'Admin Only'
       }
   ];

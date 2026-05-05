@@ -34,6 +34,11 @@ export function AdminLotteryPage() {
         },
     });
 
+    const now = new Date();
+    const monitorableElections = elections.filter(
+        (e) => e.endTime && now > new Date(e.endTime)
+    );
+
     const handleDraw = async () => {
         if (!selectedElectionId || drawCount <= 0) return;
         setIsDrawing(true);
@@ -88,7 +93,7 @@ export function AdminLotteryPage() {
                                     }}
                                 >
                                     <option value="">請選擇選舉...</option>
-                                    {elections.map((election) => (
+                                    {monitorableElections.map((election) => (
                                         <option key={election.id} value={election.id}>
                                             {election.name}
                                         </option>

@@ -4,6 +4,7 @@ import { useAuth } from "../../features/auth/hooks/useAuth";
 import { Navigation, NavItem } from "../m3/Navigation";
 import { ThemeToggle } from "../m3/ThemeToggle";
 import {
+  Shield,
   Home,
   Settings,
   LogOut,
@@ -127,7 +128,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     //   label: "系統說明",
     //   icon: <BookOpen className="w-6 h-6" strokeWidth={1.5} />,
     //   activeIcon: <BookOpen className="w-6 h-6" strokeWidth={2.5} />,
-    //   to: "/info/guide",
+    //   to: "",
     // });
   }
 
@@ -170,6 +171,21 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         )}
         <div className="flex items-center gap-1">
           <ThemeToggle />
+
+          {/* 只有 SUPER_ADMIN 才看得到這個切換按鈕 */}
+          {user?.role === 'SUPER_ADMIN' && (
+            <Button
+              variant="text"
+              onClick={() => navigate(isAdminRoute ? '/' : '/admin')}
+              className="ml-1 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10"
+              icon={isAdminRoute ? <Home className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+            >
+              <span className="hidden sm:inline text-xs font-bold">
+                {isAdminRoute ? '回首頁' : '前往後台'}
+              </span>
+            </Button>
+          )}
+
           <Button
             variant="text"
             onClick={handleLogout}

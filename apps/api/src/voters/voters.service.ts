@@ -356,6 +356,7 @@ export class VotersService {
       startTime: election.startTime,
       endTime: election.endTime,
       publicKey: election.publicKey,
+      isVisible: true,
       //privateKey: null,
       createdAt: election.createdAt,
       updatedAt: election.updatedAt,
