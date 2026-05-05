@@ -6,6 +6,7 @@ import { type Election, ElectionType } from '@savote/shared-types';
 import { Button } from '../../../components/m3/Button';
 import { FileText, ExternalLink, Info, Calendar, ChevronRight, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 export const ELECTION_TYPE_LABELS: Record<string, string> = {
   [ElectionType.PRESIDENTIAL]: '正副會長選舉',
@@ -15,6 +16,7 @@ export const ELECTION_TYPE_LABELS: Record<string, string> = {
 
 export function ElectionBulletinPage() {
   const [selectedElection, setSelectedElection] = useState<Election | null>(null);
+  const { isAuthenticated } = useAuth();
 
   const { data: elections = [], isLoading } = useQuery({
     queryKey: ['public', 'elections'],
@@ -27,47 +29,60 @@ export function ElectionBulletinPage() {
   const bulletins = elections.filter(e => (e.config as any)?.bulletinUrl);
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[var(--color-surface)] overflow-hidden animate-fade-in select-none">
+    <div className={`flex flex-col ${isAuthenticated ? 'h-[calc(100dvh-220px)] md:h-[calc(100dvh-160px)]' : 'h-[100dvh]'} bg-[var(--color-surface)] overflow-hidden animate-fade-in select-none`}>
       
-      {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 bg-[var(--color-surface)]/95 backdrop-blur-xl z-40 border-b border-[var(--color-outline-variant)]/20 px-4 md:px-8 py-3 md:h-20 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors duration-500">
-        <div className="flex items-center justify-between w-full md:w-auto">
-            <Link to="/auth/login" className="flex items-center gap-3 md:gap-4 hover:opacity-80 transition-opacity">
-                <img src="/sa_logo.webp" alt="Logo" className="w-10 h-10 md:w-14 md:h-14 object-contain" />
-                <div className="flex flex-col">
-                    <h1 className="text-sm md:text-xl font-bold text-[var(--color-on-surface)] leading-tight tracking-tight">
-                        國立彰化師範大學學生會
-                    </h1>
-                    <span className="text-[9px] md:text-[11px] text-[var(--color-primary)] font-bold tracking-[0.1em] uppercase opacity-90">
-                        NCUE Student Association
-                    </span>
-                </div>
-            </Link>
+      {/* Fixed Header - Only show if not authenticated */}
+      {!isAuthenticated && (
+        <header className="fixed top-0 left-0 right-0 bg-[var(--color-surface)]/95 backdrop-blur-xl z-40 border-b border-[var(--color-outline-variant)]/20 px-4 md:px-8 py-3 md:h-20 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors duration-500">
+          <div className="flex items-center justify-between w-full md:w-auto">
+              <Link to="/auth/login" className="flex items-center gap-3 md:gap-4 hover:opacity-80 transition-opacity">
+                  <img src="/sa_logo.webp" alt="Logo" className="w-10 h-10 md:w-14 md:h-14 object-contain" />
+                  <div className="flex flex-col">
+                      <h1 className="text-sm md:text-xl font-bold text-[var(--color-on-surface)] leading-tight tracking-tight">
+                          國立彰化師範大學學生會
+                      </h1>
+                      <span className="text-[9px] md:text-[11px] text-[var(--color-primary)] font-bold tracking-[0.1em] uppercase opacity-90">
+                          NCUE Student Association
+                      </span>
+                  </div>
+              </Link>
 
-            <Link to="/auth/login" className="md:hidden">
-                <Button variant="tonal" size="sm" className="rounded-full px-4 font-bold" icon={<ArrowLeft className="w-4 h-4" />}>
-                    返回首頁
-                </Button>
-            </Link>
-        </div>
+              <Link to="/auth/login" className="md:hidden">
+                  <Button variant="tonal" size="sm" className="rounded-full px-4 font-bold" icon={<ArrowLeft className="w-4 h-4" />}>
+                      返回首頁
+                  </Button>
+              </Link>
+          </div>
 
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-6 w-full md:w-auto">
-            <h2 className="hidden lg:block text-lg font-bold text-[var(--color-primary)] tracking-wider whitespace-nowrap">選舉公報</h2>
-            
-            <Link to="/auth/login" className="hidden md:block">
-                <Button variant="tonal" className="rounded-xl font-bold px-5" icon={<ArrowLeft className="w-4 h-4" />}>
-                    返回首頁
-                </Button>
-            </Link>
-        </div>
-      </header>
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-6 w-full md:w-auto">
+              <h2 className="hidden lg:block text-lg font-bold text-[var(--color-primary)] tracking-wider whitespace-nowrap">選舉公報</h2>
+              
+              <Link to="/auth/login" className="hidden md:block">
+                  <Button variant="tonal" className="rounded-xl font-bold px-5" icon={<ArrowLeft className="w-4 h-4" />}>
+                      返回首頁
+                  </Button>
+              </Link>
+          </div>
+        </header>
+      )}
 
       {/* Main Content Area - Adjust padding for responsive header */}
-      <main className="flex-1 overflow-hidden pt-[136px] md:pt-20">
-        <div className="h-full max-w-7xl mx-auto px-4 md:px-12 py-6 md:py-8 flex flex-col md:flex-row gap-8">
+      <main className={`flex-1 overflow-hidden ${!isAuthenticated ? 'pt-[136px] md:pt-20' : ''}`}>
+        <div className={`h-full max-w-7xl mx-auto px-4 ${!isAuthenticated ? 'md:px-12' : ''} py-6 md:py-8 flex flex-col md:flex-row gap-8`}>
             
             {/* List Side */}
             <div className={`flex-1 flex flex-col gap-6 ${selectedElection ? 'hidden lg:flex' : 'flex'}`}>
+                {isAuthenticated && (
+                   <header className="flex flex-col gap-3 mb-2">
+                      <div className="flex items-center gap-3">
+                          <div className="h-8 w-1.5 bg-[var(--color-primary)] rounded-full" />
+                          <h2 className="text-3xl md:text-4xl font-bold text-[var(--color-on-surface)] tracking-tight">
+                              選舉公報
+                          </h2>
+                      </div>
+                  </header>
+                )}
+                
                 <div className="flex items-center justify-between px-2">
                     <h2 className="type-title-medium font-bold text-[var(--color-primary)] uppercase tracking-widest">
                         正式公報列表 ({bulletins.length})
