@@ -32,7 +32,7 @@ export function ElectionBulletinPage() {
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 bg-[var(--color-surface)]/95 backdrop-blur-xl z-40 border-b border-[var(--color-outline-variant)]/20 px-4 md:px-8 py-3 md:h-20 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors duration-500">
         <div className="flex items-center justify-between w-full md:w-auto">
-            <Link to="/login" className="flex items-center gap-3 md:gap-4 hover:opacity-80 transition-opacity">
+            <Link to="/auth/login" className="flex items-center gap-3 md:gap-4 hover:opacity-80 transition-opacity">
                 <img src="/sa_logo.webp" alt="Logo" className="w-10 h-10 md:w-14 md:h-14 object-contain" />
                 <div className="flex flex-col">
                     <h1 className="text-sm md:text-xl font-bold text-[var(--color-on-surface)] leading-tight tracking-tight">
@@ -44,7 +44,7 @@ export function ElectionBulletinPage() {
                 </div>
             </Link>
 
-            <Link to="/login" className="md:hidden">
+            <Link to="/auth/login" className="md:hidden">
                 <Button variant="tonal" size="sm" className="rounded-full px-4 font-bold" icon={<ArrowLeft className="w-4 h-4" />}>
                     返回首頁
                 </Button>
@@ -54,7 +54,7 @@ export function ElectionBulletinPage() {
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-6 w-full md:w-auto">
             <h2 className="hidden lg:block text-lg font-bold text-[var(--color-primary)] tracking-wider whitespace-nowrap">選舉公報</h2>
             
-            <Link to="/login" className="hidden md:block">
+            <Link to="/auth/login" className="hidden md:block">
                 <Button variant="tonal" className="rounded-xl font-bold px-5" icon={<ArrowLeft className="w-4 h-4" />}>
                     返回首頁
                 </Button>

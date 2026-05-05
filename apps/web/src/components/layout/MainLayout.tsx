@@ -14,7 +14,8 @@ import {
   User,
   Activity,
   SlidersHorizontal,
-  Coins
+  Coins,
+  FileText
 } from "lucide-react";
 import { Button } from "../m3/Button";
 import { InstallPrompt } from "../InstallPrompt";
@@ -124,12 +125,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       end: true,
     });
 
-    // actualNavItems.push({
-    //   label: "系統說明",
-    //   icon: <BookOpen className="w-6 h-6" strokeWidth={1.5} />,
-    //   activeIcon: <BookOpen className="w-6 h-6" strokeWidth={2.5} />,
-    //   to: "",
-    // });
+    actualNavItems.push({
+      label: "選舉公報",
+      icon: <FileText className="w-6 h-6" strokeWidth={1.5} />,
+      activeIcon: <FileText className="w-6 h-6" strokeWidth={2.5} />,
+      to: "/info/bulletin",
+    });
   }
 
   const TopBar = () => (

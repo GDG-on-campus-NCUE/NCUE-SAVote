@@ -2,7 +2,7 @@
 
 ## 1. 系統概述 (System Overview)
 
-SAVote 是一個專為 NCUESA (國立彰化師範大學學生會) 設計的去中心化投票系統，採用 **Hybrid Architecture**，結合中心化的身份驗證 (SSO) 與去中心化的 **Groth16 零知識證明 (ZKP)** 技術，確保投票的「隱私性」與「可驗證性」。
+SAVote 是一個專為 NCUESA (國立彰化師範大學學生會) 設計的投票系統，採用 **Hybrid Architecture**，結合中心化的身份驗證 (SSO) 與 **Groth16 零知識證明 (ZKP)** 技術，確保投票的「隱私性」與「可驗證性」。
 
 ### 核心技術 (Core Technologies)
 

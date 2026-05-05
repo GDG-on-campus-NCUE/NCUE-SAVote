@@ -16,7 +16,7 @@ export function UserGuideContent() {
     },
     {
       title: '端對端加密投票與分散式存證',
-      desc: '選票經由高強度非對稱加密後傳輸，並寫入去中心化帳本存證。一旦完成提交，內容即具備不可竄改性與公開可稽核性，確保選舉過程絕對公正、透明。',
+      desc: '選票經由高強度非對稱加密函數加密。一旦完成提交，內容即具備不可竄改性與公開可稽核性，確保選舉過程絕對公正、透明。',
       icon: <Database className="w-6 h-6 md:w-7 md:h-7" />,
       color: 'bg-[var(--color-tertiary-container)] text-[var(--color-on-tertiary-container)]',
     }
@@ -77,7 +77,7 @@ export function UserGuideContent() {
         <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-[var(--color-surface-container-high)] border border-[var(--color-outline-variant)]/50">
           <Lock className="w-4 h-4 text-[var(--color-primary)]" />
           <span className="text-[var(--color-on-surface-variant)] text-xs md:text-sm font-medium">
-            基於後量子密碼學技術標準，確保所有選票均受到端對端隱私保護。
+            基於密碼學技術標準，確保所有選票均受到端對端隱私保護。
           </span>
         </div>
       </div>

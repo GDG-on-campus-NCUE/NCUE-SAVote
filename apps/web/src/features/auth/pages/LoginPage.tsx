@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "../../../components/m3/ThemeToggle";
-import { LockKeyhole, GraduationCap, ArrowRight, FileText, ShieldCheck, ChevronRight } from "lucide-react";
+import { GraduationCap, ArrowRight, FileText, ShieldCheck, ChevronRight } from "lucide-react";
 import { UserGuideContent } from "../../info/components/UserGuideContent";
 import { Dialog } from "../../../components/m3/Dialog";
 import { Button } from "../../../components/m3/Button";
@@ -10,10 +10,10 @@ export const LoginPage = () => {
   const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
-  const handleAdminLogin = () => {
-    sessionStorage.setItem('loginIntent', 'admin');
-    window.location.href = `${API_URL}/auth/admin/login`;
-  };
+//   const handleAdminLogin = () => {
+//     sessionStorage.setItem('loginIntent', 'admin');
+//     window.location.href = `${API_URL}/auth/admin/login`;
+//   };
 
   const handleSSOClick = () => {
     setIsGuideOpen(true);
@@ -47,7 +47,7 @@ export const LoginPage = () => {
                     國立彰化師範大學學生會
                 </h1>
                 <p className="type-headline-small text-[var(--color-primary)] font-medium tracking-[0.25em] mb-10 opacity-80">
-                    去中心化投票系統
+                    學生選舉系統
                 </p>
                 <div className="w-24 h-1 bg-[var(--color-primary-container)] rounded-full opacity-40" />
             </div>
@@ -76,7 +76,7 @@ export const LoginPage = () => {
                     國立彰化師範大學學生會
                 </h2>
                 <p className="type-title-medium text-[var(--color-primary)] tracking-[0.2em] font-medium mt-1">
-                    去中心化投票系統
+                    學生選舉系統
                 </p>
             </div>
 
@@ -101,7 +101,7 @@ export const LoginPage = () => {
                         >
                             <span className="text-lg font-medium flex items-center gap-4">
                                 <GraduationCap className="w-7 h-7" />
-                                彰師 SSO 登入
+                                單一簽入 登入
                             </span>
                             <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center group-hover:translate-x-1 transition-transform">
                                 <ChevronRight className="w-7 h-7" />
@@ -118,22 +118,22 @@ export const LoginPage = () => {
                     </div>
 
                     {/* Divider */}
-                    <div className="relative flex items-center my-10">
+                    {/* <div className="relative flex items-center my-10">
                         <div className="grow h-[1px] bg-[var(--color-outline-variant)]/30" />
                         <span className="px-5 text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-[0.2em] opacity-40">
                             Admin Access
                         </span>
                         <div className="grow h-[1px] bg-[var(--color-outline-variant)]/30" />
-                    </div>
+                    </div> */}
 
                     {/* Admin Access */}
-                    <button
+                    {/* <button
                         onClick={handleAdminLogin}
                         className="w-full flex items-center justify-center gap-2 h-10 rounded-full text-sm font-medium text-[var(--color-on-surface-variant)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/[0.04] transition-standard opacity-60 hover:opacity-100"
                     >
                         <LockKeyhole className="w-3.5 h-3.5" />
                         系統管理員登入
-                    </button>
+                    </button> */}
                 </div>
             </div>
 
@@ -141,12 +141,12 @@ export const LoginPage = () => {
             <footer className="mt-12 md:mt-16 text-center space-y-5 pb-8 md:pb-0">
                 <div className="flex items-center justify-center gap-3 py-1.5 px-5 rounded-full bg-[var(--color-surface-container-high)] border border-[var(--color-outline-variant)]/20 text-[var(--color-on-surface)] elevation-1 mx-auto w-fit">
                     <ShieldCheck className="w-4 h-4 text-[var(--color-primary)] opacity-80" />
-                    <span className="text-xs font-medium tracking-wide opacity-80">Decentralized Voting System</span>
+                    <span className="text-xs font-medium tracking-wide opacity-80">Student Autonomy Election System</span>
                 </div>
                 
                 <div className="space-y-1.5">
                     <p className="text-sm font-medium text-[var(--color-on-surface-variant)] opacity-70">
-                        &copy; 2026 Developed by Tai Ming Chen
+                        &copy; 2026 Developed by Tai Ming Chen, Kuang Tsung Chiang
                     </p>
                     <p className="text-[11px] font-normal text-[var(--color-outline)] max-w-[280px] mx-auto leading-relaxed opacity-60">
                         Licensed under PolyForm Noncommercial<br/>
