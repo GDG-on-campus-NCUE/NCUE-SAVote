@@ -78,7 +78,7 @@ export function AdminDashboardPage() {
                 </h2>
             </div>
             <p className="text-[var(--color-on-surface-variant)] font-medium opacity-70 ml-4">
-                歡迎使用國立彰化師範大學學生會 去中心化投票系統，請透過以下選單進行操作。
+                歡迎使用國立彰化師範大學學生會 學生選舉系統，請透過以下選單進行操作。
             </p>
         </header>
 
