@@ -5,12 +5,12 @@ import { API_ENDPOINTS } from '../../../lib/constants';
 import { type Election, ElectionType } from '@savote/shared-types';
 import { Card } from '../../../components/m3/Card';
 import { Button } from '../../../components/m3/Button';
-import { AlertCircle, Vote, ChevronRight, Timer, Clock } from 'lucide-react';
+import { AlertCircle, Vote, ChevronRight, Timer, Clock, Lock } from 'lucide-react';
 
 export const ELECTION_TYPE_LABELS: Record<string, string> = {
-  [ElectionType.PRESIDENTIAL]: '正副會長選舉',
-  [ElectionType.DISTRICT_COUNCILOR]: '選區議員選舉',
-  [ElectionType.AT_LARGE_COUNCILOR]: '不分區議員選舉',
+    [ElectionType.PRESIDENTIAL]: '正副會長選舉',
+    [ElectionType.DISTRICT_COUNCILOR]: '選區議員選舉',
+    [ElectionType.AT_LARGE_COUNCILOR]: '不分區議員選舉',
 };
 
 export const HomePage = () => {
@@ -28,10 +28,10 @@ export const HomePage = () => {
         const end = election.endTime ? new Date(election.endTime) : null;
 
         if (!start || !end) return { label: '準備中', color: 'text-gray-500 bg-gray-100', icon: <Timer className="w-3 h-3" />, started: false };
-        
+
         if (now < start) return { label: '即將開始', color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20', icon: <Timer className="w-3 h-3" />, started: false };
-        if (now >= start && now <= end) return { label: '投票進行中', color: 'text-green-600 bg-green-50 dark:bg-green-900/20', icon: <Vote className="w-3 h-3" />, active: true, started: true };
-        return { label: '已結束', color: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20', icon: <Timer className="w-3 h-3" />, started: true };
+        if (now >= start && now <= end) return { label: '投票進行中', color: 'text-green-600 bg-green-50 dark:bg-green-900/20', icon: <Vote className="w-3 h-3" />, active: true, started: true, finished: false };
+        return { label: '已結束', color: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20', icon: <Timer className="w-3 h-3" />, started: true, finished: true };
     };
 
     return (
@@ -50,7 +50,7 @@ export const HomePage = () => {
 
             {isLoading ? (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {[1,2,3].map(i => <div key={i} className="h-72 bg-[var(--color-surface-container-low)] rounded-xl animate-pulse" />)}
+                    {[1, 2, 3].map(i => <div key={i} className="h-72 bg-[var(--color-surface-container-low)] rounded-xl animate-pulse" />)}
                 </div>
             ) : elections.length === 0 ? (
                 <Card className="p-16 text-center flex flex-col items-center gap-6 rounded-xl bg-[var(--color-surface-container-low)] border-2 border-dashed border-[var(--color-outline-variant)] opacity-60">
@@ -72,9 +72,9 @@ export const HomePage = () => {
                         const hasStarted = start && now >= start;
 
                         return (
-                            <Card 
-                                key={election.id} 
-                                variant="elevated" 
+                            <Card
+                                key={election.id}
+                                variant="elevated"
                                 className="group flex flex-col h-full rounded-2xl overflow-hidden border border-[var(--color-outline-variant)]/20 hover:-translate-y-2 hover:shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] bg-[var(--color-surface)]"
                             >
                                 {/* Card Header / Status */}
@@ -99,22 +99,22 @@ export const HomePage = () => {
                                         <Vote className="w-32 h-32" />
                                     </div>
                                 </div>
-                                
+
                                 <div className="p-8 flex-1 flex flex-col">
                                     <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.1em] text-[var(--color-primary)] uppercase mb-3">
                                         <Clock className="w-3 h-3" />
                                         <span>
-                                            {hasStarted 
+                                            {hasStarted
                                                 ? `結束時間：${end ? end.toLocaleString() : '-'}`
                                                 : `開始時間：${start ? start.toLocaleString() : '-'}`
                                             }
                                         </span>
                                     </div>
-                                    
+
                                     <h3 className="text-2xl font-bold mb-3 text-[var(--color-on-surface)] line-clamp-2 leading-tight group-hover:text-[var(--color-primary)] transition-colors" title={election.name}>
                                         {election.name}
                                     </h3>
-                                    
+
                                     <div className="space-y-4 mb-8">
                                         <p className="text-sm text-[var(--color-on-surface-variant)] line-clamp-2 font-medium opacity-80 leading-relaxed">
                                             {(election as any).description || '點擊下方按鈕以參與投票或查看本屆選舉的詳細資訊與即時開票狀況。'}
@@ -128,6 +128,10 @@ export const HomePage = () => {
                                                     進入投票所
                                                 </Button>
                                             </Link>
+                                        ) : status.finished ? (
+                                            <Button disabled className="w-full h-14 rounded-xl font-bold opacity-50 grayscale" icon={<Lock className="w-5 h-5" />}>
+                                                投票結束
+                                            </Button>
                                         ) : (
                                             <Button disabled className="w-full h-14 rounded-xl font-bold opacity-50 grayscale" icon={<Timer className="w-5 h-5" />}>
                                                 尚未開放
