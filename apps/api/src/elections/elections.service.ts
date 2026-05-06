@@ -15,7 +15,7 @@ import type {
   AdminSummaryResponse,
   Election as SharedElection,
 } from '@savote/shared-types';
-import { ElectionStatus, ELECTION_RULES } from '@savote/shared-types';
+import { ElectionStatus, ELECTION_RULES, VOTE_RULES } from '@savote/shared-types';
 
 @Injectable()
 export class ElectionsService {
@@ -230,6 +230,8 @@ export class ElectionsService {
 
     // 4. Decrypt and Tally
     const tallyMap: Record<string, number> = {};
+    let blankVotes = 0;    // 廢票
+    let invalidVotes = 0;  // 系統攻擊異常票
 
     // Initialize tally for all candidates
     election.candidates.forEach(c => {
@@ -249,11 +251,14 @@ export class ElectionsService {
         );
 
         const candidateId = decryptedBuffer.toString('utf8');
-
-        if (tallyMap[candidateId] !== undefined) {
+        if (candidateId === VOTE_RULES.BLANK_VOTE) {
+          blankVotes++;
+        }
+        else if (tallyMap[candidateId] !== undefined) {
           tallyMap[candidateId]++;
         } else {
           // Handle invalid or "None of the above" votes if necessary
+          invalidVotes++;
           this.logger.warn(`Decrypted invalid candidateId: ${candidateId}`);
         }
       } catch (err) {
@@ -270,15 +275,19 @@ export class ElectionsService {
     }));
 
     // 6. Determine the winner
+    const validVotes = totalVotes - blankVotes - invalidVotes;
+
     const ruleEvaluation = this.evaluateElectionRules(
       election.type,
       candidateResults,
-      totalVotes,
+      validVotes,
       totalEligibleVoters
     );
 
     const finalTallyData = {
       tally: tallyMap,
+      blankVotes: blankVotes,
+      invalidVotes: invalidVotes,
       totalVotes: totalVotes,
       totalEligibleVoters: totalEligibleVoters,
       candidates: ruleEvaluation.candidates,
@@ -308,7 +317,7 @@ export class ElectionsService {
   private evaluateElectionRules(
     electionType: string,
     candidates: any[],
-    totalVotes: number,
+    validVotes: number,
     totalEligibleVoters: number
   ) {
     // Fetch rule from config, fallback to zero quota if invalid type
@@ -323,7 +332,7 @@ export class ElectionsService {
       thresholdVotes = Math.ceil(totalEligibleVoters * (rule.walkoverThresholdRate || 0));
     } else if (electionType === 'AT_LARGE_COUNCILOR') {
       // Proportional representation calculation
-      thresholdVotes = Math.ceil(totalVotes * (rule.thresholdRate || 0));
+      thresholdVotes = Math.ceil(validVotes * (rule.thresholdRate || 0));
     }
 
     // 2. Universal core logic: filter, sort, and slice
@@ -337,7 +346,7 @@ export class ElectionsService {
     if (electionType === 'PRESIDENTIAL' && candidateCount <= 1) {
       const ratePct = (rule.walkoverThresholdRate || 0) * 100;
       if (winners.length > 0) {
-        ruleNote = `總投票且跨越 ${ratePct}% 門檻 (需達 ${thresholdVotes} 票)`;
+        ruleNote = `總投票跨越 ${ratePct}% 門檻 (需達 ${thresholdVotes} 票)`;
       } else {
         ruleNote = `無人跨越 ${ratePct}% 門檻 (需達 ${thresholdVotes} 票)，無人當選`;
       }

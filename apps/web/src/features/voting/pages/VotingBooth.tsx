@@ -11,9 +11,9 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { Card } from "../../../components/m3/Card";
 import { Button } from "../../../components/m3/Button";
 import { Dialog } from "../../../components/m3/Dialog";
-import { Check, AlertTriangle, Loader2, X } from "lucide-react";
+import { Check, AlertTriangle, Loader2, X, Ban } from "lucide-react";
 import { encryptWithPublicKey } from "../../../lib/crypto";
-
+import { VOTE_RULES } from '@savote/shared-types';
 import { generateZkSecret, calculateCommitment } from "../../../lib/zk";
 // ZK Secret Generating Function
 
@@ -108,14 +108,11 @@ export const VotingBooth: React.FC = () => {
       // 2. 同步到 React State
       setSecret(existingSecret);
 
-      // 3. 根據後端狀態決定是否要「送出」註冊 (這步保證資料庫的正確性)
+      // 3. 根據後端狀態決定是否要註冊 
       if (!eligibility.isRegistered) {
         try {
           setIsRegisteringKey(true);
 
-          //const normalizedId = normalizeToBigIntString(studentId);
-
-          // 這裡最重要：用上面那個「穩定」的 currentSecret 來算
           const commitment = await calculateCommitment(studentId, existingSecret);
 
           console.log("[DEBUG] Registering Commitment:", commitment);
@@ -148,13 +145,14 @@ export const VotingBooth: React.FC = () => {
     if (
       !electionId ||
       !election?.publicKey ||
-      !selectedCandidate ||
       !secret ||
       !user?.studentIdHash
     ) {
       console.error("Missing required voting parameters or public key");
       return;
     }
+
+    const finalVoteValue = selectedCandidate || VOTE_RULES.BLANK_VOTE;
 
     try {
       const studentIdStr = normalizeToBigIntString(user.studentIdHash);
@@ -177,7 +175,7 @@ export const VotingBooth: React.FC = () => {
 
       // Encrypt the selected candidate using the election's public key
       const encryptedVoteContent = await encryptWithPublicKey(
-        `${selectedCandidate}`,
+        finalVoteValue,
         election.publicKey
       );
 
@@ -314,7 +312,6 @@ export const VotingBooth: React.FC = () => {
           <Button
             variant="fab"
             disabled={
-              !selectedCandidate ||
               isGeneratingProof ||
               submitVoteMutation.isPending
             }
@@ -343,8 +340,12 @@ export const VotingBooth: React.FC = () => {
       <Dialog
         open={isConfirmDialogOpen}
         onClose={() => setIsConfirmDialogOpen(false)}
-        title="確認您的選票"
-        description="您確定要投給這位候選人嗎？此操作送出後將無法撤回。"
+        title={selectedCandidate ? "確認您的選票" : "確認投下廢票"}
+        description={
+          selectedCandidate
+            ? "您確定要投給這位候選人嗎？此操作送出後將無法撤回。"
+            : "您目前尚未圈選任何候選人。若繼續送出，將被計為「廢票」。確定要投下廢票嗎？"
+        }
         icon={<AlertTriangle className="w-8 h-8" />}
         actions={
           <>
@@ -352,18 +353,20 @@ export const VotingBooth: React.FC = () => {
               variant="text"
               onClick={() => setIsConfirmDialogOpen(false)}
             >
-              取消
+              返回修改
             </Button>
             <Button
               onClick={handleVote}
               loading={isGeneratingProof || submitVoteMutation.isPending}
+              // Add a red styling if it's a blank vote warning
+              className={!selectedCandidate ? "bg-[var(--color-error)] text-[var(--color-on-error)]" : ""}
             >
-              送出選票
+              {selectedCandidate ? "送出選票" : "確認投下廢票"}
             </Button>
           </>
         }
       >
-        {selectedCandidateData && (
+        {selectedCandidateData ? (
           <div className="p-4 bg-[var(--color-surface-variant)] rounded-lg flex items-center gap-4 mt-2">
             <div className="w-12 h-12 bg-[var(--color-primary)] rounded-full flex items-center justify-center text-[var(--color-on-primary)] font-bold text-xl">
               {selectedCandidateData.name.charAt(0)}
@@ -374,6 +377,17 @@ export const VotingBooth: React.FC = () => {
               </div>
               <div className="text-lg font-bold text-[var(--color-on-surface)]">
                 {selectedCandidateData.name}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 bg-[var(--color-error-container)]/30 rounded-lg flex items-center gap-4 mt-2 border border-[var(--color-error)]/30">
+            <div className="w-12 h-12 bg-[var(--color-surface-container-high)] rounded-full flex items-center justify-center text-[var(--color-on-surface-variant)]">
+              <Ban className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-lg font-bold text-[var(--color-error)]">
+                均不圈選 (將計為廢票)
               </div>
             </div>
           </div>

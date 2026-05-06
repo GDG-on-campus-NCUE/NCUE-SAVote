@@ -19,3 +19,7 @@ export const ELECTION_RULES: Record<string, ElectionRule> = {
     thresholdRate: 0.01,
   },
 };
+
+export enum VOTE_RULES{
+    BLANK_VOTE = "0" 
+};
