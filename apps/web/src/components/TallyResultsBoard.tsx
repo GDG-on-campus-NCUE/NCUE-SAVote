@@ -7,6 +7,8 @@ import type { Candidate } from "@savote/shared-types";
 export interface VoteServiceTally {
   tally: Record<string, number>;
   totalVotes: number;
+  blankVotes?: number;
+  invalidVotes?: number;
   totalEligibleVoters: number;
   candidates: (Candidate & { voteCount: number })[];
   result: {
@@ -51,9 +53,23 @@ export function TallyResultsBoard({ summary }: Props) {
           <div className="space-y-8">
             <div className="flex flex-col">
               <span className="text-xs font-bold opacity-60 mb-1">總投票數</span>
-              <span className="text-5xl font-black tracking-tighter tabular-nums leading-none">
-                {summary.totalVotes}
-              </span>
+              <div className="flex items-end justify-between">
+                <span className="text-5xl font-black tracking-tighter tabular-nums leading-none">
+                  {summary.totalVotes}
+                </span>
+                <span className="text-sm font-bold opacity-70 mb-1">票</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="bg-[var(--color-on-primary-container)]/5 rounded-xl p-3 border border-[var(--color-on-primary-container)]/10 text-[var(--color-on-primary-container)]">
+                <div className="text-[10px] font-black uppercase tracking-wider opacity-60 mb-1">廢票</div>
+                <div className="text-xl font-black tabular-nums">{summary.tally.blankVotes || 0}</div>
+              </div>
+
+              <div className="bg-[var(--color-error-container)] rounded-xl p-3 border border-[var(--color-error)]/20 text-[var(--color-on-error-container)]">
+                <div className="text-[10px] font-black uppercase tracking-wider opacity-80 mb-1">不合法票</div>
+                <div className="text-xl font-black tabular-nums">{summary.tally.invalidVotes || 0}</div>
+              </div>
             </div>
 
             <div className="flex flex-col border-t border-[var(--color-on-primary-container)]/10 pt-6">
