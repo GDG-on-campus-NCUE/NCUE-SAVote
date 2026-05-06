@@ -262,7 +262,9 @@ export const VotingBooth: React.FC = () => {
               ? "bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]"
               : "hover:bg-[var(--color-surface-variant)]/30"
               }`}
-            onClick={() => setSelectedCandidate(candidate.id)}
+            onClick={() => {
+              setSelectedCandidate((prev) => (prev === candidate.id ? null : candidate.id));
+            }}
           >
             <div className="aspect-video bg-[var(--color-surface-variant)] relative overflow-hidden">
               {/* Photo Placeholder */}

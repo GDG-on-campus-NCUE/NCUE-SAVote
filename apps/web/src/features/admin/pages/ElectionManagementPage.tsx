@@ -100,8 +100,8 @@ export function ElectionManagementPage() {
             name: election.name,
             description: election.description || '',
             type: election.type as ElectionType,
-            startTime: election.startTime ? new Date(election.startTime).toISOString().slice(0, 16) : '',
-            endTime: election.endTime ? new Date(election.endTime).toISOString().slice(0, 16) : '',
+            startTime: formatDateTimeLocal(election.startTime),
+            endTime: formatDateTimeLocal(election.endTime),
             bulletinUrl: (election.config as any)?.bulletinUrl || '',
         });
         setIsCreateOpen(true);
@@ -145,7 +145,7 @@ export function ElectionManagementPage() {
     };
 
     const toggleVisibilityMutation = useMutation({
-        mutationFn: (data: { id: string; isVisible: boolean }) => api.patch(`${API_ENDPOINTS.ELECTIONS.CREATE}/${data.id}/visibility`, {isVisible: data.isVisible}),
+        mutationFn: (data: { id: string; isVisible: boolean }) => api.patch(`${API_ENDPOINTS.ELECTIONS.CREATE}/${data.id}/visibility`, { isVisible: data.isVisible }),
         onSuccess: (data, variables) => {
             // Invalidate the election list to trigger a background refresh
             queryClient.invalidateQueries({ queryKey: ['admin', 'elections'] });
@@ -323,11 +323,11 @@ export function ElectionManagementPage() {
                                                                 </Button>
                                                             </Link>
 
-                                                            
+
                                                             {/* Election Visible with restrict*/}
                                                             {(!election.startTime || new Date() < new Date(election.startTime) || (election.endTime && new Date() > new Date(election.endTime))) && (
                                                                 <>
-                                                                <div className="h-8 w-[1px] bg-[var(--color-outline-variant)]/30 mx-1" />
+                                                                    <div className="h-8 w-[1px] bg-[var(--color-outline-variant)]/30 mx-1" />
                                                                     {election.isVisible ? (
                                                                         <button
                                                                             onClick={() => handleToggleVisibility(election, false)}
@@ -337,7 +337,7 @@ export function ElectionManagementPage() {
                                                                             <Eye className="w-4 h-4" />
                                                                         </button>
                                                                     ) : (
-                                                                        <button                                                                        
+                                                                        <button
                                                                             onClick={() => handleToggleVisibility(election, true)}
                                                                             className="w-10 h-10 rounded-xl hover:bg-[var(--color-primary-container)] hover:text-[var(--color-on-primary-container)] text-[var(--color-on-surface-variant)] transition-all flex items-center justify-center"
                                                                             title="目前為隱藏，點擊設為公開"
@@ -515,14 +515,14 @@ export function ElectionManagementPage() {
                         <TextField
                             label="開始投票時間 (必填)"
                             type="datetime-local"
-                            value={formatDateTimeLocal(formData.startTime)}
+                            value={formData.startTime}
                             onChange={e => setFormData({ ...formData, startTime: e.target.value })}
                             required
                         />
                         <TextField
                             label="結束投票時間 (必填)"
                             type="datetime-local"
-                            value={formatDateTimeLocal(formData.endTime)}
+                            value={formData.endTime}
                             onChange={e => setFormData({ ...formData, endTime: e.target.value })}
                             required
                         />
