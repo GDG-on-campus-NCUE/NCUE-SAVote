@@ -254,7 +254,7 @@ export class ElectionsService {
         if (candidateId === VOTE_RULES.BLANK_VOTE) {
           blankVotes++;
         }
-        if (tallyMap[candidateId] !== undefined) {
+        else if (tallyMap[candidateId] !== undefined) {
           tallyMap[candidateId]++;
         } else {
           // Handle invalid or "None of the above" votes if necessary
