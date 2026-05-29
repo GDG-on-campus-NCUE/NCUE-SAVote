@@ -118,22 +118,22 @@ export const LoginPage = () => {
                     </div>
 
                     {/* Divider */}
-                    {/* <div className="relative flex items-center my-10">
+                    <div className="relative flex items-center my-10">
                         <div className="grow h-[1px] bg-[var(--color-outline-variant)]/30" />
                         <span className="px-5 text-[10px] font-bold text-[var(--color-outline)] uppercase tracking-[0.2em] opacity-40">
                             Admin Access
                         </span>
                         <div className="grow h-[1px] bg-[var(--color-outline-variant)]/30" />
-                    </div> */}
+                    </div>
 
                     {/* Admin Access */}
-                    {/* <button
+                    <button
                         onClick={handleAdminLogin}
                         className="w-full flex items-center justify-center gap-2 h-10 rounded-full text-sm font-medium text-[var(--color-on-surface-variant)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/[0.04] transition-standard opacity-60 hover:opacity-100"
                     >
                         <LockKeyhole className="w-3.5 h-3.5" />
                         系統管理員登入
-                    </button> */}
+                    </button>
                 </div>
             </div>
 
