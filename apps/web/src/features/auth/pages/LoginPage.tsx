@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "../../../components/m3/ThemeToggle";
-import { GraduationCap, ArrowRight, FileText, ShieldCheck, ChevronRight } from "lucide-react";
+import { GraduationCap, ArrowRight, FileText, ShieldCheck, ChevronRight,LockKeyhole  } from "lucide-react";
 import { UserGuideContent } from "../../info/components/UserGuideContent";
 import { Dialog } from "../../../components/m3/Dialog";
 import { Button } from "../../../components/m3/Button";
@@ -10,10 +10,10 @@ export const LoginPage = () => {
   const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
-//   const handleAdminLogin = () => {
-//     sessionStorage.setItem('loginIntent', 'admin');
-//     window.location.href = `${API_URL}/auth/admin/login`;
-//   };
+  const handleAdminLogin = () => {
+    sessionStorage.setItem('loginIntent', 'admin');
+    window.location.href = `${API_URL}/auth/admin/login`;
+  };
 
   const handleSSOClick = () => {
     setIsGuideOpen(true);
